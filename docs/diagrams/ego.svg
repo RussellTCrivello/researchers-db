@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 780" width="1240" height="780" role="img" aria-label="SIRAJ ego network">
+<title>SIRAJ ego network</title>
+<rect width="1240" height="780" fill="#ffffff"/>
+<style>text{font-family:'Segoe UI','Noto Sans Arabic',system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}.t{fill:#16202b;font-size:14px}.s{fill:#6b7785;font-size:11.5px}.b{fill:#3d4a57;font-size:12.5px}.h{font-size:20px;font-weight:800;fill:#16202b}</style>
+<defs><marker id="arrow-2f6f4f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2f6f4f"/></marker><marker id="arrow-1f5d8b" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1f5d8b"/></marker><marker id="arrow-8a5a1f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8a5a1f"/></marker><marker id="arrow-7b3f8f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#7b3f8f"/></marker><marker id="arrow-8b3a3a" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8b3a3a"/></marker><marker id="arrow-4b5563" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#4b5563"/></marker><marker id="arrow-0f766e" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0f766e"/></marker><marker id="arrow-6b7280" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6b7280"/></marker><marker id="arrow-9a6b1f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9a6b1f"/></marker></defs>
+<text x="36" y="46" class="h">The neighbourhood of one person — Dalal b. Abd Allah al-Sadi</text>
+<text x="36" y="70" class="s">Every edge is a stored relationship row; the stamp is its type. This is the same picture the app draws on the record page.</text>
+<line x1="36" y1="88" x2="1204" y2="88" stroke="#c9d3dd"/>
+<path d="M620 430 Q620 322.5 620 215" fill="none" stroke="#1f5d8b" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-1f5d8b)"></path>
+<text x="620" y="282.1" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Graduated From</text>
+<rect x="604" y="203" width="32" height="24" rx="5" fill="#1f5d8b" fill-opacity=".2" stroke="#1f5d8b" stroke-width="2"/>
+<text x="640" y="220" class="s" font-weight="600">University of Chicago</text>
+<text x="640" y="235" class="s" font-size="10.5" fill="#1f5d8b">institution</text>
+<path d="M620 430 Q711.597 347.65 803.194 265.3" fill="none" stroke="#1f5d8b" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-1f5d8b)"></path>
+<text x="740.908" y="315.298" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Graduated From</text>
+<rect x="787.194" y="253.3" width="32" height="24" rx="5" fill="#1f5d8b" fill-opacity=".2" stroke="#1f5d8b" stroke-width="2"/>
+<text x="823.194" y="270.3" class="s" font-weight="600">Heritage Foundation of Joh</text>
+<text x="823.194" y="285.3" class="s" font-size="10.5" fill="#1f5d8b">institution</text>
+<path d="M620 430 Q760.335 411.333 900.67 392.666" fill="none" stroke="#8a5a1f" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<text x="805.242" y="399.359" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Affiliated With</text>
+<polygon points="900.67,375.666 916.67,392.666 900.67,409.666 884.67,392.666" fill="#8a5a1f" fill-opacity=".2" stroke="#8a5a1f" stroke-width="2"/>
+<text x="920.67" y="397.666" class="s" font-weight="600">São Paulo</text>
+<text x="920.67" y="412.666" class="s" font-size="10.5" fill="#8a5a1f">place</text>
+<path d="M620 430 Q743.409 483.75 866.817 537.5" fill="none" stroke="#2f6f4f" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"></path>
+<text x="782.899" y="494.95" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Rival Of</text>
+<circle cx="866.817" cy="537.5" r="15" fill="#2f6f4f" fill-opacity=".2" stroke="#2f6f4f" stroke-width="2"/>
+<text x="886.817" y="542.5" class="s" font-weight="600">Salma b. Khalid al-Farabi</text>
+<text x="886.817" y="557.5" class="s" font-size="10.5" fill="#2f6f4f">person</text>
+<path d="M620 430 Q668.738 531.017 717.476 632.034" fill="none" stroke="#2f6f4f" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"></path>
+<text x="684.334" y="557.342" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Rival Of</text>
+<circle cx="717.476" cy="632.034" r="15" fill="#2f6f4f" fill-opacity=".2" stroke="#2f6f4f" stroke-width="2"/>
+<text x="737.476" y="637.034" class="s" font-weight="600">Isam al-Qurashi</text>
+<text x="737.476" y="652.034" class="s" font-size="10.5" fill="#2f6f4f">person</text>
+<path d="M620 430 Q571.262 531.017 522.524 632.034" fill="none" stroke="#2f6f4f" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"></path>
+<text x="555.666" y="557.342" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Rival Of</text>
+<circle cx="522.524" cy="632.034" r="15" fill="#2f6f4f" fill-opacity=".2" stroke="#2f6f4f" stroke-width="2"/>
+<text x="502.524" y="637.034" class="s" text-anchor="end" font-weight="600">Abd al-Rahman b. Hasan al-</text>
+<text x="502.524" y="652.034" class="s" text-anchor="end" font-size="10.5" fill="#2f6f4f">person</text>
+<path d="M620 430 Q496.591 483.75 373.183 537.5" fill="none" stroke="#2f6f4f" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"></path>
+<text x="457.101" y="494.95" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Supervised By</text>
+<circle cx="373.183" cy="537.5" r="15" fill="#2f6f4f" fill-opacity=".2" stroke="#2f6f4f" stroke-width="2"/>
+<text x="353.183" y="542.5" class="s" text-anchor="end" font-weight="600">Isam b. Muhammad al-Urduni</text>
+<text x="353.183" y="557.5" class="s" text-anchor="end" font-size="10.5" fill="#2f6f4f">person</text>
+<path d="M620 430 Q479.665 411.333 339.33 392.666" fill="none" stroke="#2f6f4f" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"></path>
+<text x="434.758" y="399.359" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Supervised By</text>
+<circle cx="339.33" cy="392.666" r="15" fill="#2f6f4f" fill-opacity=".2" stroke="#2f6f4f" stroke-width="2"/>
+<text x="319.33" y="397.666" class="s" text-anchor="end" font-weight="600">Isam b. Said al-Halabi</text>
+<text x="319.33" y="412.666" class="s" text-anchor="end" font-size="10.5" fill="#2f6f4f">person</text>
+<path d="M620 430 Q528.403 347.65 436.806 265.3" fill="none" stroke="#2f6f4f" stroke-width="1.6" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"></path>
+<text x="499.092" y="315.298" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">Rival Of</text>
+<circle cx="436.806" cy="265.3" r="15" fill="#2f6f4f" fill-opacity=".2" stroke="#2f6f4f" stroke-width="2"/>
+<text x="416.806" y="270.3" class="s" text-anchor="end" font-weight="600">سناء بن مصطفى العبيدي</text>
+<text x="416.806" y="285.3" class="s" text-anchor="end" font-size="10.5" fill="#2f6f4f">person</text>
+<circle cx="620.0" cy="430" r="30" fill="#2f6f4f" fill-opacity=".9" stroke="#2f6f4f" stroke-width="3"/>
+<text x="620" y="482" class="t" text-anchor="middle" font-weight="800">Dalal b. Abd Allah al-Sadi</text>
+<text x="620" y="500" class="s" text-anchor="middle">ego — PERSON</text>
+</svg>

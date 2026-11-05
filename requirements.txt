@@ -1,0 +1,9 @@
+# ---------------------------------------------------------------------------
+# SIRAJ runtime dependencies (install with: python -m pip install -r requirements.txt)
+# Pinned to compatible minor ranges so a fresh Windows install reproduces the
+# tested environment; bump deliberately, then run `python -m pytest -q`.
+# ---------------------------------------------------------------------------
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+python-multipart>=0.0.9,<1.0
+openpyxl>=3.1,<4.0

@@ -1,0 +1,4 @@
+[
+  { "code": "ar", "name": "العربية", "en_name": "Arabic", "dir": "rtl", "default": true },
+  { "code": "en", "name": "English", "en_name": "English", "dir": "ltr" }
+]

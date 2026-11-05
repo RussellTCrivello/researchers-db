@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 800" width="1300" height="800" role="img" aria-label="SIRAJ relationship type graph">
+<title>SIRAJ relationship type graph</title>
+<rect width="1300" height="800" fill="#ffffff"/>
+<style>text{font-family:'Segoe UI','Noto Sans Arabic',system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}.t{fill:#16202b;font-size:14px}.s{fill:#6b7785;font-size:11.5px}.b{fill:#3d4a57;font-size:12.5px}.h{font-size:20px;font-weight:800;fill:#16202b}</style>
+<defs><marker id="arrow-2f6f4f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2f6f4f"/></marker><marker id="arrow-1f5d8b" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1f5d8b"/></marker><marker id="arrow-8a5a1f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8a5a1f"/></marker><marker id="arrow-7b3f8f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#7b3f8f"/></marker><marker id="arrow-8b3a3a" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8b3a3a"/></marker><marker id="arrow-4b5563" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#4b5563"/></marker><marker id="arrow-0f766e" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0f766e"/></marker><marker id="arrow-6b7280" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6b7280"/></marker><marker id="arrow-9a6b1f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9a6b1f"/></marker></defs>
+<text x="36" y="46" class="h">How the entity types connect — live weights</text>
+<text x="36" y="70" class="s">14,569 typed relationships and 29,097 structural links across 28,538 records.</text>
+<line x1="36" y1="88" x2="1264" y2="88" stroke="#c9d3dd"/>
+<path d="M397.24 403.12 Q650 253.12 902.76 403.12" fill="none" stroke="#2f6f4f" stroke-width="8.0" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"><title>18,139 links: 4,481 typed relationships, 13,658 structural</title></path>
+<text x="650" y="321.12" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">18,139</text>
+<path d="M355.796 443.12 Q512.149 463.81 590.444 600.72" fill="none" stroke="#2f6f4f" stroke-width="5.1787081823072585" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"><title>6,464 links: 1,659 typed relationships, 4,805 structural</title></path>
+<text x="492.634" y="485.865" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">6,464</text>
+<circle cx="427.24" cy="399.12" r="26" fill="none" stroke="#2f6f4f" stroke-width="5.0" stroke-opacity=".55"><title>6,023 links: 6,023 typed relationships, 0 structural</title></circle>
+<text x="461.24" y="403.12" class="s" fill="#3d4a57" text-anchor="start" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px">6,023</text>
+<circle cx="1013.32" cy="205.08" r="26" fill="none" stroke="#8b3a3a" stroke-width="4.3" stroke-opacity=".55"><title>4,078 links: 0 typed relationships, 4,078 structural</title></circle>
+<text x="1047.32" y="209.08" class="s" fill="#3d4a57" text-anchor="start" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px">4,078</text>
+<path d="M397.24 369.681 Q542.135 163.702 781.32 242.519" fill="none" stroke="#2f6f4f" stroke-width="3.7270586313598484" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-2f6f4f)"><title>2,753 links: 0 typed relationships, 2,753 structural</title></path>
+<text x="565.707" y="227.901" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">2,753</text>
+<path d="M439.209 249.08 Q514.468 435.327 628.471 600.72" fill="none" stroke="#7b3f8f" stroke-width="3.0828794735058995" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-7b3f8f)"><title>1,606 links: 0 typed relationships, 1,606 structural</title></path>
+<text x="547.423" y="465.01" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">1,606</text>
+<path d="M321.274 363.12 Q356.96 306.1 392.646 249.08" fill="none" stroke="#2f6f4f" stroke-width="2.928671841006275" stroke-opacity=".75" marker-end="url(#arrow-2f6f4f)"><title>1,377 links: 1,377 typed relationships, 0 structural</title></path>
+<text x="356.96" y="299.1" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">1,377</text>
+<path d="M944.204 443.12 Q826.88 521.92 709.556 600.72" fill="none" stroke="#1f5d8b" stroke-width="2.8124171251377494" stroke-opacity=".75" marker-end="url(#arrow-1f5d8b)"><title>1,216 links: 4 typed relationships, 1,212 structural</title></path>
+<text x="826.88" y="514.92" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">1,216</text>
+<circle cx="781" cy="636.72" r="26" fill="none" stroke="#8a5a1f" stroke-width="2.8" stroke-opacity=".55"><title>1,204 links: 219 typed relationships, 985 structural</title></circle>
+<text x="815" y="640.72" class="s" fill="#3d4a57" text-anchor="start" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px">1,204</text>
+<circle cx="1134.76" cy="399.12" r="26" fill="none" stroke="#1f5d8b" stroke-width="2.2" stroke-opacity=".55"><title>509 links: 509 typed relationships, 0 structural</title></circle>
+<text x="1168.76" y="403.12" class="s" fill="#3d4a57" text-anchor="start" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px">509</text>
+<path d="M902.76 369.681 Q663.575 448.498 518.68 242.519" fill="none" stroke="#1f5d8b" stroke-width="1.8957144784614177" stroke-opacity=".75" marker-end="url(#arrow-1f5d8b)"><title>297 links: 297 typed relationships, 0 structural</title></path>
+<text x="767.735" y="384.34" class="s" text-anchor="middle" fill="#3d4a57" font-weight="700" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round">297</text>
+<rect x="201.24" y="369.12" width="190" height="68" rx="14" fill="#2f6f4f" fill-opacity=".12" stroke="#2f6f4f" stroke-width="2.4"/>
+<text x="296.24" y="395.12" class="t" text-anchor="middle" font-weight="800" font-size="13.5" fill="#2f6f4f">PERSONS</text>
+<text x="296.24" y="416.12" class="s" text-anchor="middle" style="direction:rtl;unicode-bidi:plaintext">الأشخاص</text>
+<text x="296.24" y="433.12" class="s" text-anchor="middle" font-weight="700">6,825 records</text>
+<rect x="908.76" y="369.12" width="190" height="68" rx="14" fill="#1f5d8b" fill-opacity=".12" stroke="#1f5d8b" stroke-width="2.4"/>
+<text x="1003.76" y="395.12" class="t" text-anchor="middle" font-weight="800" font-size="13.5" fill="#1f5d8b">INSTITUTIONS</text>
+<text x="1003.76" y="416.12" class="s" text-anchor="middle" style="direction:rtl;unicode-bidi:plaintext">المؤسسات</text>
+<text x="1003.76" y="433.12" class="s" text-anchor="middle" font-weight="700">1,212 records</text>
+<rect x="555" y="606.72" width="190" height="68" rx="14" fill="#8a5a1f" fill-opacity=".12" stroke="#8a5a1f" stroke-width="2.4"/>
+<text x="650" y="632.72" class="t" text-anchor="middle" font-weight="800" font-size="13.5" fill="#8a5a1f">PLACES</text>
+<text x="650" y="653.72" class="s" text-anchor="middle" style="direction:rtl;unicode-bidi:plaintext">الأماكن</text>
+<text x="650" y="670.72" class="s" text-anchor="middle" font-weight="700">1,118 records</text>
+<rect x="322.68" y="175.08" width="190" height="68" rx="14" fill="#7b3f8f" fill-opacity=".12" stroke="#7b3f8f" stroke-width="2.4"/>
+<text x="417.68" y="201.08" class="t" text-anchor="middle" font-weight="800" font-size="13.5" fill="#7b3f8f">EVENTS</text>
+<text x="417.68" y="222.08" class="s" text-anchor="middle" style="direction:rtl;unicode-bidi:plaintext">الأحداث</text>
+<text x="417.68" y="239.08" class="s" text-anchor="middle" font-weight="700">1,606 records</text>
+<rect x="787.32" y="175.08" width="190" height="68" rx="14" fill="#8b3a3a" fill-opacity=".12" stroke="#8b3a3a" stroke-width="2.4"/>
+<text x="882.32" y="201.08" class="t" text-anchor="middle" font-weight="800" font-size="13.5" fill="#8b3a3a">SOURCES</text>
+<text x="882.32" y="222.08" class="s" text-anchor="middle" style="direction:rtl;unicode-bidi:plaintext">المصادر</text>
+<text x="882.32" y="239.08" class="s" text-anchor="middle" font-weight="700">3,208 records</text>
+<rect x="545" y="369.12" width="210" height="68" rx="14" fill="#4b5563" fill-opacity=".12" stroke="#4b5563" stroke-width="2.4"/>
+<text x="650" y="395.12" class="t" text-anchor="middle" font-weight="800" font-size="13.5" fill="#4b5563">RELATIONSHIPS</text>
+<text x="650" y="416.12" class="s" text-anchor="middle" style="direction:rtl;unicode-bidi:plaintext">العلاقات</text>
+<text x="650" y="433.12" class="s" text-anchor="middle" font-weight="700">14,569 records</text>
+<text x="36" y="700" class="s">Edge labels = number of links.  Solid = rows in the relationship table.  Dashed = structural links (affiliation, positions, birthplace, venue, place hierarchy, citations).</text>
+<text x="36" y="724" class="s">Self-loops (person → person, place → place, source → source) are drawn above their node.</text>
+</svg>

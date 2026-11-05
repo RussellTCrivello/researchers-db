@@ -1,0 +1,41 @@
+# ---- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+*.egg-info/
+
+# ---- virtual environments -------------------------------------------------
+.venv/
+venv/
+env/
+
+# ---- application data (keep it out of version control) --------------------
+app/data/
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+# ...except the shipped offline basemap, which is part of the application
+!app/geo/basemap.sqlite
+
+# ---- generated artefacts --------------------------------------------------
+*.zip
+coverage.xml
+.coverage
+htmlcov/
+.smoke/
+*.log
+
+# ---- editors / OS ---------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

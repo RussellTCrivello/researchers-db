@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* Apply a saved collapsed rail before first paint so the sidebar does not flash open. */
+try {
+  if (localStorage.getItem("siraj.sidebar") === "collapsed")
+    document.documentElement.classList.add("sidebar-collapsed");
+} catch (e) {}
+</script>
+<title>SIRAJ · سِراج — Research Registry</title>
+<meta name="description" content="Bilingual registry of researchers, institutions, places and sources.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230f2740'/><path d='M16 6l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2L16 22.5 9.5 25.9l1.3-7.2L5.5 13.6l7.3-1z' fill='%23c9a227'/></svg>">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/views.css">
+<link rel="stylesheet" href="/static/css/viz.css">
+<link rel="stylesheet" href="/static/css/desk.css">
+<link rel="stylesheet" href="/static/css/maplib.css">
+<!-- MapLibre GL JS, served from the application itself: the map must work
+     with no CDN, no tile server and no network at all -->
+<link rel="stylesheet" href="/static/vendor/maplibre-gl.css">
+</head>
+<body>
+<div id="app" class="app">
+
+  <!-- ================= sidebar ================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="34" height="34"><rect width="32" height="32" rx="9" fill="#0f2740"/><path d="M16 6l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2L16 22.5 9.5 25.9l1.3-7.2L5.5 13.6l7.3-1z" fill="#c9a227"/></svg>
+      </div>
+      <div class="brand-text">
+        <strong data-i18n="app.name">SIRAJ</strong>
+        <span data-i18n="app.tagline">Research Registry</span>
+      </div>
+      <button class="icon-btn sidebar-collapse" id="sidebarCollapse" type="button"
+              aria-expanded="true" aria-controls="sidebar" aria-label="طي الشريط الجانبي">
+        <span class="ico" data-icon="panel-left"></span>
+      </button>
+      <button class="icon-btn sidebar-close" id="sidebarClose" aria-label="close">✕</button>
+    </div>
+
+    <nav class="nav" id="nav">
+      <div class="nav-group" data-i18n="nav.workspace">Workspace</div>
+      <a class="nav-item" data-route="dashboard" href="#/dashboard">
+        <span class="ico" data-icon="grid"></span><span data-i18n="nav.dashboard">Dashboard</span>
+      </a>
+      <a class="nav-item" data-route="search" href="#/search">
+        <span class="ico" data-icon="search"></span><span data-i18n="nav.search">Deep search</span>
+      </a>
+      <a class="nav-item" data-route="map" href="#/map">
+        <span class="ico" data-icon="share"></span><span data-i18n="nav.map">Relationship map</span>
+      </a>
+      <a class="nav-item" data-route="desk" href="#/desk">
+        <span class="ico" data-icon="compass"></span><span data-i18n="nav.desk">Map desk</span>
+      </a>
+      <a class="nav-item" data-route="geomap" href="#/geo">
+        <span class="ico" data-icon="globe"></span><span data-i18n="nav.geomap">Geographic map</span>
+      </a>
+      <a class="nav-item" data-route="structures" href="#/structures">
+        <span class="ico" data-icon="layers"></span><span data-i18n="nav.structures">Structures</span>
+      </a>
+      <a class="nav-item" data-route="reports" href="#/reports">
+        <span class="ico" data-icon="chart"></span><span data-i18n="nav.reports">Reports</span>
+      </a>
+
+      <div class="nav-group" data-i18n="nav.entities">Entities</div>
+      <div id="entityNav"></div>
+
+      <div class="nav-group" data-i18n="nav.data">Data operations</div>
+      <a class="nav-item" data-route="import" href="#/import">
+        <span class="ico" data-icon="upload"></span><span data-i18n="nav.import">Import</span>
+      </a>
+      <a class="nav-item" data-route="export" href="#/export">
+        <span class="ico" data-icon="download"></span><span data-i18n="nav.export">Export</span>
+      </a>
+      <a class="nav-item" data-route="changelog" href="#/changelog">
+        <span class="ico" data-icon="history"></span><span data-i18n="nav.changelog">Change log</span>
+      </a>
+
+      <div class="nav-group" data-i18n="nav.admin">Administration</div>
+      <a class="nav-item" data-route="vocabularies" href="#/vocabularies">
+        <span class="ico" data-icon="list"></span><span data-i18n="nav.vocabularies">Vocabularies</span>
+      </a>
+      <a class="nav-item" data-route="numbering" href="#/numbering">
+        <span class="ico" data-icon="hash"></span><span data-i18n="nav.numbering">Numbering</span>
+      </a>
+      <a class="nav-item" data-route="settings" href="#/settings">
+        <span class="ico" data-icon="settings"></span><span data-i18n="nav.settings">Settings</span>
+      </a>
+      <a class="nav-item" data-route="maintenance" href="#/maintenance">
+        <span class="ico" data-icon="database"></span><span data-i18n="nav.maintenance">Maintenance</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="muted small" id="buildInfo">SIRAJ v1.0</div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ================= main ================= -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="sidebarOpen" aria-label="menu">☰</button>
+      <div class="search-box">
+        <span class="ico" data-icon="search"></span>
+        <input id="globalSearch" type="search" autocomplete="off"
+               data-i18n-placeholder="search.placeholder"
+               placeholder="Search persons, institutions, places…">
+        <kbd>/</kbd>
+      </div>
+      <div class="topbar-actions">
+        <select id="actorSelect" class="ghost-select" title="Acting user"></select>
+        <button class="icon-btn" id="langToggle" title="العربية / English">ع/EN</button>
+        <button class="icon-btn" id="themeToggle" title="Theme">◐</button>
+        <button class="icon-btn" id="fullscreenToggle" type="button" aria-pressed="false"
+                aria-label="ملء الشاشة">
+          <span class="ico fs-enter" data-icon="maximize"></span>
+          <span class="ico fs-exit" data-icon="minimize"></span>
+        </button>
+      </div>
+    </header>
+
+    <div class="crumbs" id="crumbs"></div>
+    <main class="view" id="view" tabindex="-1"></main>
+    <footer class="foot">
+      <span data-i18n="footer.built">Built for long-term research data stewardship.</span>
+      <span id="footStats" class="muted"></span>
+    </footer>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="modalRoot"></div>
+
+<!-- core: state, i18n, API client, UI primitives (no dependencies) -->
+<script src="/static/js/core.js"></script>
+<!-- components: shared widgets (combobox, inline creation, field registry) -->
+<script src="/static/js/components/forms.js"></script>
+<script src="/static/js/components/fields.js"></script>
+<script src="/static/js/components/mapfilters.js"></script>
+<script src="/static/js/components/evidence.js"></script>
+<script src="/static/js/components/crce.js"></script>
+<!-- the display kernel: model, scales, geometry, camera, interaction, motion -->
+<script src="/static/js/components/viz.js"></script>
+<!-- views: one file per screen; each registers itself on A.views -->
+<script src="/static/js/views/list.js"></script>
+<script src="/static/js/views/record.js"></script>
+<script src="/static/js/views/dashboard.js"></script>
+<script src="/static/js/views/reports.js"></script>
+<script src="/static/js/views/structures.js"></script>
+<script src="/static/vendor/maplibre-gl.js"></script>
+<script src="/static/js/lib/vectormap.js"></script>
+<script src="/static/js/lib/maplib.js"></script>
+<script src="/static/js/lib/geopin.js"></script>
+<script src="/static/js/lib/tilecache.js"></script>
+<script src="/static/js/views/map.js"></script>
+<script src="/static/js/views/geomap.js"></script>
+<script src="/static/js/views/desk.js"></script>
+<script src="/static/js/views/admin.js"></script>
+<!-- shell: bootstrap + hash router (must load last) -->
+<script src="/static/js/app.js"></script>
+</body>
+</html>

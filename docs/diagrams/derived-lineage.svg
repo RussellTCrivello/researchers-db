@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 1032" width="1420" height="1032" role="img" aria-label="SIRAJ derived-field lineage">
+<title>SIRAJ derived-field lineage</title>
+<rect width="1420" height="1032" fill="#ffffff"/>
+<style>text{font-family:'Segoe UI','Noto Sans Arabic',system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}.t{fill:#16202b;font-size:14px}.s{fill:#6b7785;font-size:11.5px}.b{fill:#3d4a57;font-size:12.5px}.h{font-size:20px;font-weight:800;fill:#16202b}</style>
+<text x="36" y="46" class="h">Where the calculated fields come from (ƒ)</text>
+<text x="36" y="70" class="s">Every derived field is a SQL expression over the tables named on its right; nothing is stored, which is why all of them can be filtered, sorted, exported and charted.</text>
+<line x1="36" y1="88" x2="1384" y2="88" stroke="#c9d3dd"/>
+<text x="36" y="116" class="s" font-weight="800" fill="#3d4a57">ENTITY</text>
+<text x="252" y="116" class="s" font-weight="800" fill="#3d4a57">DERIVED FIELD (ƒ)</text>
+<text x="1072" y="116" class="s" font-weight="800" fill="#3d4a57">COMPUTED FROM</text>
+<line x1="36" y1="126" x2="1384" y2="126" stroke="#c9d3dd"/>
+<rect x="36" y="140" width="200" height="214" rx="12" fill="#2f6f4f" fill-opacity=".10" stroke="#2f6f4f" stroke-width="1.8"/>
+<text x="50" y="166" class="t" font-weight="800" font-size="14" fill="#2f6f4f">PERSON</text>
+<text x="50" y="186" class="s">17 fields</text>
+<text x="50" y="204" class="s">7,024 records</text>
+<rect x="252" y="144" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="261" y="160" class="s" font-size="11.4" fill="#3d4a57">ƒ Birth year</text>
+<rect x="521.333" y="144" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="530.333" y="160" class="s" font-size="11.4" fill="#3d4a57">ƒ Death year</text>
+<rect x="790.667" y="144" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="799.667" y="160" class="s" font-size="11.4" fill="#3d4a57">ƒ Age at death</text>
+<rect x="252" y="176" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="261" y="192" class="s" font-size="11.4" fill="#3d4a57">ƒ Nationality (label)</text>
+<rect x="521.333" y="176" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="530.333" y="192" class="s" font-size="11.4" fill="#3d4a57">ƒ Classification (label)</text>
+<rect x="790.667" y="176" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="799.667" y="192" class="s" font-size="11.4" fill="#3d4a57">ƒ Status (label)</text>
+<rect x="252" y="208" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="261" y="224" class="s" font-size="11.4" fill="#3d4a57">ƒ Authentication (label)</text>
+<rect x="521.333" y="208" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="530.333" y="224" class="s" font-size="11.4" fill="#3d4a57">ƒ Institution (name)</text>
+<rect x="790.667" y="208" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="799.667" y="224" class="s" font-size="11.4" fill="#3d4a57">ƒ Institution (ID)</text>
+<rect x="252" y="240" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="261" y="256" class="s" font-size="11.4" fill="#3d4a57">ƒ Institution country</text>
+<rect x="521.333" y="240" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="530.333" y="256" class="s" font-size="11.4" fill="#3d4a57">ƒ Birthplace (name)</text>
+<rect x="790.667" y="240" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="799.667" y="256" class="s" font-size="11.4" fill="#3d4a57">ƒ Positions</text>
+<rect x="252" y="272" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="261" y="288" class="s" font-size="11.4" fill="#3d4a57">ƒ Relationships</text>
+<rect x="521.333" y="272" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="530.333" y="288" class="s" font-size="11.4" fill="#3d4a57">ƒ Citations</text>
+<rect x="790.667" y="272" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="799.667" y="288" class="s" font-size="11.4" fill="#3d4a57">ƒ Specialisations</text>
+<rect x="252" y="304" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="261" y="320" class="s" font-size="11.4" fill="#3d4a57">ƒ Record completeness %</text>
+<rect x="521.333" y="304" width="261.333" height="24" rx="7" fill="#2f6f4f" fill-opacity=".07" stroke="#2f6f4f" stroke-opacity=".45"/>
+<text x="530.333" y="320" class="s" font-size="11.4" fill="#3d4a57">ƒ Last change</text>
+<rect x="1072" y="150" width="312" height="24" rx="7" fill="#4b5563" fill-opacity=".12" stroke="#4b5563" stroke-opacity=".5"/>
+<text x="1082" y="166" class="s" font-weight="700" font-size="11.4" fill="#4b5563">relationship</text>
+<rect x="1072" y="178" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="194" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">person_position</text>
+<rect x="1072" y="206" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="222" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">source_link</text>
+<rect x="1072" y="234" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="250" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">entity_tag</text>
+<rect x="1072" y="262" width="312" height="24" rx="7" fill="#0f766e" fill-opacity=".12" stroke="#0f766e" stroke-opacity=".5"/>
+<text x="1082" y="278" class="s" font-weight="700" font-size="11.4" fill="#0f766e">lookup</text>
+<rect x="36" y="366" width="200" height="118" rx="12" fill="#1f5d8b" fill-opacity=".10" stroke="#1f5d8b" stroke-width="1.8"/>
+<text x="50" y="392" class="t" font-weight="800" font-size="14" fill="#1f5d8b">INSTITUTION</text>
+<text x="50" y="412" class="s">9 fields</text>
+<text x="50" y="430" class="s">1,212 records</text>
+<rect x="252" y="370" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="261" y="386" class="s" font-size="11.4" fill="#3d4a57">ƒ Type (label)</text>
+<rect x="521.333" y="370" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="530.333" y="386" class="s" font-size="11.4" fill="#3d4a57">ƒ Country (label)</text>
+<rect x="790.667" y="370" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="799.667" y="386" class="s" font-size="11.4" fill="#3d4a57">ƒ Year founded</text>
+<rect x="252" y="402" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="261" y="418" class="s" font-size="11.4" fill="#3d4a57">ƒ Place (name)</text>
+<rect x="521.333" y="402" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="530.333" y="418" class="s" font-size="11.4" fill="#3d4a57">ƒ Affiliated persons</text>
+<rect x="790.667" y="402" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="799.667" y="418" class="s" font-size="11.4" fill="#3d4a57">ƒ Recorded positions</text>
+<rect x="252" y="434" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="261" y="450" class="s" font-size="11.4" fill="#3d4a57">ƒ Relationships</text>
+<rect x="521.333" y="434" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="530.333" y="450" class="s" font-size="11.4" fill="#3d4a57">ƒ Governance (label)</text>
+<rect x="790.667" y="434" width="261.333" height="24" rx="7" fill="#1f5d8b" fill-opacity=".07" stroke="#1f5d8b" stroke-opacity=".45"/>
+<text x="799.667" y="450" class="s" font-size="11.4" fill="#3d4a57">ƒ Record completeness %</text>
+<rect x="1072" y="376" width="312" height="24" rx="7" fill="#4b5563" fill-opacity=".12" stroke="#4b5563" stroke-opacity=".5"/>
+<text x="1082" y="392" class="s" font-weight="700" font-size="11.4" fill="#4b5563">relationship</text>
+<rect x="1072" y="404" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="420" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">person_position</text>
+<rect x="1072" y="432" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="448" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">source_link</text>
+<rect x="1072" y="460" width="312" height="24" rx="7" fill="#0f766e" fill-opacity=".12" stroke="#0f766e" stroke-opacity=".5"/>
+<text x="1082" y="476" class="s" font-weight="700" font-size="11.4" fill="#0f766e">lookup</text>
+<rect x="36" y="496" width="200" height="144" rx="12" fill="#8a5a1f" fill-opacity=".10" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="50" y="522" class="t" font-weight="800" font-size="14" fill="#8a5a1f">PLACE</text>
+<text x="50" y="542" class="s">9 fields</text>
+<text x="50" y="560" class="s">1,118 records</text>
+<rect x="252" y="500" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="261" y="516" class="s" font-size="11.4" fill="#3d4a57">ƒ Type (label)</text>
+<rect x="521.333" y="500" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="530.333" y="516" class="s" font-size="11.4" fill="#3d4a57">ƒ Country (label)</text>
+<rect x="790.667" y="500" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="799.667" y="516" class="s" font-size="11.4" fill="#3d4a57">ƒ Parent place</text>
+<rect x="252" y="532" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="261" y="548" class="s" font-size="11.4" fill="#3d4a57">ƒ Geocoded</text>
+<rect x="521.333" y="532" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="530.333" y="548" class="s" font-size="11.4" fill="#3d4a57">ƒ Sub-places</text>
+<rect x="790.667" y="532" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="799.667" y="548" class="s" font-size="11.4" fill="#3d4a57">ƒ Institutions here</text>
+<rect x="252" y="564" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="261" y="580" class="s" font-size="11.4" fill="#3d4a57">ƒ Persons born here</text>
+<rect x="521.333" y="564" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="530.333" y="580" class="s" font-size="11.4" fill="#3d4a57">ƒ Relationships</text>
+<rect x="790.667" y="564" width="261.333" height="24" rx="7" fill="#8a5a1f" fill-opacity=".07" stroke="#8a5a1f" stroke-opacity=".45"/>
+<text x="799.667" y="580" class="s" font-size="11.4" fill="#3d4a57">ƒ Record completeness %</text>
+<rect x="1072" y="506" width="312" height="24" rx="7" fill="#2f6f4f" fill-opacity=".12" stroke="#2f6f4f" stroke-opacity=".5"/>
+<text x="1082" y="522" class="s" font-weight="700" font-size="11.4" fill="#2f6f4f">person</text>
+<rect x="1072" y="534" width="312" height="24" rx="7" fill="#1f5d8b" fill-opacity=".12" stroke="#1f5d8b" stroke-opacity=".5"/>
+<text x="1082" y="550" class="s" font-weight="700" font-size="11.4" fill="#1f5d8b">institution</text>
+<rect x="1072" y="562" width="312" height="24" rx="7" fill="#7b3f8f" fill-opacity=".12" stroke="#7b3f8f" stroke-opacity=".5"/>
+<text x="1082" y="578" class="s" font-weight="700" font-size="11.4" fill="#7b3f8f">event</text>
+<rect x="1072" y="590" width="312" height="24" rx="7" fill="#8a5a1f" fill-opacity=".12" stroke="#8a5a1f" stroke-opacity=".5"/>
+<text x="1082" y="606" class="s" font-weight="700" font-size="11.4" fill="#8a5a1f">place</text>
+<rect x="1072" y="618" width="312" height="24" rx="7" fill="#0f766e" fill-opacity=".12" stroke="#0f766e" stroke-opacity=".5"/>
+<text x="1082" y="634" class="s" font-weight="700" font-size="11.4" fill="#0f766e">lookup</text>
+<rect x="36" y="652" width="200" height="88" rx="12" fill="#7b3f8f" fill-opacity=".10" stroke="#7b3f8f" stroke-width="1.8"/>
+<text x="50" y="678" class="t" font-weight="800" font-size="14" fill="#7b3f8f">EVENT</text>
+<text x="50" y="698" class="s">5 fields</text>
+<text x="50" y="716" class="s">1,606 records</text>
+<rect x="252" y="656" width="261.333" height="24" rx="7" fill="#7b3f8f" fill-opacity=".07" stroke="#7b3f8f" stroke-opacity=".45"/>
+<text x="261" y="672" class="s" font-size="11.4" fill="#3d4a57">ƒ Type (label)</text>
+<rect x="521.333" y="656" width="261.333" height="24" rx="7" fill="#7b3f8f" fill-opacity=".07" stroke="#7b3f8f" stroke-opacity=".45"/>
+<text x="530.333" y="672" class="s" font-size="11.4" fill="#3d4a57">ƒ Year</text>
+<rect x="790.667" y="656" width="261.333" height="24" rx="7" fill="#7b3f8f" fill-opacity=".07" stroke="#7b3f8f" stroke-opacity=".45"/>
+<text x="799.667" y="672" class="s" font-size="11.4" fill="#3d4a57">ƒ Place (name)</text>
+<rect x="252" y="688" width="261.333" height="24" rx="7" fill="#7b3f8f" fill-opacity=".07" stroke="#7b3f8f" stroke-opacity=".45"/>
+<text x="261" y="704" class="s" font-size="11.4" fill="#3d4a57">ƒ Participants</text>
+<rect x="521.333" y="688" width="261.333" height="24" rx="7" fill="#7b3f8f" fill-opacity=".07" stroke="#7b3f8f" stroke-opacity=".45"/>
+<text x="530.333" y="704" class="s" font-size="11.4" fill="#3d4a57">ƒ Record completeness %</text>
+<rect x="1072" y="662" width="312" height="24" rx="7" fill="#4b5563" fill-opacity=".12" stroke="#4b5563" stroke-opacity=".5"/>
+<text x="1082" y="678" class="s" font-weight="700" font-size="11.4" fill="#4b5563">relationship</text>
+<rect x="1072" y="690" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="706" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">source_link</text>
+<rect x="1072" y="718" width="312" height="24" rx="7" fill="#0f766e" fill-opacity=".12" stroke="#0f766e" stroke-opacity=".5"/>
+<text x="1082" y="734" class="s" font-weight="700" font-size="11.4" fill="#0f766e">lookup</text>
+<rect x="36" y="752" width="200" height="88" rx="12" fill="#8b3a3a" fill-opacity=".10" stroke="#8b3a3a" stroke-width="1.8"/>
+<text x="50" y="778" class="t" font-weight="800" font-size="14" fill="#8b3a3a">SOURCE</text>
+<text x="50" y="798" class="s">6 fields</text>
+<text x="50" y="816" class="s">3,208 records</text>
+<rect x="252" y="756" width="261.333" height="24" rx="7" fill="#8b3a3a" fill-opacity=".07" stroke="#8b3a3a" stroke-opacity=".45"/>
+<text x="261" y="772" class="s" font-size="11.4" fill="#3d4a57">ƒ Type (label)</text>
+<rect x="521.333" y="756" width="261.333" height="24" rx="7" fill="#8b3a3a" fill-opacity=".07" stroke="#8b3a3a" stroke-opacity=".45"/>
+<text x="530.333" y="772" class="s" font-size="11.4" fill="#3d4a57">ƒ Reliability (label)</text>
+<rect x="790.667" y="756" width="261.333" height="24" rx="7" fill="#8b3a3a" fill-opacity=".07" stroke="#8b3a3a" stroke-opacity=".45"/>
+<text x="799.667" y="772" class="s" font-size="11.4" fill="#3d4a57">ƒ Publication year</text>
+<rect x="252" y="788" width="261.333" height="24" rx="7" fill="#8b3a3a" fill-opacity=".07" stroke="#8b3a3a" stroke-opacity=".45"/>
+<text x="261" y="804" class="s" font-size="11.4" fill="#3d4a57">ƒ Citations</text>
+<rect x="521.333" y="788" width="261.333" height="24" rx="7" fill="#8b3a3a" fill-opacity=".07" stroke="#8b3a3a" stroke-opacity=".45"/>
+<text x="530.333" y="804" class="s" font-size="11.4" fill="#3d4a57">ƒ Primary source for</text>
+<rect x="790.667" y="788" width="261.333" height="24" rx="7" fill="#8b3a3a" fill-opacity=".07" stroke="#8b3a3a" stroke-opacity=".45"/>
+<text x="799.667" y="804" class="s" font-size="11.4" fill="#3d4a57">ƒ Record completeness %</text>
+<rect x="1072" y="762" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="778" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">source_link</text>
+<rect x="1072" y="790" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="806" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">attachment</text>
+<rect x="1072" y="818" width="312" height="24" rx="7" fill="#0f766e" fill-opacity=".12" stroke="#0f766e" stroke-opacity=".5"/>
+<text x="1082" y="834" class="s" font-weight="700" font-size="11.4" fill="#0f766e">lookup</text>
+<rect x="36" y="852" width="200" height="86" rx="12" fill="#4b5563" fill-opacity=".10" stroke="#4b5563" stroke-width="1.8"/>
+<text x="50" y="878" class="t" font-weight="800" font-size="14" fill="#4b5563">RELATIONSHIP</text>
+<text x="50" y="898" class="s">6 fields</text>
+<text x="50" y="916" class="s">14,569 records</text>
+<rect x="252" y="856" width="261.333" height="24" rx="7" fill="#4b5563" fill-opacity=".07" stroke="#4b5563" stroke-opacity=".45"/>
+<text x="261" y="872" class="s" font-size="11.4" fill="#3d4a57">ƒ Type (label)</text>
+<rect x="521.333" y="856" width="261.333" height="24" rx="7" fill="#4b5563" fill-opacity=".07" stroke="#4b5563" stroke-opacity=".45"/>
+<text x="530.333" y="872" class="s" font-size="11.4" fill="#3d4a57">ƒ Status (label)</text>
+<rect x="790.667" y="856" width="261.333" height="24" rx="7" fill="#4b5563" fill-opacity=".07" stroke="#4b5563" stroke-opacity=".45"/>
+<text x="799.667" y="872" class="s" font-size="11.4" fill="#3d4a57">ƒ Start year</text>
+<rect x="252" y="888" width="261.333" height="24" rx="7" fill="#4b5563" fill-opacity=".07" stroke="#4b5563" stroke-opacity=".45"/>
+<text x="261" y="904" class="s" font-size="11.4" fill="#3d4a57">ƒ End year</text>
+<rect x="521.333" y="888" width="261.333" height="24" rx="7" fill="#4b5563" fill-opacity=".07" stroke="#4b5563" stroke-opacity=".45"/>
+<text x="530.333" y="904" class="s" font-size="11.4" fill="#3d4a57">ƒ Source (title)</text>
+<rect x="790.667" y="888" width="261.333" height="24" rx="7" fill="#4b5563" fill-opacity=".07" stroke="#4b5563" stroke-opacity=".45"/>
+<text x="799.667" y="904" class="s" font-size="11.4" fill="#3d4a57">ƒ Duration (years)</text>
+<rect x="1072" y="862" width="312" height="24" rx="7" fill="#0f766e" fill-opacity=".12" stroke="#0f766e" stroke-opacity=".5"/>
+<text x="1082" y="878" class="s" font-weight="700" font-size="11.4" fill="#0f766e">lookup</text>
+<rect x="1072" y="890" width="312" height="24" rx="7" fill="#9a6b1f" fill-opacity=".12" stroke="#9a6b1f" stroke-opacity=".5"/>
+<text x="1082" y="906" class="s" font-weight="700" font-size="11.4" fill="#9a6b1f">change_log</text>
+<text x="36" y="1002" class="s">Derived fields are published by /api/meta together with their SQL expression, so a client can show the formula and an auditor can check it without reading the code.</text>
+</svg>

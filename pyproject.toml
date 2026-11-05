@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+# Project metadata + the linter contract used by CI and `scripts/check.py`.
+# The registry itself needs no build step: it is a Python app served by uvicorn.
+# ---------------------------------------------------------------------------
+[project]
+name = "siraj-registry"
+version = "1.0.0"
+description = "SIRAJ · سِراج — a bilingual (AR/EN) research registry for persons, institutions, places, events, relationships and sources"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+exclude = [".venv", "app/data", "docs", "node_modules"]
+
+[tool.ruff.lint]
+# E/W = pycodestyle, F = pyflakes, I = import order, UP = pyupgrade, B = bugbear
+select = ["E", "W", "F", "I", "UP", "B"]
+ignore = [
+    "B008",     # FastAPI declares dependencies as default arguments — by design
+    "B023",     # closures over loop variables are used deliberately in the diagram script
+    "B904",     # `raise HTTPException(...)` from None would only add noise; the API maps
+                # domain errors to HTTP status codes deliberately
+    "E501",     # long lines are allowed in data tables and docstrings
+    "E702",     # short guard clauses share a line in a few dense helpers
+    "E731",     # `x = lambda …` is the house style for one-line derived-field builders
+    "UP017",    # datetime.timezone.utc keeps the audit format explicit
+    "UP035",    # typing.Dict/List are still fine in the signatures we ship
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "B017"]        # assert False / broad pytest.raises are fine in harnesses
+"tests/test_registry.py" = ["E402"] # imports must follow the temp-data-dir setup
+"scripts/*" = ["E402"]

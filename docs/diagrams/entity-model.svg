@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 1000" width="1420" height="1000" role="img" aria-label="SIRAJ entity model">
+<title>SIRAJ entity model</title>
+<rect width="1420" height="1000" fill="#ffffff"/>
+<style>text{font-family:'Segoe UI','Noto Sans Arabic',system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}.t{fill:#16202b;font-size:14px}.s{fill:#6b7785;font-size:11.5px}.b{fill:#3d4a57;font-size:12.5px}.h{font-size:20px;font-weight:800;fill:#16202b}</style>
+<text x="36" y="46" class="h">SIRAJ — how the entities connect</text>
+<text x="36" y="70" class="s">Six record types, the join tables that hold their many-to-many links, and the reference data every field points at.  Counts are live.</text>
+<line x1="36" y1="88" x2="1384" y2="88" stroke="#c9d3dd"/>
+<rect x="36" y="112" width="210" height="136" rx="12" fill="#2f6f4f" fill-opacity="0.09" stroke="#2f6f4f" stroke-width="2"/>
+<text x="50" y="136" class="t" font-weight="800" font-size="15" fill="#2f6f4f">PERSON</text>
+<text x="50" y="154" class="s">40 fields · 17 ƒ · الأشخاص</text>
+<text x="232" y="234" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#2f6f4f">7,024</text>
+<text x="232" y="134" class="s" text-anchor="end" font-size="10.5">records</text>
+<text x="50" y="186" class="s" font-size="10.8">· positions → institution</text>
+<text x="50" y="203" class="s" font-size="10.8">· citations ↔ source</text>
+<text x="50" y="220" class="s" font-size="10.8">· tags · external ids</text>
+<rect x="266" y="112" width="210" height="136" rx="12" fill="#1f5d8b" fill-opacity="0.09" stroke="#1f5d8b" stroke-width="2"/>
+<text x="280" y="136" class="t" font-weight="800" font-size="15" fill="#1f5d8b">INSTITUTION</text>
+<text x="280" y="154" class="s">36 fields · 9 ƒ · المؤسسات</text>
+<text x="462" y="234" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#1f5d8b">1,212</text>
+<text x="462" y="134" class="s" text-anchor="end" font-size="10.5">records</text>
+<text x="280" y="186" class="s" font-size="10.8">· place_id → place</text>
+<text x="280" y="203" class="s" font-size="10.8">· persons → person</text>
+<text x="280" y="220" class="s" font-size="10.8">· positions → person</text>
+<rect x="496" y="112" width="210" height="136" rx="12" fill="#8a5a1f" fill-opacity="0.09" stroke="#8a5a1f" stroke-width="2"/>
+<text x="510" y="136" class="t" font-weight="800" font-size="15" fill="#8a5a1f">PLACE</text>
+<text x="510" y="154" class="s">29 fields · 9 ƒ · الأماكن</text>
+<text x="692" y="234" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#8a5a1f">1,118</text>
+<text x="692" y="134" class="s" text-anchor="end" font-size="10.5">records</text>
+<text x="510" y="186" class="s" font-size="10.8">· parent_place_id → place</text>
+<text x="510" y="203" class="s" font-size="10.8">· country_id → lookup</text>
+<text x="510" y="220" class="s" font-size="10.8">· birthplace of persons</text>
+<rect x="726" y="112" width="210" height="136" rx="12" fill="#7b3f8f" fill-opacity="0.09" stroke="#7b3f8f" stroke-width="2"/>
+<text x="740" y="136" class="t" font-weight="800" font-size="15" fill="#7b3f8f">EVENT</text>
+<text x="740" y="154" class="s">22 fields · 5 ƒ · الأحداث</text>
+<text x="922" y="234" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#7b3f8f">1,606</text>
+<text x="922" y="134" class="s" text-anchor="end" font-size="10.5">records</text>
+<text x="740" y="186" class="s" font-size="10.8">· place_id → place</text>
+<text x="740" y="203" class="s" font-size="10.8">· participants → person</text>
+<text x="740" y="220" class="s" font-size="10.8">· citations ↔ source</text>
+<rect x="956" y="112" width="210" height="136" rx="12" fill="#8b3a3a" fill-opacity="0.09" stroke="#8b3a3a" stroke-width="2"/>
+<text x="970" y="136" class="t" font-weight="800" font-size="15" fill="#8b3a3a">SOURCE</text>
+<text x="970" y="154" class="s">26 fields · 6 ƒ · المصادر</text>
+<text x="1152" y="234" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#8b3a3a">3,208</text>
+<text x="1152" y="134" class="s" text-anchor="end" font-size="10.5">records</text>
+<text x="970" y="186" class="s" font-size="10.8">· citations → any record</text>
+<text x="970" y="203" class="s" font-size="10.8">· reliability → lookup</text>
+<text x="970" y="220" class="s" font-size="10.8">· attached to any record</text>
+<rect x="1186" y="112" width="210" height="136" rx="12" fill="#4b5563" fill-opacity="0.09" stroke="#4b5563" stroke-width="2"/>
+<text x="1200" y="136" class="t" font-weight="800" font-size="15" fill="#4b5563">RELATIONSHIP</text>
+<text x="1200" y="154" class="s">25 fields · 6 ƒ · العلاقات</text>
+<text x="1382" y="234" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#4b5563">14,569</text>
+<text x="1382" y="134" class="s" text-anchor="end" font-size="10.5">records</text>
+<text x="1200" y="186" class="s" font-size="10.8">· entity1 → any record</text>
+<text x="1200" y="203" class="s" font-size="10.8">· entity2 → any record</text>
+<text x="1200" y="220" class="s" font-size="10.8">· source_id → source</text>
+<text x="36" y="310" class="b" font-weight="700">Join &amp; child tables — where the many-to-many links live (the arrow points at the record type they belong to)</text>
+<rect x="36" y="326" width="210" height="104" rx="12" fill="#9a6b1f" fill-opacity="0.1" stroke="#9a6b1f" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="50" y="350" class="t" font-weight="800" font-size="15" fill="#9a6b1f">POSITIONS</text>
+<text x="50" y="368" class="s">person → institution · dates · title</text>
+<text x="232" y="416" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#9a6b1f">9,346</text>
+<text x="232" y="348" class="s" text-anchor="end" font-size="10.5">rows</text>
+<path d="M216 326 Q216 287 216 248" fill="none" stroke="#9a6b1f" stroke-width="1.3" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-9a6b1f)"></path>
+<rect x="266" y="326" width="210" height="104" rx="12" fill="#9a6b1f" fill-opacity="0.1" stroke="#9a6b1f" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="280" y="350" class="t" font-weight="800" font-size="15" fill="#9a6b1f">CITATIONS</text>
+<text x="280" y="368" class="s">source ↔ any record · per field</text>
+<text x="462" y="416" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#9a6b1f">4,078</text>
+<text x="462" y="348" class="s" text-anchor="end" font-size="10.5">rows</text>
+<path d="M446 326 Q335.432 273.931 216 248" fill="none" stroke="#9a6b1f" stroke-width="1.3" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-9a6b1f)"></path>
+<rect x="496" y="326" width="210" height="104" rx="12" fill="#9a6b1f" fill-opacity="0.1" stroke="#9a6b1f" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="510" y="350" class="t" font-weight="800" font-size="15" fill="#9a6b1f">TAGS</text>
+<text x="510" y="368" class="s">tag ↔ any record</text>
+<text x="692" y="416" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#9a6b1f">8,050</text>
+<text x="692" y="348" class="s" text-anchor="end" font-size="10.5">rows</text>
+<path d="M676 326 Q450.614 259.788 216 248" fill="none" stroke="#9a6b1f" stroke-width="1.3" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-9a6b1f)"></path>
+<rect x="726" y="326" width="210" height="104" rx="12" fill="#9a6b1f" fill-opacity="0.1" stroke="#9a6b1f" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="740" y="350" class="t" font-weight="800" font-size="15" fill="#9a6b1f">EXTERNAL IDS</text>
+<text x="740" y="368" class="s">VIAF · Wikidata · ISNI · GND</text>
+<text x="922" y="416" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#9a6b1f">2,317</text>
+<text x="922" y="348" class="s" text-anchor="end" font-size="10.5">rows</text>
+<path d="M906 326 Q565.65 245.862 216 248" fill="none" stroke="#9a6b1f" stroke-width="1.3" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-9a6b1f)"></path>
+<rect x="956" y="326" width="210" height="104" rx="12" fill="#9a6b1f" fill-opacity="0.1" stroke="#9a6b1f" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="970" y="350" class="t" font-weight="800" font-size="15" fill="#9a6b1f">ATTACHMENTS</text>
+<text x="970" y="368" class="s">files under uploads/</text>
+<text x="1152" y="416" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#9a6b1f">0</text>
+<text x="1152" y="348" class="s" text-anchor="end" font-size="10.5">rows</text>
+<path d="M1136 326 Q1025.43 273.931 906 248" fill="none" stroke="#9a6b1f" stroke-width="1.3" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-9a6b1f)"></path>
+<rect x="1186" y="326" width="210" height="104" rx="12" fill="#9a6b1f" fill-opacity="0.1" stroke="#9a6b1f" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="1200" y="350" class="t" font-weight="800" font-size="15" fill="#9a6b1f">SAVED VIEWS</text>
+<text x="1200" y="368" class="s">filters + columns + sort</text>
+<text x="1382" y="416" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#9a6b1f">4</text>
+<text x="1382" y="348" class="s" text-anchor="end" font-size="10.5">rows</text>
+<path d="M1366 326 Q1366 287 1366 248" fill="none" stroke="#9a6b1f" stroke-width="1.3" stroke-opacity=".75" stroke-dasharray="7 5" marker-end="url(#arrow-9a6b1f)"></path>
+<text x="36" y="488" class="b" font-weight="700">Reference data — every select field stores an id here; labels are bilingual and colour-coded</text>
+<rect x="36" y="504" width="210" height="74" rx="12" fill="#0f766e" fill-opacity="0.07" stroke="#0f766e" stroke-width="2"/>
+<text x="50" y="528" class="t" font-weight="800" font-size="15" fill="#0f766e">LOOKUP</text>
+<text x="50" y="546" class="s">21 domains · 271 values</text>
+<text x="232" y="564" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#0f766e">271</text>
+<text x="232" y="526" class="s" text-anchor="end" font-size="10.5">rows</text>
+<rect x="266" y="504" width="210" height="74" rx="12" fill="#0f766e" fill-opacity="0.07" stroke="#0f766e" stroke-width="2"/>
+<text x="280" y="528" class="t" font-weight="800" font-size="15" fill="#0f766e">TAG</text>
+<text x="280" y="546" class="s">free tag vocabulary</text>
+<text x="462" y="564" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#0f766e">9</text>
+<text x="462" y="526" class="s" text-anchor="end" font-size="10.5">rows</text>
+<rect x="496" y="504" width="210" height="74" rx="12" fill="#0f766e" fill-opacity="0.07" stroke="#0f766e" stroke-width="2"/>
+<text x="510" y="528" class="t" font-weight="800" font-size="15" fill="#0f766e">APP_USER</text>
+<text x="510" y="546" class="s">viewer · researcher · reviewer · admin</text>
+<text x="692" y="564" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#0f766e">4</text>
+<text x="692" y="526" class="s" text-anchor="end" font-size="10.5">rows</text>
+<rect x="726" y="504" width="210" height="74" rx="12" fill="#0f766e" fill-opacity="0.07" stroke="#0f766e" stroke-width="2"/>
+<text x="740" y="528" class="t" font-weight="800" font-size="15" fill="#0f766e">SEQUENCE</text>
+<text x="740" y="546" class="s">prefix · padding · template · reset</text>
+<text x="922" y="564" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#0f766e">6</text>
+<text x="922" y="526" class="s" text-anchor="end" font-size="10.5">rows</text>
+<rect x="956" y="504" width="210" height="74" rx="12" fill="#0f766e" fill-opacity="0.07" stroke="#0f766e" stroke-width="2"/>
+<text x="970" y="528" class="t" font-weight="800" font-size="15" fill="#0f766e">CHANGE_LOG</text>
+<text x="970" y="546" class="s">field-level audit trail</text>
+<text x="1152" y="564" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#0f766e">20,627</text>
+<text x="1152" y="526" class="s" text-anchor="end" font-size="10.5">rows</text>
+<rect x="1186" y="504" width="210" height="74" rx="12" fill="#0f766e" fill-opacity="0.07" stroke="#0f766e" stroke-width="2"/>
+<text x="1200" y="528" class="t" font-weight="800" font-size="15" fill="#0f766e">SEARCH (FTS5)</text>
+<text x="1200" y="546" class="s">Arabic-normalised index</text>
+<text x="1382" y="564" class="s" text-anchor="end" font-weight="700" font-size="12.5" fill="#0f766e">28,538</text>
+<text x="1382" y="526" class="s" text-anchor="end" font-size="10.5">rows</text>
+<path d="M42 592 H1378" stroke="#0f766e" stroke-width="1.2" stroke-dasharray="3 4" stroke-opacity=".7"/>
+<text x="42" y="612" class="s">↑ every entity card points into this band through its select fields (status, classification, country, source type, reliability …)</text>
+<rect x="36" y="630" width="1348" height="150" rx="14" fill="#f7f9fb" stroke="#c9d3dd"/>
+<text x="52" y="658" class="b" font-weight="700">Reading the diagram</text>
+<text x="60" y="684" class="s" font-weight="700">entity card</text>
+<text x="190" y="684" class="s">one table, its row count, and the links it owns on the third line</text>
+<text x="60" y="708" class="s" font-weight="700">dashed box</text>
+<text x="190" y="708" class="s">a join/child table: it exists because of the entity above it</text>
+<text x="60" y="732" class="s" font-weight="700">arrow</text>
+<text x="190" y="732" class="s">the child table's foreign key → the parent record type</text>
+<text x="60" y="756" class="s" font-weight="700">ƒ</text>
+<text x="190" y="756" class="s">a derived field: computed by SQL from these tables, never stored</text>
+<rect x="36" y="802" width="1348" height="170" rx="14" fill="#fff" stroke="#c9d3dd"/>
+<text x="52" y="832" class="b" font-weight="700">The shape of the graph</text>
+<text x="52" y="860" class="s" font-size="12.2">Every record is bilingual and typed by a code (PERSON-0001). Relationships are rows, not ID lists, so each one carries its own dates, source and authentication level.</text>
+<text x="52" y="888" class="s" font-size="12.2">52 derived fields (“ƒ”) are computed with SQL over these tables — counts, names, years, durations, completeness — and can be used in columns, filters, sorts, exports and reports.</text>
+<text x="52" y="916" class="s" font-size="12.2">Any record can cite any source (4,078 citations), carry any tag (8,050), hold any number of positions (9,346) and external identifiers (2,317).</text>
+<text x="52" y="944" class="s" font-size="12.2">Soft deletes keep deleted_at on every entity table; change_log holds 20,627 field-level entries and the FTS index 28,538 documents.</text>
+</svg>

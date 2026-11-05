@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------
+# Normalise line endings so the project behaves the same on Windows, macOS and
+# Linux: source files keep LF, Windows launchers keep CRLF, binary files are
+# never transformed.
+# ---------------------------------------------------------------------------
+* text=auto eol=lf
+
+*.py    text eol=lf diff=python
+*.js    text eol=lf
+*.css   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.sql   text eol=lf
+*.sh    text eol=lf
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+*.cmd   text eol=crlf
+
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.gif   binary
+*.ico   binary
+*.xlsx  binary
+*.db    binary
+*.zip   binary
+
+# keep sample fixtures stable for the import tests
+samples/*.csv text eol=lf

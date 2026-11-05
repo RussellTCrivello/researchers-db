@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 760" width="1220" height="760" role="img" aria-label="SIRAJ place hierarchy">
+<title>SIRAJ place hierarchy</title>
+<rect width="1220" height="760" fill="#ffffff"/>
+<style>text{font-family:'Segoe UI','Noto Sans Arabic',system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}.t{fill:#16202b;font-size:14px}.s{fill:#6b7785;font-size:11.5px}.b{fill:#3d4a57;font-size:12.5px}.h{font-size:20px;font-weight:800;fill:#16202b}</style>
+<defs><marker id="arrow-8a5a1f" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8a5a1f"/></marker></defs>
+<text x="36" y="46" class="h">Place hierarchy — one real branch of the tree</text>
+<text x="36" y="70" class="s">places are hierarchical (parent_place_id): country → city → district. Persons and institutions hang off the same tree.</text>
+<line x1="36" y1="88" x2="1184" y2="88" stroke="#c9d3dd"/>
+<rect x="60" y="130" width="1100" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.17" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="72" y="156" class="b" font-weight="700">Portugal</text>
+<text x="1148" y="156" class="s" text-anchor="end" font-size="10.8">17 children</text>
+<text x="1148" y="178" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">البرتغال</text>
+<text x="72" y="200" class="s" font-size="10.8">0 people · 0 institutions</text>
+<path d="M610 214 Q386.4 237 162.8 260" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="60" y="260" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.13" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="72" y="286" class="b" font-weight="700">Faro · South</text>
+<text x="253.6" y="308" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">فارو الجنوبية</text>
+<text x="72" y="330" class="s" font-size="10.8">9 people · 7 institutions</text>
+<path d="M610 214 Q498.2 237 386.4 260" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="283.6" y="260" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.13" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="295.6" y="286" class="b" font-weight="700">Lisbon</text>
+<text x="477.2" y="286" class="s" text-anchor="end" font-size="10.8">1 children</text>
+<text x="477.2" y="308" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">لشبونة</text>
+<text x="295.6" y="330" class="s" font-size="10.8">9 people · 3 institutions</text>
+<path d="M386.4 344 Q386.4 367 386.4 390" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="283.6" y="390" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.09" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="295.6" y="416" class="b" font-weight="700">northern suburb</text>
+<text x="477.2" y="438" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">الضاحية الشمالية</text>
+<text x="295.6" y="460" class="s" font-size="10.8">0 people · 0 institutions</text>
+<path d="M610 214 Q610 237 610 260" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="507.2" y="260" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.13" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="519.2" y="286" class="b" font-weight="700">Porto · East</text>
+<text x="700.8" y="286" class="s" text-anchor="end" font-size="10.8">1 children</text>
+<text x="700.8" y="308" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">بورتو الشرقية</text>
+<text x="519.2" y="330" class="s" font-size="10.8">9 people · 2 institutions</text>
+<path d="M610 344 Q610 367 610 390" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="507.2" y="390" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.09" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="519.2" y="416" class="b" font-weight="700">historic centre</text>
+<text x="700.8" y="438" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">المركز التاريخي</text>
+<text x="519.2" y="460" class="s" font-size="10.8">0 people · 0 institutions</text>
+<path d="M610 214 Q721.8 237 833.6 260" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="730.8" y="260" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.13" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="742.8" y="286" class="b" font-weight="700">Faro · East</text>
+<text x="924.4" y="286" class="s" text-anchor="end" font-size="10.8">1 children</text>
+<text x="924.4" y="308" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">فارو الشرقية</text>
+<text x="742.8" y="330" class="s" font-size="10.8">9 people · 2 institutions</text>
+<path d="M833.6 344 Q833.6 367 833.6 390" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="730.8" y="390" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.09" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="742.8" y="416" class="b" font-weight="700">historic centre</text>
+<text x="924.4" y="438" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">المركز التاريخي</text>
+<text x="742.8" y="460" class="s" font-size="10.8">0 people · 0 institutions</text>
+<path d="M610 214 Q833.6 237 1057.2 260" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="954.4" y="260" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.13" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="966.4" y="286" class="b" font-weight="700">Coimbra</text>
+<text x="1148" y="286" class="s" text-anchor="end" font-size="10.8">1 children</text>
+<text x="1148" y="308" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">كويمبرا</text>
+<text x="966.4" y="330" class="s" font-size="10.8">10 people · 0 institutions</text>
+<path d="M1057.2 344 Q1057.2 367 1057.2 390" fill="none" stroke="#8a5a1f" stroke-width="1.4" stroke-opacity=".75" marker-end="url(#arrow-8a5a1f)"></path>
+<rect x="954.4" y="390" width="205.6" height="84" rx="12" fill="#8a5a1f" fill-opacity="0.09" stroke="#8a5a1f" stroke-width="1.8"/>
+<text x="966.4" y="416" class="b" font-weight="700">historic centre</text>
+<text x="1148" y="438" class="s" font-size="11.4" style="direction:rtl;unicode-bidi:plaintext">المركز التاريخي</text>
+<text x="966.4" y="460" class="s" font-size="10.8">0 people · 0 institutions</text>
+<text x="60" y="720" class="s">Each box: English name, Arabic name, how many persons and institutions point at that place, and its child count. At most five busiest children per node are drawn.</text>
+</svg>
