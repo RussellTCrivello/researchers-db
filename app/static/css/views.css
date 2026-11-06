@@ -2665,3 +2665,34 @@ svg.relmap .map-node.is-selected .atlas-label.is-dim { opacity: 1; }
   background: var(--teal, #166d75); border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, .35); cursor: default;
 }
+
+/* ------------------------------------------------------------------ map downloads --- */
+.geo-download-menu { width: 340px; max-height: 72vh; overflow-y: auto; }
+.geo-download-menu .dl-hint { margin-bottom: 8px; }
+.geo-download-menu .dl-field { margin: 10px 0; }
+.geo-download-menu .dl-field > label { display: block; font-weight: 600; margin-bottom: 4px; }
+.geo-download-menu .dl-zooms input[type="number"] {
+  width: 64px; padding: 4px 6px; border: 1px solid var(--border-strong);
+  border-radius: 8px; background: var(--bg); color: var(--text);
+}
+.geo-download-menu .dl-zooms span { margin: 0 6px; }
+.geo-download-menu .dl-group { margin-top: 6px; }
+.geo-download-menu .dl-note { display: block; margin-inline-start: 22px; }
+.geo-download-menu .dl-off { opacity: 0.72; }
+.geo-download-menu .dl-jobs { display: flex; flex-direction: column; gap: 10px; }
+.geo-download-menu .dl-job {
+  border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
+}
+.geo-download-menu .dl-job-top { display: flex; align-items: center; gap: 8px; }
+.geo-download-menu .dl-job-top .badge { margin-inline-start: auto; }
+.geo-download-menu .dl-job-meta { margin-top: 2px; }
+.geo-download-menu .dl-progress {
+  height: 6px; border-radius: 999px; background: var(--bg-sunken, #eceff3);
+  margin: 6px 0 2px; overflow: hidden;
+}
+.geo-download-menu .dl-progress span {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--accent, #17395c); transition: width 0.4s ease;
+}
+.inspect-map-attrib { margin-top: 4px; }
+.inspect-map-attrib a { color: var(--muted, #6b7280); text-decoration: underline; }

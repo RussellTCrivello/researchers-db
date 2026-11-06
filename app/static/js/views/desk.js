@@ -1454,7 +1454,8 @@
         <div class="notice err">${esc(err.message || String(err))}</div></div>`;
       return;
     }
-    const provider = D.conf.providers.find(p => p.id === (pre.provider || D.conf.provider.id)) || D.conf.provider;
+    const defaultView = (A.mapDefault && A.mapDefault().provider) || D.conf.provider.id;
+    const provider = D.conf.providers.find(p => p.id === (pre.provider || defaultView)) || D.conf.provider;
 
     root.innerHTML = `
       <div class="desk${D.netOpen ? " net-open" : ""}${D.grid ? " is-grid" : ""}" data-desk>

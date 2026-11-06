@@ -482,6 +482,47 @@ page to the far edge with a band of nothing on the reading side, and the top bar
 to the left of the origin on a 420 px screen. The drawer is `display:none` until it opens, the top bar
 wraps its actions under the search, and `html { overflow-x: clip }` refuses any stray wide child.
 
+### The default map view (Settings → Map & geography)
+
+Every map in the application — the geographic workspace, the Map tab beside any record, the list
+maps and the map desk — draws its base map from one setting: **`map.provider`, the default map
+view**. The settings screen offers it as a grouped choice rather than a list of identifiers:
+
+* **Offline & graphical** — the bundled vector basemap and world street map (no network, no third
+  party). This is the default.
+* **Standard maps** — OpenStreetMap, Esri World Street Map, CARTO Light/Dark.
+* **Aerial imagery** — Esri World Imagery, plain or hybrid with labels.
+* **Terrain** — OpenTopoMap.
+
+The setting is the *instance* default; a browser may carry a *personal* choice on top (the same
+`map_provider` preference the map workspace stores when you switch base maps there), and the
+settings screen shows which one is in force. Whichever provider wins, any map that boots its style
+keeps its attribution and licence link visible underneath — the terms require it. The record
+panels and list maps prefer the offline bed and swap in a raster choice when one is default, so
+opening a record never waits on a tile server to show its pins.
+
+### Downloading maps for offline use (map workspace → Download)
+
+The **Download** button on the map workspace stores maps for good — the tiles a region needs, of
+every map type whose published terms allow it, pulled once into the application's own permanent
+store (`app/data/map_downloads.sqlite`; cartography only, never research records):
+
+* **Area** — the current map view, the working area, or the whole world as an overview.
+* **Zoom range** — capped by the `map.download_*` settings (ceiling, job size, politeness delay
+  between fetches).
+* **Map types** — one job per type, each pausing, resuming and failing on its own. Providers whose
+  terms forbid bulk retrieval (OpenStreetMap's tile usage policy, OpenTopoMap's) are listed but
+  refused *with that reason*; their map type is already stored permanently by the bundled world
+  packs, which need no third party at all.
+* **Jobs** — progress bars with pause/resume/cancel/delete, and the stored-tile total.
+
+Downloaded tiles answer *before* the browse cache under the very URLs the map already uses, so a
+working area downloaded once keeps its street map, its aerial imagery and its terrain offline
+forever. For the bundled world coverage itself, **Offline pack (.zip)** in the same panel carries
+every offline map type — the vector basemap (`basemap.sqlite`), the world street map
+(`world.vectormap.json`) and the world raster tiles (`world.tilepack`) — with a manifest, to keep
+on any machine.
+
 ## 13 · Verifying the interface
 
 ```bash

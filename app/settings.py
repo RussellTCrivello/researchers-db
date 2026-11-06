@@ -69,6 +69,11 @@ class Spec:
     personal: bool = False         # may a browser override it for one person?
     effect: str = ""               # the code path that honours it (documentation)
     requires: str = ""             # "restart" when the value is only read at boot
+    # enum presentation (optional): (value, label_en, label_ar, group_id) per
+    # choice and (group_id, label_en, label_ar) per group — the screen renders
+    # grouped options instead of raw identifiers.
+    choices: tuple[tuple[str, str, str, str], ...] = ()
+    choice_groups: tuple[tuple[str, str, str], ...] = ()
 
     # -- typed access -------------------------------------------------------
     def coerce(self, raw: Any) -> Any:
@@ -130,10 +135,45 @@ class Spec:
             "default": self.default, "values": list(self.values),
             "minimum": self.minimum, "maximum": self.maximum,
             "personal": self.personal, "requires": self.requires,
+            "choices": [{"value": v, "label_en": en, "label_ar": ar, "group": g}
+                        for v, en, ar, g in self.choices],
+            "choice_groups": [{"id": g, "label_en": en, "label_ar": ar}
+                              for g, en, ar in self.choice_groups],
             "label_en": self.label_en, "label_ar": self.label_ar,
             "help_en": self.help_en, "help_ar": self.help_ar,
             "effect": self.effect,
         }
+
+
+def _map_provider_choices() -> tuple[tuple[tuple[str, str, str], ...],
+                                     tuple[tuple[str, str, str, str], ...],
+                                     tuple[str, ...]]:
+    """The map-view choices, taken from the provider catalogue itself, so the
+    settings screen can never list a map type the map cannot show."""
+    from app.geo import providers as map_providers
+
+    group_labels = {
+        "offline": ("Offline & graphical", "دون اتصال ورسومية"),
+        "standard": ("Standard maps", "خرائط قياسية"),
+        "aerial": ("Aerial imagery", "صور جوية"),
+        "terrain": ("Terrain", "تضاريس"),
+    }
+    groups = tuple((g, *group_labels.get(g, (g, g))) for g in map_providers.GROUPS)
+    choices: list[tuple[str, str, str, str]] = []
+    values: list[str] = []
+    for gid in map_providers.GROUPS:
+        for prov in map_providers.catalog():
+            if prov["group"] != gid:
+                continue
+            choices.append((prov["id"], prov["label_en"], prov["label_ar"], gid))
+            values.append(prov["id"])
+    # the recommended default first: the offline graphical map
+    values.remove(map_providers.DEFAULT_PROVIDER)
+    values.insert(0, map_providers.DEFAULT_PROVIDER)
+    return groups, tuple(choices), tuple(values)
+
+
+_MAP_PROVIDER_GROUPS, _MAP_PROVIDER_CHOICES, _MAP_PROVIDER_VALUES = _map_provider_choices()
 
 
 # --------------------------------------------------------------------------
@@ -279,9 +319,10 @@ SPECS: tuple[Spec, ...] = (
          "مصدر خريطة الأساس: الحزمة المتجهية دون اتصال، أو خريطة شوارع قياسية، أو صور "
          "جوية (مباشرة أو هجينة)، أو تضاريس. الحزمة المتجهية تعمل دون اتصال ودون طرف "
          "ثالث؛ أما مزوّدات البلاطات فتُحمَّل من خدماتها العامة ويجب إبقاء الإسناد ظاهراً.",
-         values=("local", "osm", "esri-street", "carto-light", "carto-dark",
-                 "esri-imagery", "esri-hybrid", "opentopomap"), personal=True,
-         effect="views/geomap.js applyProvider() → basemap style"),
+         values=_MAP_PROVIDER_VALUES, personal=True,
+         choices=_MAP_PROVIDER_CHOICES, choice_groups=_MAP_PROVIDER_GROUPS,
+         effect="core.js mapDefault() → geomap.js applyProvider(), list.js map tabs, "
+                "geopin.js secondaryStyle(), desk.js street map"),
     Spec("map.center_lat", "map", "decimal", "33.3152",
          "Initial latitude", "خط العرض الابتدائي",
          "Where the map opens when there is no view to restore. Validated on write "
@@ -332,6 +373,30 @@ SPECS: tuple[Spec, ...] = (
          "يرسم اسماً بجوار العلامة عندما يكفي التكبير لقراءته، وتُخفَّف الأسماء تلقائياً "
          "لمنع التداخل.",
          personal=True, effect="views/geomap.js labelLayer()"),
+    Spec("map.download_max_zoom", "map", "int", "15",
+         "Download zoom ceiling", "سقف تكبير التنزيل",
+         "The deepest zoom a map download may request. Street-level detail multiplies "
+         "tiles by four per step; the ceiling keeps one click from pulling millions.",
+         "أعمق تكبير يطلبه تنزيل الخرائط. تفاصيل الشوارع تضاعف البلاطات أربع مرات مع "
+         "كل درجة؛ يمنع السقف سحب ملايين البلاطات بنقرة واحدة.",
+         minimum=1, maximum=19,
+         effect="map_api.py POST /api/geo/downloads → job maxzoom validation"),
+    Spec("map.download_max_tiles", "map", "int", "25000",
+         "Download size cap", "حد حجم التنزيل",
+         "The most tiles one download job may store. Beyond the cap the request is "
+         "refused with the count it would have needed.",
+         "أقصى عدد من البلاطات يخزّنه عمل تنزيل واحد. ما يتجاوز الحقف يُرفض مع بيان "
+         "العدد المطلوب.",
+         minimum=100, maximum=500000,
+         effect="tiledownload.create_job() → job max_tiles validation"),
+    Spec("map.download_delay_ms", "map", "int", "250",
+         "Download politeness delay", "تأدب تأخير التنزيل",
+         "Milliseconds waited between tile fetches, so downloads stay polite to the "
+         "public tile services the map providers publish.",
+         "المللي ثانية بين طلبات البلاطات، ليبقى التنزيل مهذباً أمام خدمات البلاطات "
+         "العامة التي ينشرها المزوّدون.",
+         minimum=0, maximum=5000,
+         effect="tiledownload._run_job() → per-tile sleep"),
     Spec("map.overlays", "map", "text", "place_hierarchy",
          "Vector overlays", "الطبقات المتجهية",
          "Comma-separated overlays drawn over the basemap: 'relationships' draws a line "

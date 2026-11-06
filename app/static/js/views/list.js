@@ -702,6 +702,10 @@
       st._listPins.forEach(m => { try { m.remove(); } catch (e) { /* */ } });
       st._listPins = null;
     }
+    if (st && st._listAttrib) {
+      try { st._listAttrib.remove(); } catch (e) { /* */ }
+      st._listAttrib = null;
+    }
     if (st && st._listMap) {
       try { st._listMap.remove(); } catch (e) { /* already gone */ }
       st._listMap = null;
@@ -723,6 +727,25 @@
       <div class="list-map-canvas" data-map-canvas></div>
       <div class="list-map-card" data-map-card hidden></div>
     </div>`;
+  }
+
+  /** The base map's own attribution, as its terms require — kept under any map
+   *  that boots a provider style.  Offline beds carry no third-party mark. */
+  function paintMapAttribution(canvas, providerId, mapCfg, st, slot) {
+    try {
+      if (st[slot]) { st[slot].remove(); st[slot] = null; }
+      const entry = ((mapCfg && mapCfg.providers) || []).find(p => p.id === providerId);
+      if (!entry || String(entry.kind || "").startsWith("vector")) return;
+      const text = A.state.lang === "ar" ? entry.attribution_ar : entry.attribution_en;
+      const el = document.createElement("div");
+      el.className = "inspect-map-attrib small muted";
+      el.innerHTML = `<a href="${esc(entry.attribution_url || "#")}" target="_blank"`
+        + ` rel="noopener noreferrer">${esc(text || "")}</a>`
+        + (entry.terms_url ? ` · <a href="${esc(entry.terms_url)}" target="_blank"`
+          + ` rel="noopener noreferrer">${esc(entry.license || "")}</a>` : "");
+      canvas.parentElement.insertBefore(el, canvas.nextSibling);
+      st[slot] = el;
+    } catch (e) { /* attribution must never break the map */ }
   }
 
   async function mountListMap(entity) {
@@ -777,8 +800,10 @@
       </li>`;
     }).join("");
 
+    const mapCfg = await (A.mapConfig ? A.mapConfig().catch(() => null) : null);
+    const defaultProvider = (A.mapDefault && A.mapDefault().provider) || "local";
     const bootStyle = (A.geopin && A.geopin.secondaryStyle)
-      ? A.geopin.secondaryStyle("osm")
+      ? A.geopin.secondaryStyle(defaultProvider, mapCfg)
       : { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
           paint: { "background-color": "#e8eef4" } }] };
     const map = new window.maplibregl.Map({
@@ -790,6 +815,7 @@
     });
     st._listMap = map;
     st._listPins = [];
+    paintMapAttribution(canvas, defaultProvider, mapCfg, st, "_listAttrib");
     map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
     map.on("load", () => {
@@ -992,6 +1018,10 @@
     if (st._inspectPin) {
       try { st._inspectPin.remove(); } catch (e) { /* */ }
       st._inspectPin = null;
+    }
+    if (st._inspectAttrib) {
+      try { st._inspectAttrib.remove(); } catch (e) { /* */ }
+      st._inspectAttrib = null;
     }
     if (st._inspectMap) {
       try { st._inspectMap.remove(); } catch (e) { /* already gone */ }
@@ -2561,7 +2591,7 @@
     };
   }
 
-  function mountInspectMap(entity, model) {
+  async function mountInspectMap(entity, model) {
     const canvas = document.querySelector("[data-inspect-map]");
     if (!canvas) return;
     const st = state[entity];
@@ -2592,6 +2622,8 @@
     /* Offline-first, like every map in this application: the bundled street
        pack is the base, no tile server is contacted.  The full geographic
        workspace (linked from the toolbar) carries the online providers. */
+    const mapCfg = await (A.mapConfig ? A.mapConfig().catch(() => null) : null);
+    const defaultProvider = (A.mapDefault && A.mapDefault().provider) || "local";
     const bootStyle = { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
         paint: { "background-color": "#e8eef4" } }] };
     let map;
@@ -2610,6 +2642,7 @@
     st._inspectMap = map;
     st._inspectMapKey = key;
     st._inspectPins = [];
+    paintMapAttribution(canvas, defaultProvider, mapCfg, st, "_inspectAttrib");
     map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.on("load", () => {
       if (uniq.length > 1) {
@@ -2633,13 +2666,34 @@
         }
       });
       if (model && model.link && uniq.length >= 2) drawInspectLink(map, uniq[0], uniq[1]);
+      let streetPack = null;
+      const repaintOverlays = () => {
+        if (streetPack && st._inspectMap === map) {
+          A.applyVectormapLayers(map, streetPack, { fit: false });
+          /* the style load can outlast the first pass; redraw the tie */
+          if (model && model.link && uniq.length >= 2) drawInspectLink(map, uniq[0], uniq[1]);
+        }
+      };
       if (A.loadVectormap && A.applyVectormapLayers) {
         A.loadVectormap().then(inflated => {
           if (st._inspectMap !== map) return;
-          A.applyVectormapLayers(map, inflated, { fit: false });
-          /* the style load can outlast the first pass; redraw the tie */
-          if (model && model.link && uniq.length >= 2) drawInspectLink(map, uniq[0], uniq[1]);
+          streetPack = inflated;
+          repaintOverlays();
         }).catch(() => { /* the pack is optional; the markers still answer */ });
+      }
+      /* honour the default map view: a raster choice (standard, aerial or
+         terrain) becomes the bed under the street pack; the offline choices
+         keep this quiet graphical bed */
+      if (A.mapConfig && A.geopin && A.geopin.secondaryStyle) {
+        const wantsRaster = ["osm", "esri-street", "carto-light", "carto-dark",
+          "esri-imagery", "esri-hybrid", "opentopomap"].includes(defaultProvider);
+        if (wantsRaster) {
+          const bed = A.geopin.secondaryStyle(defaultProvider, mapCfg);
+          if (bed && bed.sources && Object.keys(bed.sources).length) {
+            map.setStyle(bed);
+            map.once("styledata", repaintOverlays);
+          }
+        }
       }
       try { map.resize(); } catch (e) { /* container not laid out yet */ }
     });

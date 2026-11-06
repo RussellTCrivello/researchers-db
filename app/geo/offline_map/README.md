@@ -37,5 +37,11 @@ Environment overrides (still never point at the registry DB):
 - `SIRAJ_VECTORMAP_FILE` — path to the street-detail vectormap JSON
 - `SIRAJ_TILEPACK_FILE` — path to a `.tilepack` (falls back to `world.tilepack`, then `gaza.tilepack`)
 
+**Permanent downloads.** Regions of any raster map type whose terms allow it can be
+stored for good via the map workspace's Download button (`app/geo/tiledownload.py`,
+store at `app/data/map_downloads.sqlite`, git-ignored); those tiles answer offline
+before the browse cache. `GET /api/geo/offline-pack.zip` bundles every file above
+plus `../basemap.sqlite` with a manifest — all map types, world coverage, one zip.
+
 Attribution: Natural Earth (public domain); © OpenStreetMap contributors (ODbL)
 for the street extract and derived raster tiles.

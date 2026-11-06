@@ -27,12 +27,11 @@ import math
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
+from fastapi.responses import Response
 
 from .. import db
 from .. import settings as settings_mod
-from fastapi.responses import Response
-
-from ..geo import basemap, browse_cache, georef, mapdata, offline_pack, providers, spatial
+from ..geo import basemap, browse_cache, georef, mapdata, offline_pack, providers, spatial, tiledownload
 from ..schemas import ENTITIES
 from .deps import actor_of, conn_dep
 
@@ -77,7 +76,8 @@ def _filters(raw: str | None) -> dict:
 def _settings(conn) -> dict[str, Any]:
     return {key: settings_mod.get(conn, key) for key in (
         "map.provider", "map.center_lat", "map.center_lon", "map.zoom",
-        "map.max_points", "map.cluster", "map.units", "map.show_labels", "map.overlays")}
+        "map.max_points", "map.cluster", "map.units", "map.show_labels", "map.overlays",
+        "map.download_max_zoom", "map.download_max_tiles", "map.download_delay_ms")}
 
 
 # --------------------------------------------------------------------------- #
@@ -454,6 +454,17 @@ def browse_cache_tile(provider_id: str, z: int, x: int, y: int,
         raise HTTPException(422, "invalid tile coordinates")
     if provider_id not in providers.PROVIDERS:
         raise HTTPException(404, f"unknown provider: {provider_id}")
+    stored = tiledownload.get_tile(provider_id, src or "base", z, x, y)
+    if stored is not None:
+        body, ctype = stored
+        return Response(
+            content=body,
+            media_type=ctype or "image/png",
+            headers={
+                "Cache-Control": "public, max-age=86400",
+                "X-SIRAJ-Tile-Origin": "download",
+            },
+        )
     try:
         body, ctype, origin = browse_cache.get_or_fetch(provider_id, src or "base", z, x, y)
     except LookupError as exc:
@@ -471,6 +482,117 @@ def browse_cache_tile(provider_id: str, z: int, x: int, y: int,
     )
 
 
+# --------------------------------------------------------------------------- #
+# permanent downloads — store a region's tiles for offline viewing
+# --------------------------------------------------------------------------- #
+@router.get("/api/geo/downloads")
+def download_index(conn=Depends(conn_dep)):
+    """Every download job, the store's size, and the policy that governs it."""
+    conf = _settings(conn)
+    return {
+        "ok": True,
+        "jobs": tiledownload.list_jobs(),
+        "stats": tiledownload.stats(),
+        "caps": {
+            "max_zoom": int(conf["map.download_max_zoom"]),
+            "max_tiles": int(conf["map.download_max_tiles"]),
+            "delay_ms": int(conf["map.download_delay_ms"]),
+        },
+        "providers": [{
+            "id": p_["id"], "kind": p_["kind"], "group": p_["group"],
+            "label_en": p_["label_en"], "label_ar": p_["label_ar"],
+            "downloadable": p_.get("downloadable", False),
+            "download_note_en": p_.get("download_note_en", ""),
+            "download_note_ar": p_.get("download_note_ar", ""),
+            "terms_url": p_.get("terms_url", ""),
+        } for p_ in providers.catalog()],
+    }
+
+
+@router.post("/api/geo/downloads")
+def download_create(payload: dict = Body(...), conn=Depends(conn_dep)):
+    """Start one permanent download per requested map type.
+
+    The body names providers (``providers: [...]``, or ``"all"`` for every type
+    the terms permit), a ``bbox`` and a zoom range. Providers whose published
+    terms forbid bulk retrieval are refused with that reason, out loud.
+    """
+    conf = _settings(conn)
+    bbox = payload.get("bbox")
+    if isinstance(bbox, str):
+        box = _bbox(bbox)
+    elif isinstance(bbox, dict):
+        try:
+            box = (float(bbox["w"]), float(bbox["s"]), float(bbox["e"]), float(bbox["n"]))
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(422, "bbox must carry w, s, e, n") from None
+    else:
+        raise HTTPException(422, "bbox is required")
+    if box[0] >= box[2] or box[1] >= box[3]:
+        raise HTTPException(422, "bbox is empty")
+    try:
+        minzoom = int(payload.get("minzoom", 0))
+        maxzoom = int(payload.get("maxzoom", 12))
+    except (TypeError, ValueError):
+        raise HTTPException(422, "zooms must be integers") from None
+    cap_zoom = int(conf["map.download_max_zoom"])
+    cap_tiles = int(conf["map.download_max_tiles"])
+    if minzoom < 0 or maxzoom < minzoom:
+        raise HTTPException(422, "invalid zoom range")
+    if maxzoom > cap_zoom:
+        raise HTTPException(422, f"maxzoom exceeds map.download_max_zoom ({cap_zoom})")
+    asked = payload.get("providers") or []
+    if asked == "all" or asked == ["all"]:
+        asked = [p_["id"] for p_ in providers.catalog() if p_.get("downloadable")]
+    if not isinstance(asked, list) or not asked:
+        raise HTTPException(422, "providers must be a non-empty list")
+    name = str(payload.get("name") or "").strip()[:120]
+    delay = int(conf["map.download_delay_ms"])
+    results = []
+    for pid in asked:
+        prov = providers.PROVIDERS.get(pid)
+        if prov is None:
+            results.append({"provider": pid, "ok": False, "reason": "unknown provider"})
+            continue
+        try:
+            job = tiledownload.create_job(
+                name or f"{pid} · {box[0]:.2f},{box[1]:.2f}",
+                pid, box[0], box[1], box[2], box[3], minzoom, maxzoom,
+                src=str(payload.get("src") or "base"),
+                delay_ms=delay, max_tiles=cap_tiles)
+            results.append({"provider": pid, "ok": True, "job_id": job["id"],
+                            "total": job["total"]})
+        except (LookupError, ValueError) as exc:
+            results.append({"provider": pid, "ok": False, "reason": str(exc)})
+    return {"ok": True, "results": results, "jobs": tiledownload.list_jobs()}
+
+
+@router.get("/api/geo/downloads/{job_id}")
+def download_get(job_id: int):
+    job = tiledownload.get_job(job_id)
+    if not job:
+        raise HTTPException(404, "no such download job")
+    return {"ok": True, "job": job}
+
+
+@router.post("/api/geo/downloads/{job_id}/{action}")
+def download_action(job_id: int, action: str):
+    if action not in ("pause", "resume", "cancel"):
+        raise HTTPException(404, f"unknown action: {action}")
+    job = {"pause": tiledownload.pause_job, "resume": tiledownload.resume_job,
+           "cancel": tiledownload.cancel_job}[action](job_id)
+    if not job:
+        raise HTTPException(404, "no such download job")
+    return {"ok": True, "job": job}
+
+
+@router.delete("/api/geo/downloads/{job_id}")
+def download_delete(job_id: int, purge: bool = False):
+    if not tiledownload.delete_job(job_id, purge=purge):
+        raise HTTPException(404, "no such download job")
+    return {"ok": True, "purged": bool(purge), "stats": tiledownload.stats()}
+
+
 @router.get("/api/geo/offline-pack.zip")
 def geo_offline_pack_zip():
     """Download the bundled cartography pack as a zip (never includes registry.db)."""
@@ -481,17 +603,27 @@ def geo_offline_pack_zip():
     buf = io.BytesIO()
     written = 0
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
-        for name in ("gaza.vectormap.json.gz", "gaza.vectormap.json", "gaza.tilepack", "README.md"):
+        pack_files = ("world.vectormap.json.gz", "world.vectormap.json",
+                      "gaza.vectormap.json.gz", "gaza.vectormap.json",
+                      "world.tilepack", "README.md")
+        for name in pack_files:
             path = offline_pack.PACK_DIR / name
             if path.is_file():
                 zf.write(path, arcname=f"offline_map/{name}")
                 written += 1
+        basemap_path = Path(offline_pack.PACK_DIR).parent / "basemap.sqlite"
+        if basemap_path.is_file():
+            zf.write(basemap_path, arcname="offline_map/basemap.sqlite")
+            written += 1
         meta = {
             "format": "siraj-offline-map",
-            "version": 1,
+            "version": 2,
+            "basemap": basemap.info(),
             "vectormap": offline_pack.vectormap_info(),
             "tilepack": offline_pack.tilepack_info(),
-            "note": "Cartography only. Does not contain registry.db or research records.",
+            "note": "Cartography only. Does not contain registry.db or research records. "
+                    "Covers the whole world: vector basemap (basemap.sqlite), street map "
+                    "(world.vectormap.json) and raster tiles (world.tilepack).",
         }
         zf.writestr("offline_map/manifest.json", json.dumps(meta, ensure_ascii=False, indent=2))
     if written == 0:

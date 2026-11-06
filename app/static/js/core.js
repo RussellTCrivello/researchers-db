@@ -213,10 +213,36 @@
     return { mode: instance, source: "instance" };
   }
 
+  /** The default base map for every map surface that has one: the personal
+   *  choice for this browser, else the instance setting, else the offline pack.
+   *  Honoured by the map workspace, the record panels, the list maps and the
+   *  desk — one answer wherever maps appear. */
+  function mapDefault() {
+    return { provider: resolvePref("map_provider", "map.provider", "local") };
+  }
+
+  /** /api/map/config, fetched once per page: provider catalogue with styles,
+   *  families, and the offline pack inventory. */
+  let mapConfigCache = null;
+  function mapConfig() {
+    if (!mapConfigCache) {
+      mapConfigCache = fetch("/api/map/config").then(r => {
+        if (!r.ok) throw new Error("map config " + r.status);
+        return r.json();
+      }).catch(err => {
+        mapConfigCache = null;
+        throw err;
+      });
+    }
+    return mapConfigCache;
+  }
+
   App.pref = pref;
   App.setPref = setPref;
   App.setting = setting;
   App.resolvePref = resolvePref;
+  App.mapDefault = mapDefault;
+  App.mapConfig = mapConfig;
   App.theme = theme;
   App.density = density;
   App.pageSize = pageSize;

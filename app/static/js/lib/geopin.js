@@ -127,11 +127,26 @@
     return m;
   }
 
-  /** Default offline-friendly style for secondary maps (list / inspect / forms). */
-  function secondaryStyle(providerId) {
-    const id = providerId || "osm";
+  /** Boot style for secondary maps (list / inspect / forms): the user's default
+   *  map view.  A raster choice (standard / aerial / terrain) boots that
+   *  provider's own style; an offline choice boots the quiet graphical
+   *  background, over which the caller paints the street pack. */
+  function secondaryStyle(providerId, configDoc) {
+    const id = providerId || "local";
+    const catalog = (configDoc && configDoc.providers) || [];
+    const entry = catalog.find(p => p.id === id);
+    const graphical = catalog.find(p => p.id === "local");
+    const boot = (entry && !String(entry.kind || "").startsWith("vector"))
+      ? entry : (graphical || null);
+    if (boot && boot.style) {
+      if (A.tilecache && A.tilecache.wrapStyle) {
+        A.tilecache.installProtocol();
+        return A.tilecache.wrapStyle(boot);
+      }
+      return boot.style;
+    }
     const raw = {
-      id,
+      id: "osm",
       kind: "raster",
       style: {
         version: 8,
