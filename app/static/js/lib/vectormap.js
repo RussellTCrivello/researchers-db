@@ -85,6 +85,10 @@
       type: "FeatureCollection",
       features: polyFeatures(bm.green, "green")
     };
+    const urban = {
+      type: "FeatureCollection",
+      features: polyFeatures(bm.urban, "urban")
+    };
     const places = {
       type: "FeatureCollection",
       features: pointFeatures(bm.places, "place").concat(pointFeatures(bm.areas || [], "area"))
@@ -93,7 +97,7 @@
       v: bm.v || 1,
       bbox: bm.bbox,
       source: bm.source || "",
-      roads, water, green, places,
+      roads, water, green, urban, places,
       stats: {
         roads: (bm.roads || []).length,
         places: (bm.places || []).length,
@@ -115,6 +119,8 @@
     A._vectormapCache = inflated;
     return inflated;
   };
+
+  const emptyCollection = () => ({ type: "FeatureCollection", features: [] });
 
   /**
    * Paint the street pack onto a MapLibre map. Idempotent: replaces sources.
@@ -141,6 +147,10 @@
     add("vm-green", inflated.green, [{
       id: "vm-green-fill", type: "fill",
       paint: { "fill-color": "#c5ddb0", "fill-opacity": 0.55 }
+    }]);
+    add("vm-urban", inflated.urban || emptyCollection(), [{
+      id: "vm-urban-fill", type: "fill",
+      paint: { "fill-color": "#e4dcd0", "fill-opacity": 0.75 }
     }]);
     add("vm-water", inflated.water, [
       { id: "vm-water-fill", type: "fill", filter: ["==", ["geometry-type"], "Polygon"],

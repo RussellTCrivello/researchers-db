@@ -47,10 +47,12 @@ PROVIDERS = {
         "swatch": "#cfdbe6",
         "label_en": "Offline vector basemap",
         "label_ar": "خريطة أساس متجهية دون اتصال",
-        "hint_en": "Ships with the application: country outlines, coastlines, lakes and "
-                   "rivers from the bundled Natural Earth pack. Works with no network.",
-        "hint_ar": "تُشحن مع التطبيق: حدود الدول والسواحل والبحيرات والأنهار من حزمة "
-                   "ناتشورال إيرث المرفقة، وتعمل دون اتصال.",
+        "hint_en": "Ships with the application: countries, provinces, urban areas, "
+                   "coastlines, lakes, rivers and cities from the bundled Natural Earth "
+                   "pack. Covers the whole world with no network.",
+        "hint_ar": "تُشحن مع التطبيق: الدول والمقاطعات والمناطق الحضرية والسواحل "
+                   "والبحيرات والأنهار والمدن من حزمة ناتشورال إيرث المرفقة، وتغطي "
+                   "العالم كله دون اتصال.",
         "requires_network": False,
         "max_zoom": 12,
         "attribution_en": "Basemap: Natural Earth (public domain)",
@@ -359,12 +361,14 @@ PROVIDERS["streets-offline"] = {
     "kind": "vector-streets",
     "group": "offline",
     "swatch": "#e8f0e4",
-    "label_en": "Offline street map (Gaza)",
-    "label_ar": "خريطة الشوارع دون اتصال (غزة)",
-    "hint_en": "Bundled OpenStreetMap streets, places, water and parks for the "
-               "Gaza working area. No network. Ships as a compressed vectormap.",
-    "hint_ar": "شوارع وأماكن ومياه وحدائق من خريطة الشارع المفتوح لمنطقة غزة، "
-               "مضغوطة مع التطبيق، بلا شبكة.",
+    "label_en": "Offline street map (world)",
+    "label_ar": "خريطة الشوارع دون اتصال (العالم)",
+    "hint_en": "World base — borders, coastlines, rivers, urban areas and cities — "
+               "with OpenStreetMap street detail for the working area. No network. "
+               "Ships as compressed vectormaps.",
+    "hint_ar": "أساس عالمي — الحدود والسواحل والأنهار والمناطق الحضرية والمدن — "
+               "مع تفاصيل شوارع خريطة الشارع المفتوح لمنطقة العمل. بلا شبكة، "
+               "تُشحن مضغوطة.",
     "requires_network": False,
     "max_zoom": 18,
     "attribution_en": "© OpenStreetMap contributors",
@@ -393,9 +397,10 @@ PROVIDERS["streets-hybrid"] = {
     "swatch": "#dce8f2",
     "label_en": "Offline hybrid (Natural Earth + streets)",
     "label_ar": "مدمجة دون اتصال (ناتشورال إيرث + شوارع)",
-    "hint_en": "World Natural Earth underlay with the Gaza street pack on top when "
-               "you zoom into the working area.",
-    "hint_ar": "خلفية ناتشورال إيرث العالمية مع حزمة شوارع غزة فوقها عند التكبير.",
+    "hint_en": "World Natural Earth underlay with the world street pack on top; "
+               "street-level detail where the pack carries it.",
+    "hint_ar": "خلفية ناتشورال إيرث العالمية مع حزمة الشوارع العالمية فوقها؛ "
+               "وتفصيل على مستوى الشارع حيث تتوفر الحزمة.",
     "requires_network": False,
     "max_zoom": 18,
     "attribution_en": "Basemap: Natural Earth (public domain) · streets © OpenStreetMap contributors",

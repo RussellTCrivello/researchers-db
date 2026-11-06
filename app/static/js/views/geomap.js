@@ -379,7 +379,7 @@
       "bottom-left");
 
     /* --------------------------------------------------- basemap + layers --- */
-    const LOCAL_SOURCES = ["countries", "lakes", "coastline", "rivers", "places"];
+    const LOCAL_SOURCES = ["countries", "admin_1", "urban", "lakes", "coastline", "rivers", "places"];
 
     function wantBasemap() {
       const k = state.provider.kind;
@@ -788,6 +788,11 @@
           { id: "base-countries-line", type: "line", source: "base-countries",
             paint: { "line-color": "#b9c6d2", "line-width": 0.8 } }
         ],
+        admin_1: [{ id: "base-admin_1", type: "line", source: "base-admin_1", minzoom: 4,
+                    paint: { "line-color": "#c9b896", "line-width": 0.7,
+                             "line-dasharray": [2, 2] } }],
+        urban: [{ id: "base-urban", type: "fill", source: "base-urban",
+                  paint: { "fill-color": "#e8e0d4", "fill-opacity": 0.85 } }],
         lakes: [{ id: "base-lakes", type: "fill", source: "base-lakes",
                   paint: { "fill-color": "#cfe3f2" } }],
         coastline: [{ id: "base-coastline", type: "line", source: "base-coastline",
