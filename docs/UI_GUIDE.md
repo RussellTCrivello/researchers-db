@@ -126,13 +126,13 @@ portraits by one person and as institutional profiles by another.
 ### The record panel beside the list
 
 Selecting a record — a click on a row, a card or a dense row, or `↑`/`↓` from the data area —
-splits the screen in two for people, institutions and places. By default the data view owns the
+splits the screen in two, for every entity. By default the data view owns the
 whole stage; the moment a record is picked the stage becomes two balanced halves: the data on one
 side (the table keeps scrolling, sorting and filtering exactly as before, with the picked row
 marked), and the record panel on the other. Closing the panel (`Esc` or `✕`) hands the whole page
 back to the data.
 
-The panel carries exactly three tabs:
+For people, institutions and places the panel carries exactly three tabs:
 
 * **Details** — the whole dossier without leaving the list: identity, status and completeness,
   every filled field group, and then Positions, Events, Sources, Files and the change log, each
@@ -154,6 +154,47 @@ The panel carries exactly three tabs:
 `‹ ›` in the panel header walk the selection through the current result set without losing the
 list, `✎` opens the edit form and `⤢` the record's own page. In RTL the split mirrors — data
 right, panel left — and on narrow screens the halves stack.
+
+### The three advanced panels — relationship, source, event
+
+Relationships, sources and events are not people-shaped, so their panels ask their own questions.
+Each set still opens on Details and closes on Map; the middle tabs are the analysis.
+
+* **Relationship** — *Details · Parties · Evidence · Map.*
+  *Details* keeps the fields, the principal source the link is filed under, Files and the log.
+  *Parties* places the two sides face to face — the arrow between them follows the stored
+  direction (`→` for directed, `⇄` for symmetric) — and underneath, the registry's own reading of
+  the pair: each party's neighbourhood size, a bar of the kinds of records around it, and the
+  connections the two parties *share*, as chips that open those records.
+  *Evidence* is the argument for the link: the support/contradiction/context counts, the
+  principal source, a contested banner when anything contradicts, and every claim card with its
+  bearing, page reference, reliability and claim-level verification. `Link a source` records a
+  new claim against the relationship.
+  *Map* plots **both parties** — each resolved to its own anchor (a person's birthplace, an
+  institution's seat, a place's coordinates, an event's venue) — with a dashed tie between them,
+  the great-circle distance in the caption, and every point listed on copy.
+
+* **Source** — *Details · Claims · Coverage · Map.*
+  *Claims* is the mirror of an evidence list: not "what supports this record?" but "what does
+  this source say, and about what?" Every claim is one row — its bearing as a ✓ / ✕ / ○ badge, a
+  link to the record it is about, the claim text, page or timestamp, and claim-level
+  verification. Contradictions are sorted first; chips filter the ledger by record type;
+  `Record a claim` fixes the source and asks which record the claim is about.
+  *Coverage* is the analysis of that ledger: claims and distinct records reached, how many
+  records name it their primary source, claims per record, then three charts — claims by record
+  type, how the claims bear (support/contradiction/context), and verification levels.
+  *Map* draws the source's **geographic footprint**: the anchors of up to twenty-two records its
+  claims are about.
+
+* **Event** — *Details · Participants · Chronology · Map.*
+  *Participants* reads the event's stored relationships as an attendance list: a bar of roles, and
+  every participant with its role, direction, dates and evidence count. `Add participant` opens
+  the relationship composer aimed at the event.
+  *Chronology* places the event in its neighbourhood: a start→end ribbon with the duration, a
+  hand-drawn axis of the ±5-year window with a dot per event and this event's year marked in
+  amber, the neighbouring events listed with their places, and any events linked to this one.
+  *Map* shows the event's venue and, as quieter dots, where its participants are anchored — who
+  came from where.
 
 ### Imagery
 

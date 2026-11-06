@@ -149,8 +149,19 @@
   function addDialog(opts) {
     opts = opts || {};
     const isRelationship = opts.relationshipId != null;
+    const fixedSource = opts.sourceId != null;
+    const pickTarget = fixedSource && opts.entityId == null && opts.relationshipId == null;
     const body = `
-      <div class="field"><label>${esc(text("Source", "المصدر"))}</label><div id="evSrcHost"></div></div>
+      ${fixedSource ? `<div class="field"><label>${esc(text("Source", "المصدر"))}</label>
+        <div class="notice ok small">${esc(opts.sourceTitle || ("#" + opts.sourceId))}</div></div>`
+        : `<div class="field"><label>${esc(text("Source", "المصدر"))}</label><div id="evSrcHost"></div></div>`}
+      ${pickTarget ? `
+      <div class="field"><label>${esc(text("About which record?", "عن أي سجل؟"))}</label>
+        <div class="field-row">
+          <select id="evTgtType">${["person", "institution", "place", "event", "relationship"].map(k =>
+            `<option value="${k}">${esc((App.label && App.label(k)) || k)}</option>`).join("")}</select>
+          <div id="evTgtHost" style="flex:1"></div>
+        </div></div>` : ""}
       <div class="field"><label>${esc(text("What does the source say?", "ماذا يقول المصدر؟"))}</label>
         <textarea id="evClaim" rows="3" dir="auto"
           placeholder="${esc(text("The statement supported, in your words or quoted.",
@@ -168,17 +179,22 @@
       </div>
       ${isRelationship ? "" : `<div class="field"><label>${esc(text("Supports which field? (optional)", "يدعم أي حقل؟ (اختياري)"))}</label>
         <input id="evField" dir="auto" placeholder="birth_date"></div>`}
+      ${pickTarget ? `<div class="notice small">${esc(text(
+        "Reliability describes the source; verification describes this claim.",
+        "الموثوقية تصف المصدر، والتحقق يصف هذا الادعاء."))}</div>` : ""}
       <div class="notice small">${esc(text(
         "Reliability describes the source; verification describes this claim. A contradiction is recorded beside the support, never instead of it.",
         "الموثوقية تصف المصدر، والتحقق يصف هذا الادعاء. يُسجَّل التعارض إلى جانب التأييد لا بدلاً منه."))}</div>`;
 
     const m = App.modal({
-      title: opts.title || text("Link a source to this claim", "ربط مصدر بهذا الادعاء"),
+      title: opts.title || (fixedSource
+        ? text("Record a claim this source makes", "تسجيل ادعاء يصدر عن هذا المصدر")
+        : text("Link a source to this claim", "ربط مصدر بهذا الادعاء")),
       body, size: "slim",
       buttons: [
         { label: App.t("common.cancel") },
         { label: App.t("common.save"), cls: "primary", onClick: async (close, b) => {
-            const sourceId = srcCombo.getValue();
+            const sourceId = fixedSource ? opts.sourceId : srcCombo.getValue();
             if (!sourceId) return App.toast(App.t("common.select"), "warn");
             const payload = {
               source_id: sourceId,
@@ -189,7 +205,16 @@
               note: b.querySelector("#evNote").value.trim() || null
             };
             if (isRelationship) payload.relationship_id = opts.relationshipId;
-            else {
+            else if (pickTarget) {
+              /* the claim is about a record the researcher names here */
+              const tt = b.querySelector("#evTgtType").value;
+              const tid = tgtCombo && tgtCombo.getValue();
+              if (!tid) return App.toast(App.t("common.select"), "warn");
+              if (tt === "relationship") payload.relationship_id = Number(tid);
+              else { payload.entity_type = tt; payload.entity_id = Number(tid); }
+              const field = b.querySelector("#evField");
+              if (field && field.value.trim()) payload.field_key = field.value.trim();
+            } else {
               payload.entity_type = opts.entityType;
               payload.entity_id = opts.entityId;
               const field = b.querySelector("#evField");
@@ -207,8 +232,31 @@
       ]
     });
 
-    const srcCombo = App.combobox({ entity: "source", allowCreate: true, limit: 30 });
-    m.body.querySelector("#evSrcHost").appendChild(srcCombo);
+    let srcCombo = null;
+    if (!fixedSource) {
+      srcCombo = App.combobox({ entity: "source", allowCreate: true, limit: 30 });
+      m.body.querySelector("#evSrcHost").appendChild(srcCombo);
+    }
+    /* a fixed-source claim still needs a target: type select + combobox,
+       remounted on type change — the same two-step picker the relationship
+       composer uses */
+    let tgtCombo = null;
+    const mountTarget = () => {
+      const host = m.body.querySelector("#evTgtHost");
+      if (!host) return;
+      host.innerHTML = "";
+      tgtCombo = App.combobox({
+        entity: m.body.querySelector("#evTgtType").value,
+        allowCreate: true, limit: 30,
+        placeholder: App.t("common.search")
+      });
+      host.appendChild(tgtCombo);
+    };
+    const tgtType = m.body.querySelector("#evTgtType");
+    if (tgtType) {
+      mountTarget();
+      tgtType.onchange = mountTarget;
+    }
 
     // the three support types come from the server's controlled list
     const supportSel = m.body.querySelector("#evSupport");

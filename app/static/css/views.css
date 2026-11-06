@@ -2572,3 +2572,96 @@ svg.relmap .map-node.is-selected .atlas-label.is-dim { opacity: 1; }
   margin-top: 8px; padding-top: 8px;
   border-top: 1px solid var(--border, #d5dee6);
 }
+
+/* ==========================================================================
+   Record panel · the advanced entities: relationship, source, event
+   -------------------------------------------------------------------------- */
+/* relationship — the two parties, side by side, with the tie between them */
+.party-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px; align-items: stretch; margin-bottom: 12px;
+}
+.party-card {
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 10px 12px;
+}
+.party-role {
+  font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 4px;
+}
+.party-type {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--muted); margin-bottom: 3px;
+}
+.party-type svg { width: 13px; height: 13px; }
+.party-name { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.party-name a { color: var(--text); text-decoration: none; }
+.party-name a:hover { color: var(--primary, #33689a); text-decoration: underline; }
+.party-arrow {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--amber, #b5751a); padding: 0 2px;
+}
+[dir="rtl"] .party-arrow { transform: scaleX(-1); }
+.party-analysis-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+.party-analysis-side {
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 10px 12px;
+}
+
+/* source — the claims ledger */
+.claim-filters {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+}
+.claim-filters .chip {
+  cursor: pointer; border: 1px solid var(--border, #d5dee6);
+  background: var(--surface); color: var(--text-2);
+}
+.claim-filters .chip.on {
+  background: var(--primary-soft, #eaf1f8); border-color: var(--primary, #33689a);
+  color: var(--primary, #33689a); font-weight: 600;
+}
+.claim-row {
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 9px 11px; margin-bottom: 8px;
+}
+.claim-target {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-weight: 600; color: var(--text); text-decoration: none;
+}
+.claim-target svg { width: 13px; height: 13px; }
+.claim-target:hover { color: var(--primary, #33689a); text-decoration: underline; }
+.claim-text { margin: 5px 0 3px; font-size: 13px; line-height: 1.5; }
+.claim-meta { margin-top: 2px; }
+
+/* event — chronology */
+.chrono-ribbon {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 10px 12px; margin-bottom: 12px;
+}
+.chrono-end { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+.chrono-line {
+  flex: 1; height: 2px; border-radius: 1px;
+  background: linear-gradient(90deg, var(--border, #d5dee6), var(--amber, #b5751a), var(--border, #d5dee6));
+}
+.chrono-axis { width: 100%; height: auto; display: block; margin: 2px 0 8px; }
+.chrono-list { display: flex; flex-direction: column; gap: 2px; }
+.chrono-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 8px; font-size: 13px;
+}
+.chrono-row:hover { background: var(--surface-2, #f2f5f8); }
+.chrono-row.is-focus-year { background: var(--amber-soft, #f7efdd); }
+.chrono-row.is-focus-year .chrono-year { color: var(--amber, #b5751a); font-weight: 700; }
+.chrono-year { font-size: 11.5px; color: var(--muted); width: 4.5ch; flex: none; }
+
+/* the map's quiet context dots (participant origins, footprint) */
+.inspect-map-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--teal, #166d75); border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35); cursor: default;
+}

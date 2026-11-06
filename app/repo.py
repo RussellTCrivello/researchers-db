@@ -757,6 +757,53 @@ def get_relationship_evidence(conn, relationship_id: int) -> dict:
     return out
 
 
+def _evidence_target(conn: sqlite3.Connection, row: dict) -> dict | None:
+    """Where an evidence row points — the record the claim is about.
+
+    Claims are made *about* people, places, institutions, events and whole
+    relationships; a claims view that cannot say which is a bibliography,
+    not an argument map.
+    """
+    if row.get("relationship_id"):
+        rid = int(row["relationship_id"])
+        rel = conn.execute(
+            "SELECT entity1_type, entity1_id, entity2_type, entity2_id "
+            "FROM relationship WHERE id = ?", (rid,)).fetchone()
+        label = None
+        if rel:
+            a = resolve_ref(conn, rel["entity1_type"], rel["entity1_id"])
+            b = resolve_ref(conn, rel["entity2_type"], rel["entity2_id"])
+            arrow = "\u2192"
+            label = f"{a['label'] if a else '?'} {arrow} {b['label'] if b else '?'}"
+        return {"type": "relationship", "id": rid, "label": label or f"#{rid}"}
+    etype, eid = row.get("entity_type"), row.get("entity_id")
+    if etype and eid:
+        ref = resolve_ref(conn, etype, int(eid))
+        return {"type": etype, "id": int(eid),
+                "label": (ref or {}).get("label") or f"#{int(eid)}"}
+    return None
+
+
+def get_claims_by_source(conn: sqlite3.Connection, source_id: int) -> list[dict]:
+    """Every claim this one source makes, richest first.
+
+    The mirror image of get_evidence: that asks 'what supports this record?',
+    this asks 'what does this source say, and about what?'. A contradiction
+    sits beside the supports, never instead of them — one source can well
+    support one record and contradict another.
+    """
+    rows = conn.execute(
+        EVIDENCE_SELECT + " WHERE e.source_id = ? ORDER BY "
+        "CASE e.support_type WHEN 'contradicts' THEN 0 WHEN 'supports' THEN 1 ELSE 2 END, "
+        "e.id", (int(source_id),)).fetchall()
+    out = []
+    for r in rows:
+        row = dict(r)
+        row["target"] = _evidence_target(conn, row)
+        out.append(row)
+    return out
+
+
 def evidence_summary(conn, entity_type: str, entity_id: int) -> dict:
     """Counts used by the diagram and the map: what backs this record, and is it contested."""
     row = conn.execute(
