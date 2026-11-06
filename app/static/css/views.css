@@ -399,25 +399,20 @@ html { scroll-behavior: smooth; }
   flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain;
   scroll-behavior: smooth; scrollbar-gutter: stable;
 }
-/* three fixed columns: table · details · map */
+/* two halves: the data view · the record panel (Details · Relationships · Map) */
 .list-stage {
   flex: 1 1 auto; min-height: 0; min-width: 0;
   display: flex; flex-direction: row; align-items: stretch;
 }
-.list-stage.tri {
+.list-stage.split {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.95fr) minmax(240px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
 }
-.list-stage.tri.no-map {
-  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr);
-}
 .list-stage > .list-scroll { flex: 1 1 auto; min-width: 0; min-height: 0; }
-.list-stage.tri > .list-scroll {
+.list-stage.split > .list-scroll {
   border-inline-end: 1px solid var(--border);
 }
-.list-stage.tri.no-map .inspect { border-inline-end: 0; }
-.inspect-map-pane[hidden] { display: none !important; }
 .list-scroll.can-inspect tbody tr[data-id],
 .list-scroll.can-inspect .ecard,
 .list-scroll.can-inspect .rrow { cursor: pointer; }
@@ -431,12 +426,7 @@ html { scroll-behavior: smooth; }
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
   overflow: hidden;
   background: var(--surface);
-  border-inline-end: 1px solid var(--border);
-}
-.inspect-map-pane {
-  display: flex; flex-direction: column; min-height: 0; min-width: 0;
-  overflow: hidden;
-  background: var(--surface);
+  border-inline-start: 1px solid var(--border);
 }
 .inspect-head {
   display: flex; align-items: center; gap: 6px; flex: none;
@@ -453,9 +443,15 @@ html { scroll-behavior: smooth; }
 }
 .inspect-nav [data-inspect-index] { min-width: 4.5em; text-align: center; }
 .inspect-map-wrap {
-  position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
+  position: relative; flex: 1 1 auto; min-height: 220px; overflow: hidden;
+  display: flex; flex-direction: column;
 }
-.inspect-map { height: 100%; width: 100%; background: #e8eef4; }
+.inspect-map-wrap[hidden] { display: none !important; }
+.inspect-map-bar {
+  display: flex; flex-wrap: wrap; gap: 4px; flex: none;
+  padding: 8px 10px; border-bottom: 1px solid var(--border);
+}
+.inspect-map { flex: 1 1 auto; height: auto; width: 100%; background: #e8eef4; }
 [data-theme="dark"] .inspect-map { background: #1a2633; }
 .inspect-map.is-empty {
   display: flex; align-items: center; justify-content: center;
@@ -512,6 +508,7 @@ html { scroll-behavior: smooth; }
   font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums;
 }
 .inspect-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 12px 14px; }
+.inspect-body[hidden] { display: none; }
 .inspect-body .card { box-shadow: none; border: 1px solid var(--border); margin: 0 0 10px; }
 .inspect-body .card-head { padding: 8px 10px; }
 .inspect-body .card-head h3 { font-size: 13px; }
@@ -533,6 +530,59 @@ html { scroll-behavior: smooth; }
 .inspect-timeline .when { font-size: 11.5px; color: var(--text-3); }
 .inspect-timeline .what { font-size: 12.5px; margin-top: 2px; }
 .inspect-empty { padding: 18px 8px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+/* ---- relationships tab: the ego-network -------------------------------- */
+.rel-graph-box {
+  position: relative;
+  border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+.rel-graph {
+  width: 100%; height: clamp(260px, 42vh, 430px);
+  cursor: grab; touch-action: none;
+}
+.rel-graph:active { cursor: grabbing; }
+.rel-graph svg { width: 100%; height: 100%; display: block; }
+.rel-graph svg.panning { cursor: grabbing; }
+.rel-graph-tools {
+  position: absolute; z-index: 2; inset-block-start: 6px; inset-inline-end: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.rel-graph-tools .icon-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  width: 28px; height: 28px; font-size: 14px;
+}
+.rel-node { cursor: pointer; outline: none; }
+.rel-node .rel-dot { stroke: var(--surface); stroke-width: 2.5px; }
+.rel-node.centre .rel-dot { stroke: var(--gold); stroke-width: 3.5px; }
+.rel-node text { pointer-events: none; user-select: none; }
+.rel-node .rel-initials { font-size: 12px; font-weight: 650; fill: #fff; }
+.rel-node .rel-name {
+  font-size: 11.5px; fill: var(--text);
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round;
+}
+.rel-node:focus-visible .rel-dot { stroke: var(--gold); stroke-width: 3.5px; }
+.rel-edge line { stroke: var(--text-3); stroke-width: 1.6px; stroke-opacity: .75; }
+.rel-edge-label {
+  font-size: 10px; fill: var(--text-2);
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round;
+}
+.rel-graph svg[data-hot] .rel-node,
+.rel-graph svg[data-hot] .rel-edge { opacity: .3; }
+.rel-graph svg[data-hot] .rel-node.hot,
+.rel-graph svg[data-hot] .rel-edge.hot { opacity: 1; }
+.rel-node.hot .rel-dot { stroke: var(--gold); }
+.rel-hint { margin: 6px 2px 4px; }
+.rel-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+  margin: 4px 0 10px;
+}
+.rel-legend span {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--text-2);
+}
+.rel-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .list-scroll > .table-wrap { border: 0; border-radius: 0; overflow: visible; }
 .list-scroll > .cardgrid, .list-scroll > .rowlist { margin: 0; }
 .list-scroll .empty { padding: 44px 16px; }
@@ -651,26 +701,27 @@ html { scroll-behavior: smooth; }
   .list-toolbar { position: sticky; inset-block-start: 0; }
   .filter-dock { position: static; }
   .list-footer { position: sticky; inset-block-end: 0; }
-  .list-stage.tri {
+  .list-stage.split {
     display: flex; flex-direction: column;
     grid-template-columns: none;
   }
-  .list-stage.tri > .list-scroll {
+  .list-stage.split > .list-scroll {
     max-height: 38vh; border-inline-end: 0;
     border-bottom: 1px solid var(--border);
   }
   .inspect {
-    flex: 1 1 auto; max-height: 36vh;
-    border-inline-end: 0; border-bottom: 1px solid var(--border);
+    flex: 1 1 auto; max-height: 46vh;
+    border-inline-start: 0; border-bottom: 1px solid var(--border);
   }
-  .inspect-map-pane {
-    flex: 0 0 220px; min-height: 200px;
+  .inspect-map-wrap {
+    min-height: 240px;
   }
+  .rel-graph { height: clamp(220px, 34vh, 320px); }
 }
 @media print {
   .list-shell { height: auto; }
   .list-scroll { max-height: none; overflow: visible; }
-  .list-footer, .filter-dock, .inspect, .inspect-map-pane { display: none !important; }
+  .list-footer, .filter-dock, .inspect, .inspect-map-wrap { display: none !important; }
 }
 
 /* ---- record dossier: tab strip and action bar stay in reach ------------ */

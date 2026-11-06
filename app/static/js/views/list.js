@@ -526,7 +526,7 @@
         ${queryEcho(st)}
         ${filterChips(entity, data)}
         ${bulkBar(entity)}
-        <div class="list-stage${inspectOpen ? " tri no-map" : ""}" data-list-stage>
+        <div class="list-stage${inspectOpen ? " split" : ""}" data-list-stage>
           <div class="list-scroll${canPick ? " can-inspect" : ""}"
                data-scroll-body tabindex="0" aria-label="${esc(A.pluralOf(entity))}">
             ${st.loading ? loadingBlock() : viewBody(entity, data)}
@@ -844,6 +844,9 @@
     "detail", "people", "profile", "content", "assessment", "research", "history",
     "contact", "meta"];
 
+  /* The panel itself: identity + three tabs (Details · Relationships · Map).
+     The map lives inside the panel as a persistent host — its WebGL context
+     survives tab switches instead of being torn down and rebuilt. */
   function inspectShell() {
     return `<aside class="inspect" data-inspect aria-label="${esc(t("inspect.aria"))}">
       <div class="inspect-head">
@@ -867,17 +870,8 @@
       <div class="inspect-id" data-inspect-id></div>
       <div class="inspect-tabs" data-inspect-tabs role="tablist"></div>
       <div class="inspect-body" data-inspect-body role="tabpanel"></div>
-    </aside>`;
-  }
-
-  function mapPaneShell() {
-    return `<aside class="inspect-map-pane" data-inspect-map-pane aria-label="${esc(t("inspect.map"))}">
-      <div class="inspect-head">
-        <span class="inspect-head-label">${icon("map-pin")} ${esc(t("inspect.map"))}</span>
-        <span class="spacer"></span>
-        <a class="btn ghost sm" href="#/geo">${esc(t("view.openGeo"))}</a>
-      </div>
-      <div class="inspect-map-wrap">
+      <div class="inspect-map-wrap" data-inspect-map-wrap hidden>
+        <div class="inspect-map-bar" data-inspect-map-bar></div>
         <div class="inspect-map" data-inspect-map></div>
         <div class="inspect-caption" data-inspect-caption hidden></div>
       </div>
@@ -888,35 +882,38 @@
     disposeInspectMap(entity);
     const stage = document.querySelector("[data-list-stage]");
     const pane = document.querySelector("[data-inspect]");
-    const mapPane = document.querySelector("[data-inspect-map-pane]");
     if (pane) pane.remove();
-    if (mapPane) mapPane.remove();
-    if (stage) stage.classList.remove("tri");
+    if (stage) stage.classList.remove("split");
   }
 
-  function ensureMapPane(entity) {
+  function ensureInspectPane(entity) {
     const stage = document.querySelector("[data-list-stage]");
     if (!stage) return null;
-    let mapPane = stage.querySelector("[data-inspect-map-pane]");
-    if (!mapPane) {
+    stage.classList.add("split");
+    let pane = stage.querySelector("[data-inspect]");
+    if (!pane) {
       const wrap = document.createElement("div");
-      wrap.innerHTML = mapPaneShell();
-      mapPane = wrap.firstElementChild;
-      stage.appendChild(mapPane);
-      hydrateIcons(mapPane);
+      wrap.innerHTML = inspectShell();
+      pane = wrap.firstElementChild;
+      stage.appendChild(pane);
+      hydrateIcons(pane);
     }
-    stage.classList.remove("no-map");
-    mapPane.hidden = false;
-    void entity;
-    return mapPane;
+    bindInspect(entity);
+    return pane;
   }
 
-  function removeMapPane(entity) {
-    disposeInspectMap(entity);
-    const stage = document.querySelector("[data-list-stage]");
-    const mapPane = document.querySelector("[data-inspect-map-pane]");
-    if (mapPane) mapPane.remove();
-    if (stage) stage.classList.add("no-map");
+  /** Show the map tab's persistent host (and hide the text body), or back. */
+  function showMapTab(entity, on) {
+    const body = document.querySelector("[data-inspect-body]");
+    const wrap = document.querySelector("[data-inspect-map-wrap]");
+    if (body) body.hidden = !!on;
+    if (wrap) wrap.hidden = !on;
+    if (on) {
+      requestAnimationFrame(() => {
+        const map = state[entity] && state[entity]._inspectMap;
+        if (map) { try { map.resize(); } catch (e) { /* not ready */ } }
+      });
+    }
   }
 
   function bindInspect(entity) {
@@ -980,14 +977,16 @@
 
   function disposeInspectMap(entity) {
     const st = state[entity];
-    if (st && st._inspectPin) {
+    if (!st || typeof st !== "object") return;
+    if (st._inspectPin) {
       try { st._inspectPin.remove(); } catch (e) { /* */ }
       st._inspectPin = null;
     }
-    if (st && st._inspectMap) {
+    if (st._inspectMap) {
       try { st._inspectMap.remove(); } catch (e) { /* already gone */ }
       st._inspectMap = null;
     }
+    st._inspectMapKey = null;
   }
 
   function markInspected(entity) {
@@ -995,23 +994,6 @@
     document.querySelectorAll("[data-scroll-body] [data-id]").forEach(el => {
       el.classList.toggle("inspected", id != null && Number(el.dataset.id) === Number(id));
     });
-  }
-
-  function ensureInspectPane(entity) {
-    const stage = document.querySelector("[data-list-stage]");
-    if (!stage) return null;
-    stage.classList.add("tri");
-    if (!stage.querySelector("[data-inspect-map-pane]")) stage.classList.add("no-map");
-    let pane = stage.querySelector("[data-inspect]");
-    if (!pane) {
-      const wrap = document.createElement("div");
-      wrap.innerHTML = inspectShell();
-      pane = wrap.firstElementChild;
-      stage.appendChild(pane);
-      hydrateIcons(pane);
-    }
-    bindInspect(entity);
-    return pane;
   }
 
   function closeInspect(entity) {
@@ -1106,38 +1088,15 @@
       .filter((id, i, arr) => id && arr.indexOf(id) === i);
   }
 
-  function nonEventRelations(rec) {
-    return (rec.relationships || []).filter(r => r.other_type !== "event");
-  }
-
+  /* Three tabs, exactly: what the record is, how it connects, where it is. */
   function inspectTabsFor(entity, rec) {
-    const spec = A.entitySpec(entity) || {};
-    const tabs = [
-      { key: "details", label: t("inspect.tab.details") }
+    void entity;
+    return [
+      { key: "details", label: t("inspect.tab.details") },
+      { key: "relationships", label: t("inspect.tab.relationships"),
+        n: (rec.relationships || []).length },
+      { key: "map", label: t("inspect.tab.map") }
     ];
-    /* Events lead the related-record frontier — ahead of relations and positions. */
-    if (entity !== "event") {
-      tabs.push({ key: "events", label: t("inspect.tab.events"),
-        n: linkedEventIds(rec).length });
-    }
-    const rels = entity === "event" ? (rec.relationships || []) : nonEventRelations(rec);
-    tabs.push(
-      { key: "relations", label: t("inspect.tab.relations"),
-        n: rels.length }
-    );
-    if (spec.has_positions) {
-      tabs.push({ key: "positions", label: t("inspect.tab.positions"),
-        n: (rec.positions || []).length });
-    }
-    tabs.push(
-      { key: "citations", label: t("inspect.tab.citations"),
-        n: (rec.citations || rec.evidence || []).length },
-      { key: "attachments", label: t("inspect.tab.attachments"),
-        n: (rec.attachments || []).length },
-      { key: "history", label: t("inspect.tab.history"),
-        n: (rec.history || []).length }
-    );
-    return tabs;
   }
 
   function paintInspectTabs(entity, rec) {
@@ -1157,6 +1116,10 @@
         st.inspectTab = btn.dataset.inspectTab;
         paintInspectTabs(entity, rec);
         paintInspectTab(entity, rec, st._inspectLoc || {});
+        /* the strip was rebuilt under the pointer: put keyboard focus back on
+           the active tab so Esc and the arrow keys keep working */
+        const again = document.querySelector(`[data-inspect-tab="${st.inspectTab}"]`);
+        if (again && again.focus) again.focus();
       };
     });
   }
@@ -1166,19 +1129,22 @@
     const body = document.querySelector("[data-inspect-body]");
     if (!body) return;
     const tab = st.inspectTab || "details";
-    if (tab === "details") body.innerHTML = inspectDetailsHtml(entity, rec, loc);
-    else if (tab === "positions") body.innerHTML = inspectPositionsHtml(entity, rec);
-    else if (tab === "relations") body.innerHTML = inspectRelationsHtml(entity, rec);
-    else if (tab === "events") body.innerHTML = inspectEventsHtml(entity, rec);
-    else if (tab === "citations") body.innerHTML = inspectCitationsHtml(entity, rec);
-    else if (tab === "attachments") body.innerHTML = inspectAttachmentsHtml(entity, rec);
-    else if (tab === "history") body.innerHTML = inspectHistoryHtml(entity, rec);
-    else body.innerHTML = "";
+    if (tab === "map") {
+      body.setAttribute("data-inspect-ready", "1");
+      showMapTab(entity, true);
+      paintMapBar(entity, rec, loc);
+      mountInspectMap(entity, loc);
+      return;
+    }
+    showMapTab(entity, false);
+    if (tab === "relationships") body.innerHTML = inspectRelationshipsHtml(entity, rec);
+    else body.innerHTML = inspectDetailsHtml(entity, rec, loc);
     body.dataset.inspectReady = "1";
     body.setAttribute("data-inspect-ready", "1");
     hydrateIcons(body);
     wireInspectTab(entity, rec, body);
-    if (tab === "events") loadInspectEvents(entity, rec, body);
+    if (tab === "relationships") renderRelGraph(entity, rec, body);
+    if (body.querySelector("[data-inspect-events]")) loadInspectEvents(entity, rec, body);
   }
 
   function inspectDetailsHtml(entity, rec, loc) {
@@ -1212,11 +1178,26 @@
           `<dt>${esc(A.fieldLabelSafe(f))}</dt><dd>${inspectFieldValue(entity, rec, f)}</dd>`
         ).join("")}</dl>
       </div>`).join("");
+    /* The Details tab is the whole dossier: fields first, then the related
+       rows — positions, events, sources, files and the change log — each one
+       keeping its own add / upload / delete interactions. */
+    const spec = A.entitySpec(entity) || {};
+    const parts = [];
+    if (spec.has_positions) {
+      parts.push(inspectSection(t("inspect.tab.positions"), inspectPositionsHtml(entity, rec)));
+    }
+    parts.push(
+      inspectSection(t("inspect.tab.events"), inspectEventsHtml(entity, rec)),
+      inspectSection(t("inspect.tab.citations"), inspectCitationsHtml(entity, rec)),
+      inspectSection(t("inspect.tab.attachments"), inspectAttachmentsHtml(entity, rec)),
+      inspectSection(t("inspect.tab.history"), inspectHistoryHtml(entity, rec))
+    );
     return `<div data-inspect-ready>
       <div class="inspect-loc">${esc(t("inspect.anchor." + entity))}${placeLine ? " · " + placeLine : ""}</div>
       ${stats ? `<div class="inspect-stats">${stats}</div>` : ""}
       ${tags ? `<div class="inspect-tags" style="margin-bottom:10px">${tags}</div>` : ""}
       ${sections || `<div class="inspect-empty">${esc(t("list.noRecords"))}</div>`}
+      ${parts.join("")}
       <div class="inspect-section">
         <div class="inspect-section-title">${esc(t("rec.system"))}</div>
         <dl class="dl inspect-dl compact">
@@ -1227,6 +1208,13 @@
           <dt>v</dt><dd>${esc(rec.version)}</dd>
         </dl>
       </div>
+    </div>`;
+  }
+
+  function inspectSection(title, inner) {
+    return `<div class="inspect-section">
+      <div class="inspect-section-title">${esc(title)}</div>
+      ${inner}
     </div>`;
   }
 
@@ -1256,28 +1244,285 @@
     </div>`;
   }
 
-  function inspectRelationsHtml(entity, rec) {
-    const rows = entity === "event" ? (rec.relationships || []) : nonEventRelations(rec);
+  /* --------------------------------------------- relationships visualised --- */
+  /* Node colours follow the relationship atlas so one record looks the same
+     wherever it is drawn. */
+  const REL_STYLE = {
+    person: { color: "#2f6f4f" }, institution: { color: "#1f5d8b" },
+    place: { color: "#8a5a1f" }, event: { color: "#7b3f8f" },
+    source: { color: "#8b3a3a" }, relationship: { color: "#4b5563" }
+  };
+
+  function relLabel(r) {
+    return (A.state.lang === "ar" ? (r.type_ar || r.type_en) : (r.type_en || r.type_ar || "")) || "";
+  }
+
+  function inspectRelationshipsHtml(entity, rec) {
+    void entity;
+    const rows = rec.relationships || [];
     return `<div data-inspect-ready>
       <div class="flex" style="margin-bottom:8px">
         <button type="button" class="btn sm primary" data-add-rel>
           ${icon("plus")} ${esc(t("rec.addRelationship"))}</button>
+        <a class="btn sm" href="#/map?focus=${esc(entity)}:${rec.id}">
+          ${icon("share")} ${esc(t("geo.showOnAtlas"))}</a>
       </div>
-      ${rows.length ? `<div class="table-wrap"><table class="data compact"><thead><tr>
+      ${rows.length ? `
+        <div class="rel-graph-box">
+          <div class="rel-graph-tools">
+            <button type="button" class="icon-btn" data-rel-zoom="in"
+                    title="${esc(t("inspect.rel.zoomIn"))}"
+                    aria-label="${esc(t("inspect.rel.zoomIn"))}">＋</button>
+            <button type="button" class="icon-btn" data-rel-zoom="out"
+                    title="${esc(t("inspect.rel.zoomOut"))}"
+                    aria-label="${esc(t("inspect.rel.zoomOut"))}">−</button>
+            <button type="button" class="icon-btn" data-rel-zoom="reset"
+                    title="${esc(t("inspect.rel.zoomReset"))}"
+                    aria-label="${esc(t("inspect.rel.zoomReset"))}">${icon("crosshair")}</button>
+          </div>
+          <div class="rel-graph" data-rel-graph></div>
+        </div>
+        <div class="rel-hint small muted">${esc(t("inspect.rel.hint"))}</div>
+        <div class="rel-legend" data-rel-legend></div>
+        <div class="table-wrap">${relTableHtml(rows)}</div>`
+        : `<div class="inspect-empty">${esc(t("rec.noRelationships"))}</div>`}
+    </div>`;
+  }
+
+  function relTableHtml(rows) {
+    return `<table class="data compact"><thead><tr>
         <th>${esc(t("log.entity"))}</th>
         <th>${esc(A.t("ui.type"))}</th>
         <th>${esc(A.t("ui.from"))}</th>
         <th>${esc(A.t("ui.to"))}</th></tr></thead><tbody>
-        ${rows.map(r => `<tr>
+        ${rows.map(r => {
+          const evN = (r.evidence || []).length ||
+            ((r.evidence_counts || {}).supports || 0) + ((r.evidence_counts || {}).contradicts || 0) +
+            ((r.evidence_counts || {}).contextualizes || 0);
+          return `<tr>
           <td><a href="#/entity/${esc(r.other_type)}/${r.other_id}">${esc(A.truncate(r.other_name || "", 40))}</a>
             <span class="kv-sub">${esc(A.label(r.other_type))}</span></td>
-          <td>${esc(A.state.lang === "ar" ? (r.type_ar || r.type_en) : (r.type_en || r.type_ar || ""))}
-            ${r.outgoing ? "→" : "←"}</td>
+          <td>${esc(relLabel(r))} ${r.outgoing ? "→" : "←"}
+            ${r.disputed ? `<span class="badge red" title="${esc(t("inspect.rel.disputed"))}">⚠</span>` : ""}
+            ${evN ? `<span class="badge gray" title="${esc(t("inspect.rel.evidence"))}">${fmtNum(evN)}</span>` : ""}</td>
           <td>${esc(r.start_date || "—")}</td>
-          <td>${esc(r.end_date || "—")}</td></tr>`).join("")}
-        </tbody></table></div>`
-        : `<div class="inspect-empty">${esc(t("rec.noRelationships"))}</div>`}
-    </div>`;
+          <td>${esc(r.end_date || "—")}</td></tr>`;
+        }).join("")}
+        </tbody></table>`;
+  }
+
+  function relGraphModel(entity, rec) {
+    const centre = {
+      key: entity + ":" + rec.id, type: entity, id: rec.id,
+      label: A.dispTitle(rec, entity) || rec.code || "#" + rec.id,
+      href: `#/entity/${entity}/${rec.id}`
+    };
+    const byKey = new Map();
+    (rec.relationships || []).forEach(r => {
+      if (!r.other_type || !r.other_id) return;
+      const key = r.other_type + ":" + r.other_id;
+      let node = byKey.get(key);
+      if (!node) {
+        node = {
+          key, type: r.other_type, id: Number(r.other_id),
+          label: r.other_name || refName(r.other_ref) || ("#" + r.other_id),
+          href: `#/entity/${r.other_type}/${r.other_id}`, rels: []
+        };
+        byKey.set(key, node);
+      }
+      node.rels.push(r);
+    });
+    return { centre, nodes: Array.from(byKey.values()) };
+  }
+
+  /** Direction of the whole pair: every row, not just the first. */
+  function relDirection(node) {
+    const dirs = new Set(node.rels.map(r =>
+      r.symmetric || (r.direction && r.direction !== "directed")
+        ? "sym" : (r.outgoing ? "out" : "in")));
+    return dirs.size > 1 ? "sym" : (Array.from(dirs)[0] || "out");
+  }
+
+  function toDMS(v, pos, neg) {
+    const hemi = v >= 0 ? pos : neg;
+    const a = Math.abs(v);
+    const d = Math.floor(a);
+    const m = Math.floor((a - d) * 60);
+    const s = ((a - d) * 60 - m) * 60;
+    return `${d}°${m}′${s.toFixed(1)}″${hemi}`;
+  }
+
+  /* The ego-network: the selected record at the centre, every connected record
+     on concentric rings.  Hover spotlights one branch, clicking a node opens
+     that record, the tools zoom and pan. */
+  function renderRelGraph(entity, rec, body) {
+    const host = body.querySelector("[data-rel-graph]");
+    if (!host) return;
+    const model = relGraphModel(entity, rec);
+    const shown = model.nodes.slice(0, 28);
+    const overflow = model.nodes.length - shown.length;
+    const W = 700, H = 560, cx = 350, cy = 280;
+    const inner = shown.slice(0, 12), outer = shown.slice(12);
+    const place = (list, radius) => list.forEach((n, i) => {
+      const ang = -Math.PI / 2 + 2 * Math.PI * (i + 0.5) / list.length;
+      n.x = cx + radius * Math.cos(ang);
+      n.y = cy + radius * Math.sin(ang);
+      n.r = radius > 200 ? 21 : 26;
+    });
+    place(inner, 150);
+    if (outer.length) place(outer, 235);
+
+    const centreR = 34;
+    const edgesHtml = shown.map(n => {
+      const dx = n.x - cx, dy = n.y - cy;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      const x1 = cx + ux * (centreR + 2), y1 = cy + uy * (centreR + 2);
+      const x2 = cx + ux * (len - n.r - 2), y2 = cy + uy * (len - n.r - 2);
+      const dir = relDirection(n);
+      const markerStart = dir === "in" || dir === "sym" ? ' marker-start="url(#relArrow)"' : "";
+      const markerEnd = dir === "out" || dir === "sym" ? ' marker-end="url(#relArrow)"' : "";
+      const kinds = n.rels.map(relLabel).filter(Boolean);
+      const uniq = kinds.filter((k, i) => kinds.indexOf(k) === i);
+      const labelText = uniq.slice(0, 2).join(" · ") + (uniq.length > 2 ? " +" + (uniq.length - 2) : "");
+      const lx = x1 + (x2 - x1) * 0.55, ly = y1 + (y2 - y1) * 0.55;
+      return `<g class="rel-edge" data-key="${esc(n.key)}">
+        <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+              ${markerStart}${markerEnd}></line>
+        ${labelText ? `<text class="rel-edge-label" x="${lx.toFixed(1)}" y="${(ly - 5).toFixed(1)}"
+              text-anchor="middle">${esc(A.truncate(labelText, 26))}</text>` : ""}
+      </g>`;
+    }).join("");
+
+    const nodeHtml = n => {
+      const style = REL_STYLE[n.type] || REL_STYLE.relationship;
+      const title = [n.label, A.label(n.type), n.rels.map(relLabel).filter(Boolean).join(" · ")]
+        .filter(Boolean).join(" — ");
+      return `<g class="rel-node" data-key="${esc(n.key)}" transform="translate(${n.x.toFixed(1)},${n.y.toFixed(1)})"
+                tabindex="0" role="link" aria-label="${esc(title)}">
+        <title>${esc(title)}</title>
+        <circle r="${n.r}" fill="${style.color}" class="rel-dot"></circle>
+        <text class="rel-initials" text-anchor="middle" dy="4">${esc(A.initials(n.label))}</text>
+        <text class="rel-name" text-anchor="middle" y="${n.r + 15}">${esc(A.truncate(n.label, 18))}</text>
+      </g>`;
+    };
+
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
+        aria-label="${esc(t("inspect.tab.relationships"))}">
+      <defs>
+        <marker id="relArrow" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#64748b"></path>
+        </marker>
+      </defs>
+      ${edgesHtml}
+      <g class="rel-node centre" data-key="${esc(model.centre.key)}"
+         transform="translate(${cx},${cy})" tabindex="0" role="link"
+         aria-label="${esc(model.centre.label)}">
+        <title>${esc(model.centre.label)}</title>
+        <circle r="${centreR}" fill="#17395c" class="rel-dot"></circle>
+        <text class="rel-initials" text-anchor="middle" dy="4">${esc(A.initials(model.centre.label))}</text>
+        <text class="rel-name" text-anchor="middle" y="${centreR + 15}">${esc(A.truncate(model.centre.label, 20))}</text>
+      </g>
+      ${shown.map(nodeHtml).join("")}
+    </svg>`;
+
+    const legend = body.querySelector("[data-rel-legend]");
+    if (legend) {
+      const types = [model.centre.type].concat(shown.map(n => n.type))
+        .filter((k, i, arr) => arr.indexOf(k) === i);
+      legend.innerHTML = `<b class="small muted">${esc(t("inspect.rel.legend"))}</b>` +
+        types.map(ty => `<span><i style="background:${(REL_STYLE[ty] || REL_STYLE.relationship).color}"></i>${esc(A.label(ty))}</span>`).join("");
+    }
+    if (overflow > 0) {
+      const hint = body.querySelector(".rel-hint");
+      if (hint) hint.textContent += " · " + t("inspect.rel.more", { n: overflow });
+    }
+
+    /* --- interaction: spotlight · open · zoom · pan ---------------------- */
+    const svg = host.querySelector("svg");
+    const byKey = new Map();
+    svg.querySelectorAll("[data-key]").forEach(el => {
+      if (!byKey.has(el.dataset.key)) byKey.set(el.dataset.key, []);
+      byKey.get(el.dataset.key).push(el);
+    });
+    const spotlight = (key) => {
+      if (!key) { delete svg.dataset.hot; svg.querySelectorAll(".hot").forEach(el => el.classList.remove("hot")); return; }
+      svg.dataset.hot = key;
+      svg.querySelectorAll(".hot").forEach(el => el.classList.remove("hot"));
+      (byKey.get(key) || []).forEach(el => el.classList.add("hot"));
+    };
+    svg.querySelectorAll(".rel-node").forEach(g => {
+      g.addEventListener("mouseenter", () => spotlight(g.dataset.key));
+      g.addEventListener("mouseleave", () => spotlight(null));
+      g.addEventListener("focus", () => spotlight(g.dataset.key));
+      g.addEventListener("blur", () => spotlight(null));
+      const open = () => {
+        const key = g.dataset.key;
+        const target = key === model.centre.key ? model.centre
+          : shown.find(n => n.key === key);
+        if (target && target.href) App.go(target.href);
+      };
+      g.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); }
+      });
+      let downAt = null;
+      g.addEventListener("mousedown", (ev) => { downAt = [ev.clientX, ev.clientY]; });
+      g.addEventListener("click", (ev) => {
+        if (downAt && Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]) > 5) return;
+        ev.preventDefault();
+        open();
+      });
+    });
+
+    /* zoom: buttons, and ctrl/cmd + wheel so plain scrolling still works */
+    let view = { x: 0, y: 0, w: W, h: H };
+    const applyView = () => svg.setAttribute("viewBox",
+      `${view.x} ${view.y} ${view.w} ${view.h}`);
+    const zoomAt = (factor, px, py) => {
+      const nw = Math.min(W * 1.6, Math.max(W * 0.18, view.w * factor));
+      const scale = nw / view.w;
+      view.x = px - (px - view.x) * scale;
+      view.y = py - (py - view.y) * scale;
+      view.w = nw;
+      view.h = view.h * scale;
+      applyView();
+    };
+    body.querySelectorAll("[data-rel-zoom]").forEach(btn => {
+      btn.onclick = () => {
+        const kind = btn.dataset.relZoom;
+        if (kind === "reset") { view = { x: 0, y: 0, w: W, h: H }; applyView(); return; }
+        zoomAt(kind === "in" ? 0.8 : 1.25, view.x + view.w / 2, view.y + view.h / 2);
+      };
+    });
+    svg.addEventListener("wheel", (ev) => {
+      if (!(ev.ctrlKey || ev.metaKey)) return;
+      ev.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const px = view.x + (ev.clientX - rect.left) / rect.width * view.w;
+      const py = view.y + (ev.clientY - rect.top) / rect.height * view.h;
+      zoomAt(ev.deltaY > 0 ? 1.12 : 0.89, px, py);
+    }, { passive: false });
+    let pan = null;
+    svg.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0 || (ev.target.closest && ev.target.closest(".rel-node"))) return;
+      pan = { x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y };
+      svg.classList.add("panning");
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* older engine */ }
+    });
+    svg.addEventListener("pointermove", (ev) => {
+      if (!pan) return;
+      const rect = svg.getBoundingClientRect();
+      view.x = pan.vx - (ev.clientX - pan.x) / rect.width * view.w;
+      view.y = pan.vy - (ev.clientY - pan.y) / rect.height * view.h;
+      applyView();
+    });
+    const endPan = () => {
+      pan = null;
+      svg.classList.remove("panning");
+    };
+    svg.addEventListener("pointerup", endPan);
+    svg.addEventListener("pointercancel", endPan);
   }
 
   function eventTypeLabel(ev) {
@@ -1545,46 +1790,136 @@
     }
   }
 
-  function showUnlocated() {
-    removeMapPane();
+  function showMapEmpty(entity) {
+    const canvas = document.querySelector("[data-inspect-map]");
+    const cap = document.querySelector("[data-inspect-caption]");
+    if (cap) cap.hidden = true;
+    if (!canvas) return;
+    canvas.classList.add("is-empty");
+    canvas.innerHTML = `<div class="inspect-map-empty">
+      ${icon("map-pin")}
+      <div>${esc(t("inspect.unlocated"))}</div>
+      <div class="small muted">${esc(t("inspect.unlocatedHint." + entity))}</div>
+    </div>`;
+    hydrateIcons(canvas);
+  }
+
+  /** The Map tab's toolbar: copy, recentre, and every navigation option. */
+  function paintMapBar(entity, rec, loc) {
+    const bar = document.querySelector("[data-inspect-map-bar]");
+    const cap = document.querySelector("[data-inspect-caption]");
+    if (!bar) return;
+    const located = loc && loc.lat != null && loc.lon != null;
+    bar.innerHTML = `
+      <button type="button" class="btn sm" data-map-copy ${located ? "" : "disabled"}>
+        ${icon("file")} ${esc(t("inspect.map.copy"))}</button>
+      <button type="button" class="btn sm" data-map-recentre ${located ? "" : "disabled"}>
+        ${icon("crosshair")} ${esc(t("inspect.map.recentre"))}</button>
+      <a class="btn sm" href="#/geo?sel=${esc(entity)}:${rec.id}">
+        ${icon("globe")} ${esc(t("view.openGeo"))}</a>
+      <a class="btn sm" href="#/map?focus=${esc(entity)}:${rec.id}">
+        ${icon("share")} ${esc(t("geo.showOnAtlas"))}</a>
+      ${located && loc.placeId ? `<a class="btn sm" href="#/entity/place/${loc.placeId}">
+        ${icon("map-pin")} ${esc(loc.label || t("inspect.coords"))}</a>` : ""}`;
+    hydrateIcons(bar);
+    if (cap) {
+      if (located) {
+        cap.hidden = false;
+        cap.innerHTML = `<span>${esc(t("inspect.anchor." + entity))}</span>
+          <b dir="ltr">${loc.lat.toFixed(5)}, ${loc.lon.toFixed(5)}</b>
+          <span dir="ltr" class="small">${esc(toDMS(loc.lat, "N", "S"))} ${esc(toDMS(loc.lon, "E", "W"))}</span>`;
+      } else {
+        cap.hidden = true;
+      }
+    }
+    const copy = bar.querySelector("[data-map-copy]");
+    if (copy) copy.onclick = () => {
+      if (!located) return;
+      const text = `${loc.lat.toFixed(5)}, ${loc.lon.toFixed(5)}`;
+      const done = () => toast(t("inspect.map.copied"), "ok", 1400);
+      const fallback = () => {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); done(); } catch (e) { /* refused */ }
+        ta.remove();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else fallback();
+    };
+    const recentre = bar.querySelector("[data-map-recentre]");
+    if (recentre) recentre.onclick = () => {
+      const map = state[entity] && state[entity]._inspectMap;
+      if (map && located) {
+        try { map.easeTo({ center: [loc.lon, loc.lat], duration: 300 }); } catch (e) { /* */ }
+      }
+    };
   }
 
   function mountInspectMap(entity, loc) {
-    disposeInspectMap(entity);
-    if (loc.lat == null || loc.lon == null || !window.maplibregl) {
-      removeMapPane(entity);
-      return;
-    }
-    ensureMapPane(entity);
     const canvas = document.querySelector("[data-inspect-map]");
-    if (!canvas) {
-      removeMapPane(entity);
+    if (!canvas) return;
+    const st = state[entity];
+    if (!loc || loc.lat == null || loc.lon == null || !window.maplibregl) {
+      disposeInspectMap(entity);
+      showMapEmpty(entity);
       return;
     }
+    /* already showing this record: just bring it back to size */
+    if (st._inspectMap && st._inspectMapKey === entity + ":" + loc.lat + ":" + loc.lon) {
+      requestAnimationFrame(() => { try { st._inspectMap.resize(); } catch (e) { /* */ } });
+      return;
+    }
+    disposeInspectMap(entity);
     canvas.classList.remove("is-empty");
     canvas.innerHTML = "";
-    const bootStyle = (A.geopin && A.geopin.secondaryStyle)
-      ? A.geopin.secondaryStyle("osm")
-      : { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
-          paint: { "background-color": "#e8eef4" } }] };
-    const map = new window.maplibregl.Map({
-      container: canvas,
-      style: bootStyle,
-      center: [loc.lon, loc.lat],
-      zoom: 8,
-      attributionControl: false
-    });
-    state[entity]._inspectMap = map;
-    state[entity]._inspectPin = null;
+    /* Offline-first, like every map in this application: the bundled street
+       pack is the base, no tile server is contacted.  The full geographic
+       workspace (linked from the toolbar) carries the online providers. */
+    const bootStyle = { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
+        paint: { "background-color": "#e8eef4" } }] };
+    let map;
+    try {
+      map = new window.maplibregl.Map({
+        container: canvas,
+        style: bootStyle,
+        center: [loc.lon, loc.lat],
+        zoom: 8,
+        attributionControl: false
+      });
+    } catch (e) {
+      showMapEmpty(entity);
+      return;
+    }
+    st._inspectMap = map;
+    st._inspectMapKey = entity + ":" + loc.lat + ":" + loc.lon;
+    st._inspectPin = null;
     map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.on("load", () => {
       const title = (loc.label || loc.code || "").toString();
       if (A.geopin) {
-        state[entity]._inspectPin = A.geopin.marker(map, [loc.lon, loc.lat], {
+        st._inspectPin = A.geopin.marker(map, [loc.lon, loc.lat], {
           etype: entity, label: title, selected: true, size: "lg", showLabel: !!title
         });
       }
+      if (A.loadVectormap && A.applyVectormapLayers) {
+        A.loadVectormap().then(inflated => {
+          if (st._inspectMap !== map) return;
+          A.applyVectormapLayers(map, inflated, { fit: false });
+        }).catch(() => { /* the pack is optional; the marker still answers */ });
+      }
       try { map.resize(); } catch (e) { /* container not laid out yet */ }
+    });
+    map.on("error", (e) => {
+      /* a missing layer must not reach the console as an error */
+      if (e && e.error && e.error.message && /webgl/i.test(e.error.message)) {
+        disposeInspectMap(entity);
+        showMapEmpty(entity);
+      }
     });
     requestAnimationFrame(() => { try { map.resize(); } catch (e) { /* gone */ } });
   }
@@ -1595,18 +1930,20 @@
     ensureInspectPane(entity);
     const pane = document.querySelector("[data-inspect]");
     if (!pane) return;
-    disposeInspectMap(entity);
-    removeMapPane(entity);
     const idHost = pane.querySelector("[data-inspect-id]");
     const tabs = pane.querySelector("[data-inspect-tabs]");
     const body = pane.querySelector("[data-inspect-body]");
     if (idHost) idHost.innerHTML = `<div class="skeleton" style="width:70%"></div>`;
     if (tabs) tabs.innerHTML = "";
     if (body) {
+      body.hidden = false;
+      body.removeAttribute("data-inspect-ready");
       body.innerHTML = `<div class="skeleton" style="width:70%"></div>
         <div class="skeleton" style="width:92%;margin-top:8px"></div>
         <div class="skeleton" style="width:58%;margin-top:8px"></div>`;
     }
+    const wrap = pane.querySelector("[data-inspect-map-wrap]");
+    if (wrap) wrap.hidden = true;
     syncInspectNav(entity);
     try {
       const rec = await api.get(`/api/${entity}/${id}`);
@@ -1616,30 +1953,26 @@
       st._inspectLoc = loc;
       st._inspectRec = rec;
       const liveId = document.querySelector("[data-inspect-id]");
-      const liveCap = document.querySelector("[data-inspect-caption]");
       if (!liveId) return;
       liveId.innerHTML = inspectIdentityHtml(entity, rec);
       hydrateIcons(liveId);
       paintInspectTabs(entity, rec);
+      paintMapBar(entity, rec, loc);
       paintInspectTab(entity, rec, loc);
       syncInspectNav(entity);
-      if (loc && loc.lat != null && loc.lon != null) {
-        if (liveCap) {
-          liveCap.hidden = false;
-          liveCap.innerHTML = `<span>${esc(t("inspect.anchor." + entity))}</span>
-            <b dir="ltr">${loc.lat.toFixed(5)}, ${loc.lon.toFixed(5)}</b>`;
-        }
-        mountInspectMap(entity, loc);
-      } else {
-        showUnlocated();
-      }
     } catch (err) {
       if (seq !== st._inspectSeq) return;
+      /* the record is gone (deleted or merged elsewhere): drop the selection
+         instead of asking again on every redraw */
+      if (err && err.status === 404) {
+        closeInspect(entity);
+        return;
+      }
       const liveBody = document.querySelector("[data-inspect-body]");
       if (liveBody) {
+        liveBody.hidden = false;
         liveBody.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
       }
-      removeMapPane(entity);
     }
   }
 

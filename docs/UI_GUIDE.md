@@ -123,6 +123,38 @@ field, subtitle field, badge field, up to four fact lines and up to four KPI fig
 preview. Layout settings are stored per entity per browser, so the same data can be browsed as
 portraits by one person and as institutional profiles by another.
 
+### The record panel beside the list
+
+Selecting a record — a click on a row, a card or a dense row, or `↑`/`↓` from the data area —
+splits the screen in two for people, institutions and places. By default the data view owns the
+whole stage; the moment a record is picked the stage becomes two balanced halves: the data on one
+side (the table keeps scrolling, sorting and filtering exactly as before, with the picked row
+marked), and the record panel on the other. Closing the panel (`Esc` or `✕`) hands the whole page
+back to the data.
+
+The panel carries exactly three tabs:
+
+* **Details** — the whole dossier without leaving the list: identity, status and completeness,
+  every filled field group, and then Positions, Events, Sources, Files and the change log, each
+  keeping its own actions (add a position, add an event, link a source, upload a file). Related
+  records are links that open their own pages.
+* **Relationships** — the record's connections *visualised*: an interactive ego-network with the
+  record at the centre and every connected record on a ring, edges labelled with the relationship
+  type and arrowed by direction. Hovering spotlights one branch, clicking a node opens that
+  record's page, the tools zoom and pan, and a legend names the record types. Below the drawing
+  every stored link is listed with its type, direction, dates and evidence, and `Add relationship`
+  opens the same dialog as the record page. The *Show on relationship map* link continues in the
+  full atlas (`#/map?focus=…`).
+* **Map** — where the record is, as coordinates: decimal degrees and DMS in the caption, a marker
+  on the offline base map (no tile server is contacted), copy-to-clipboard and recentre controls,
+  and navigation options into the full geographic workspace (`#/geo?sel=…`) and the atlas. A
+  record without coordinates says so explicitly, with the hint that fixes it (link a located
+  place, or add latitude and longitude).
+
+`‹ ›` in the panel header walk the selection through the current result set without losing the
+list, `✎` opens the edit form and `⤢` the record's own page. In RTL the split mirrors — data
+right, panel left — and on narrow screens the halves stack.
+
 ### Imagery
 
 `person`, `institution`, `place` and `event` carry `image_url` + `image_alt`. The form offers

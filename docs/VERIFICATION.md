@@ -11,6 +11,7 @@ Everything below is reproducible on a clean checkout against the running server 
 | `tests/verify_all.py` | every HTTP route (all **101** are enumerated from the OpenAPI schema at runtime and none may go unexercised — including the 15 geographic routes and the two CRCE routes), both success and failure paths, the date-and-time model in depth, the configuration API end to end, the **geographic surface** (features, groups, overlays, dossiers, coordinates, antimeridian, basemap, gazetteer, georeferencing preview), the **compass-rose standard** ([CRCE.md](CRCE.md)), plus cleanup that restores the data | **407 / 407** | ~83 s |
 | `tests/ui_smoke.py` | fast browser pass: routes, four data views, filters, forms, RTL, the dirty-draft guard | **51 / 51** | ~28 s |
 | `tests/ui_full.py` | **every screen and every interactive control** in a real Chromium — including panning, zooming, node dragging, the date-time picker, the page/dialog form surfaces and the whole settings screen — with console-error gating | **200 / 200** | ~3.6 min |
+| `tests/inspect_ui.py` | the **record panel beside the list** ([UI_GUIDE.md](UI_GUIDE.md) §3): the full-stage default, the split in two balanced halves, the three tabs (Details as the whole dossier, Relationships as the interactive ego-network with node navigation, Map with DD + DMS coordinates and the offline base), the unlocated state with its fix-it hint, prev/next/arrow navigation, institutions and places, bulk selection that never opens the panel, AR/RTL mirroring — with console-error gating | **52 / 52** | ~30 s |
 | `tests/ui_geo.py` | the **geographic workspace** in a real Chromium with a real WebGL canvas: the **25 acceptance criteria** of the map phase, each mapped to the check that proves it in [MAP.md](MAP.md) §12 — plus provider-failure recovery, attribution, keyboard access and a no-write assertion, against the running server and the live registry | **98 / 98** | ~88 s |
 | `tests/evidence_ui.py` | evidence as claims attached to fields and relationships, the drawer's metadata, and the diagram's verification grammar | **37 / 37** | ~30 s |
 | `tests/query_ui.py` | the typed query language in the browser: tokens, chips, refusal of nonsense, and the round trip back into a filter | **14 / 14** | ~10 s |
@@ -20,10 +21,10 @@ Everything below is reproducible on a clean checkout against the running server 
 | `tests/desk_ui.py` | [the map desk](MAP.md) — the registry worked as a place: a real WebGL canvas over the offline pack, marks that are records, the pop-up card that never navigates, the four-tab rail, the neighbourhood panel that walks between records, the same records as a table, search and Enter, the trail, layer chips, base-map switching, the record with no coordinates, Arabic mirroring, and a disposed map with no console error | **87 / 87** | ~50 s |
 | `tests/audit.py` | [the fundamental audit](AUDIT.md): data integrity, filter/sort truth tables checked against independent counts, concurrency, durability, latency budgets | **162 / 162** | ~46 s |
 
-**1 375 executed assertions in total**, all green.
+**1 427 executed assertions in total**, all green.
 
 ```bash
-python3 scripts/check.py --api --ui --full --geo --audit --evidence --query --atlas --crce --structures --desk
+python3 scripts/check.py --api --ui --full --geo --audit --evidence --query --atlas --inspect --crce --structures --desk
                                                           # everything, one command
 ```
 
@@ -184,6 +185,7 @@ python3 tests/ui_geo.py                           # 98    (writes .smoke/geo/*.p
 python3 tests/evidence_ui.py                      # 37    (evidence + diagram grammar)
 python3 tests/query_ui.py                         # 14    (the typed query language)
 python3 tests/atlas_ui.py                         # 54    (the atlas)
+python3 tests/inspect_ui.py                       # 52    (the record panel beside the list)
 python3 tests/crce_ui.py                          # 91    (the compass-rose standard)
 python3 tests/audit.py                            # 162   (the fundamental audit)
 python3 -m app.cli check-integrity                # no structural problems
