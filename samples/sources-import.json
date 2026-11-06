@@ -1,0 +1,22 @@
+[
+  {
+    "code": "SRC-SAMPLE-0001",
+    "title": "Sample registry extract",
+    "title_ar": "مستخرج سجل النموذج",
+    "source_type_id": "official_register",
+    "publisher": "Sample Records Office",
+    "publication_date": "c. 1950",
+    "publication_precision": "approximate",
+    "language": "ar",
+    "url": "https://example.org/sample-registry"
+  },
+  {
+    "code": "SRC-SAMPLE-0002",
+    "title": "Sample field notebook",
+    "title_ar": "دفتر ميدان النموذج",
+    "source_type_id": "manuscript",
+    "publication_date": "1961",
+    "publication_precision": "year",
+    "language": "ar"
+  }
+]

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check app tests samples scripts
+
+      - name: Unit tests
+        run: pytest tests -q
+
+      - name: JavaScript syntax
+        run: |
+          for f in $(git ls-files 'app/static/js/*.js' 'app/static/js/**/*.js'); do
+            node --check "$f" || exit 1
+          done
+
+      - name: Samples end-to-end (import/export fixture)
+        run: python samples/run_samples.py
+
+      - name: Module imports
+        run: python -c "import app.server, app.server.launcher, app.geo.tiledownload"

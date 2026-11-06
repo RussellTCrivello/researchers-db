@@ -1,0 +1,4 @@
+Identification number,Place name (Arabic),Original name (English),Place type,Part of (parent place),Latitude,Longitude
+PLC-SAMPLE-0001,منطقة النموذج,Sample Region,region,,31.90,34.80
+PLC-SAMPLE-0002,مدينة النموذج,Sample City,city,PLC-SAMPLE-0001,31.9012345,34.8023456
+PLC-SAMPLE-0003,حي النموذج,Sample Neighbourhood,neighbourhood,PLC-SAMPLE-0002,31.90123,34.80235

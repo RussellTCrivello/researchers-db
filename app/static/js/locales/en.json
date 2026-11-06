@@ -478,6 +478,7 @@
   "geo.measureDistance": "Measure distance",
   "geo.measureHint": "Click the map to add points; Esc keeps the drawing.",
   "geo.measureOff": "Stop measuring",
+  "geo.noComposerHost": "This surface has no form to open — create records at a point from the map workspace",
   "geo.nearestPlace": "Nearest gazetteer city",
   "geo.noPosition": "This record has no coordinates, so it is not shown on the map.",
   "geo.noRecord": "No registry record here",

@@ -302,13 +302,22 @@ def suggest_mapping(spec: EntitySpec, columns: Iterable[str]) -> dict[str, str]:
     idx = header_index(spec)
     out = {}
     for col in columns:
-        key = idx.get(norm_key(col))
-        if key is None:
-            nk = norm_key(col)
+        key = None
+        nk = norm_key(col)
+        # a bilingual header ("Name in Arabic / الاسم بالعربية") is two chances
+        # to match: try each side exactly before falling back to substrings
+        sides = [norm_key(side) for side in re.split(r"[/\u060d]", col)]
+        for side in [x for x in sides if x] or [nk]:
+            key = idx.get(side)
+            if key:
+                break
+        if key is None and len(nk) > 2:
+            best = None
             for cand, fk in idx.items():
-                if cand and (cand in nk or nk in cand) and len(nk) > 2:
-                    key = fk
-                    break
+                if cand and len(cand) > 2 and (cand in nk or nk in cand):
+                    if best is None or len(cand) > best[0]:
+                        best = (len(cand), fk)      # the most specific label wins
+            key = best[1] if best else None
         if key:
             out[col] = key
     return out
@@ -358,6 +367,27 @@ def _resolve_value(conn, spec: EntitySpec, field, value, resolvers, errors: list
     if isinstance(value, str):
         return value.strip()
     return value
+
+
+def _register_written(resolvers: dict, spec: EntitySpec, conn: sqlite3.Connection,
+                      code: str | None, values: dict) -> None:
+    """A row just wrote a record; later rows in the same batch may reference it.
+
+    A parent place above its neighbourhood is the ordinary shape of a real file,
+    so same-batch references must resolve as if the parent had always existed.
+    """
+    if not code:
+        return
+    row = conn.execute(f"SELECT id FROM {spec.table} WHERE code=?", (code,)).fetchone()
+    if not row:
+        return
+    idx = resolvers["ref"].setdefault(spec.key, {})
+    rid = row["id"]
+    idx[str(rid)] = rid
+    idx.setdefault(norm_key(code), rid)
+    for nkey in ("name_en", "name_ar", "title", "title_ar"):
+        if values.get(nkey):
+            idx.setdefault(norm_key(str(values[nkey])), rid)
 
 
 def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
@@ -462,6 +492,7 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
                                    reason=reason or "bulk import", commit=False)
                 report["created"] += 1
             conn.execute("RELEASE SAVEPOINT imp_row")
+            _register_written(resolvers, spec, conn, code, values)
         except (repo.RepoError, sqlite3.Error) as exc:
             try:
                 conn.execute("ROLLBACK TO SAVEPOINT imp_row")
