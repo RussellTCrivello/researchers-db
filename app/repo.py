@@ -757,6 +757,53 @@ def get_relationship_evidence(conn, relationship_id: int) -> dict:
     return out
 
 
+def _evidence_target(conn: sqlite3.Connection, row: dict) -> dict | None:
+    """Where an evidence row points — the record the claim is about.
+
+    Claims are made *about* people, places, institutions, events and whole
+    relationships; a claims view that cannot say which is a bibliography,
+    not an argument map.
+    """
+    if row.get("relationship_id"):
+        rid = int(row["relationship_id"])
+        rel = conn.execute(
+            "SELECT entity1_type, entity1_id, entity2_type, entity2_id "
+            "FROM relationship WHERE id = ?", (rid,)).fetchone()
+        label = None
+        if rel:
+            a = resolve_ref(conn, rel["entity1_type"], rel["entity1_id"])
+            b = resolve_ref(conn, rel["entity2_type"], rel["entity2_id"])
+            arrow = "\u2192"
+            label = f"{a['label'] if a else '?'} {arrow} {b['label'] if b else '?'}"
+        return {"type": "relationship", "id": rid, "label": label or f"#{rid}"}
+    etype, eid = row.get("entity_type"), row.get("entity_id")
+    if etype and eid:
+        ref = resolve_ref(conn, etype, int(eid))
+        return {"type": etype, "id": int(eid),
+                "label": (ref or {}).get("label") or f"#{int(eid)}"}
+    return None
+
+
+def get_claims_by_source(conn: sqlite3.Connection, source_id: int) -> list[dict]:
+    """Every claim this one source makes, richest first.
+
+    The mirror image of get_evidence: that asks 'what supports this record?',
+    this asks 'what does this source say, and about what?'. A contradiction
+    sits beside the supports, never instead of them — one source can well
+    support one record and contradict another.
+    """
+    rows = conn.execute(
+        EVIDENCE_SELECT + " WHERE e.source_id = ? ORDER BY "
+        "CASE e.support_type WHEN 'contradicts' THEN 0 WHEN 'supports' THEN 1 ELSE 2 END, "
+        "e.id", (int(source_id),)).fetchall()
+    out = []
+    for r in rows:
+        row = dict(r)
+        row["target"] = _evidence_target(conn, row)
+        out.append(row)
+    return out
+
+
 def evidence_summary(conn, entity_type: str, entity_id: int) -> dict:
     """Counts used by the diagram and the map: what backs this record, and is it contested."""
     row = conn.execute(
@@ -990,51 +1037,16 @@ def _place_row(conn, place_id: int):
         (int(place_id),)).fetchone()
 
 
-def _method_code(conn, code: str) -> str:
-    if _lookup_id(conn, "geocoding_method", code):
-        return code
-    return "manual"
-
-
-def _write_point_on_place(conn, place_id: int, point: dict, actor: str, reason: str) -> None:
-    """Register a precise point on a place that does not have one yet."""
-    payload = {
-        "latitude": point["lat"],
-        "longitude": point["lon"],
-        "geo_precision": "exact",
-        "geocoding_method": _method_code(conn, point["method"]),
-        "geometry_source": "map pick" if point["method"] == "map_pick" else "typed coordinates",
-    }
-    update_record(conn, ENTITIES["place"], int(place_id), payload,
-                  actor=actor, reason=reason, commit=False)
-
-
-def _create_point_place(conn, point: dict, parent_id: int | None, actor: str, reason: str) -> int:
-    label = f"{point['lat']:.5f}, {point['lon']:.5f}"
-    payload = {
-        "name_ar": label,
-        "name_en": label,
-        "latitude": point["lat"],
-        "longitude": point["lon"],
-        "geo_precision": "exact",
-        "geocoding_method": _method_code(conn, point["method"]),
-        "geometry_source": "map pick" if point["method"] == "map_pick" else "typed coordinates",
-    }
-    if parent_id:
-        payload["parent_place_id"] = int(parent_id)
-    made = create_record(conn, ENTITIES["place"], payload, actor=actor, reason=reason, commit=False)
-    return int(made["id"])
-
-
 def _apply_precise_location(conn, spec: EntitySpec, data: dict, values: dict,
                             before: dict | None, actor: str, reason: str | None) -> None:
     """Store a location only as a validated coordinate pair.
 
-    On a place, the pair is the place's own latitude and longitude.
-    On a person, organization or event, the pair is written to the linked place
-    when that place has no point yet. Picking a different point does not move a
-    shared place: a new place is created at the exact point and linked, with the
-    named place kept as its parent.
+    On a place, the pair is the place's own latitude and longitude. On a
+    person, institution or event, the pair is the record's own position,
+    written to the record's own columns. It is never written onto the linked
+    place and never synthesized into a coordinate-named place: linking is
+    association, not assignment. Several records associated with one named
+    place keep several distinct points, and none of them moves the place.
     """
     if spec.key == "place":
         lat = values["latitude"] if "latitude" in values else (before or {}).get("latitude")
@@ -1066,38 +1078,33 @@ def _apply_precise_location(conn, spec: EntitySpec, data: dict, values: dict,
                                                  else "typed coordinates")
         return
 
-    fk = _LOCATION_FK.get(spec.key)
-    if not fk:
-        _read_location(data)  # still refuse a name passed as a location
-        return
+    # Person, institution or event: the explicit point belongs to THIS record.
+    # A name passed as a location is still refused — a name alone registers
+    # nothing — but the point, when given, is the record's own.
     point = _read_location(data)
-    place_id = values.get(fk)
-    if place_id in (None, "") and before is not None and fk not in values:
-        place_id = before.get(fk)
     if point:
-        why = reason or "precise location"
-        if place_id:
-            row = _place_row(conn, int(place_id))
-            if row is None:
-                raise ValidationError("The linked place does not exist.")
-            if row["latitude"] is None or row["longitude"] is None:
-                _write_point_on_place(conn, int(place_id), point, actor, why)
-                values[fk] = int(place_id)
-            elif _same_point(row["latitude"], row["longitude"], point["lat"], point["lon"]):
-                values[fk] = int(place_id)
-            else:
-                values[fk] = _create_point_place(conn, point, int(place_id), actor, why)
-        else:
-            values[fk] = _create_point_place(conn, point, None, actor, why)
-        return
-    if fk in values and values.get(fk) not in (None, ""):
-        row = _place_row(conn, int(values[fk]))
-        if row is None:
+        values["latitude"] = point["lat"]
+        values["longitude"] = point["lon"]
+        values["geo_precision"] = (values.get("geo_precision")
+                                   or _lookup_id(conn, "geo_precision", "exact"))
+        values["geocoding_method"] = (values.get("geocoding_method")
+                                      or _method_id(conn, point["method"]))
+        if not values.get("geometry_source"):
+            values["geometry_source"] = ("map pick" if point["method"] == "map_pick"
+                                         else "typed coordinates")
+    # Both ends or nothing — the same rule the place branch enforces. Typed
+    # field values go through it too, so no coordinate write can leave half a
+    # pair behind (a write that touches neither axis leaves legacy rows alone).
+    if point or "latitude" in values or "longitude" in values:
+        lat = values["latitude"] if "latitude" in values else (before or {}).get("latitude")
+        lon = values["longitude"] if "longitude" in values else (before or {}).get("longitude")
+        _coordinate_pair(lat, lon)
+    # Linking a place is an association: the place is not required to carry
+    # coordinates, and its coordinates are never copied onto this record.
+    fk = _LOCATION_FK.get(spec.key)
+    if fk and fk in values and values.get(fk) not in (None, ""):
+        if _place_row(conn, int(values[fk])) is None:
             raise ValidationError("The linked place does not exist.")
-        if row["latitude"] is None or row["longitude"] is None:
-            raise ValidationError(
-                "This place has a name but no coordinates, so it is not a location. "
-                "Type exact coordinates or pick the point on the map.")
 
 
 def _sync_event_participants(conn, spec: EntitySpec, rec_id: int, data: dict,

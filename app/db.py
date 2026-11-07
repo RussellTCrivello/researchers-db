@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import sqlite3
 import unicodedata
 import uuid
@@ -24,6 +25,57 @@ DATA_DIR = Path(os.environ.get("SIRAJ_DATA_DIR", BASE_DIR / "data"))
 DB_PATH = Path(os.environ.get("SIRAJ_DB", DATA_DIR / "registry.db"))
 UPLOAD_DIR = DATA_DIR / "uploads"
 SCHEMA_PATH = BASE_DIR / "schema.sql"
+
+
+def adopt_legacy_data_dir(data_dir: Path, legacy_dir: Path) -> str:
+    """Bring a registry home from a pre-fix data folder. Nothing is deleted.
+
+    An off-by-one in the launcher wrote the registry to ``app/app/data`` while
+    ``db.py`` itself defaulted to ``app/data``, so a machine can end up with its
+    real registry stranded in the legacy folder (or, after an empty install,
+    with a fresh demo database next to it).  Rules:
+
+    - items found in ``legacy_dir`` move over one by one, so a partially
+      occupied target (e.g. an ``uploads`` folder) never blocks the registry;
+      folders present on both sides are merged recursively;
+    - an item that already exists at the target is never overwritten;
+    - if both folders hold a ``registry.db`` nothing is moved at all — the
+      caller warns and the human decides which one wins.
+
+    Returns ``"moved"``, ``"both"`` or ``"none"``.
+    """
+    data_dir = Path(data_dir)
+    legacy_dir = Path(legacy_dir)
+    if data_dir == legacy_dir or not legacy_dir.is_dir():
+        return "none"
+    if (legacy_dir / "registry.db").exists() and (data_dir / "registry.db").exists():
+        return "both"
+
+    def _adopt(src: Path, dst: Path) -> bool:
+        moved_any = False
+        for item in sorted(src.iterdir()):
+            target = dst / item.name
+            if target.exists():
+                if item.is_dir() and target.is_dir():
+                    moved_any |= _adopt(item, target)
+                continue
+            try:
+                dst.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(item), str(target))
+                moved_any = True
+            except OSError as exc:  # locked file, permissions — warn, never delete
+                print(f"[siraj] WARNING: could not move {item} to {target}: {exc}")
+        return moved_any
+
+    return "moved" if _adopt(legacy_dir, data_dir) else "none"
+
+
+_adopt_status = adopt_legacy_data_dir(DATA_DIR, BASE_DIR / "app" / "data")
+if _adopt_status == "moved":
+    print(f"[siraj] registry adopted into {DATA_DIR}")
+elif _adopt_status == "both":
+    print(f"[siraj] WARNING: a second registry exists at {BASE_DIR / 'app' / 'data'}; "
+          f"using the one in {DATA_DIR}")
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

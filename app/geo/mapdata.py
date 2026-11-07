@@ -2,17 +2,22 @@
 SIRAJ · the registry, as geography.
 
 Every marker on the map is a **registry record**, never a loose point. This module is
-the only place that decides what a record's position *is*, and it does so by following
-the schema's own references:
+the only place that decides what a record's position *is*, and every record stands at
+its own coordinates:
 
     place        → its own latitude/longitude
-    person       → the coordinates of its birthplace place
-    institution  → the coordinates of its place
-    event        → the coordinates of its place
+    person       → their own latitude/longitude
+    institution  → its own latitude/longitude
+    event        → its own latitude/longitude
 
-A record whose reference is missing, or whose place has no coordinates, has **no
-position** — it is counted in `unlocated` and never drawn at a made-up place. That is
-the difference between a map of data and a map of guesses.
+Linking a record to a named place is an association, never an assignment: several
+persons linked to one place hold several distinct points, and no record borrows
+another's coordinates. A record with no coordinates of its own may still be *shown*
+at the place it is associated with — such a point is labelled `associated`, never
+`precise`, so the interface can say "position not recorded — shown at the associated
+place". A record with neither has **no position** — it is counted in `unlocated` and
+never drawn at a made-up place. That is the difference between a map of data and a
+map of guesses.
 
 Filtering is not re-implemented here: `repo.build_where` turns the interface's filter
 payload into a WHERE clause for the entity's own table, and this module *composes* that
@@ -29,31 +34,50 @@ from app import repo
 from app.geo import basemap, spatial
 from app.schemas import ENTITIES
 
-# entity type → (from clause, position columns, "has a position" predicate, anchor label)
+# entity type → (from clause, position columns, "has a position" predicate, anchor
+# label, resolved latitude expression, resolved longitude expression). Every entity
+# resolves to its OWN coordinates first; `gp` (the linked place) only supplies the
+# fallback association point, and `own_pos` records which kind a row is.
 JOINS = {
     "place": (
         "{t} t",
-        "t.latitude AS lat, t.longitude AS lon",
+        "t.latitude AS lat, t.longitude AS lon, 1 AS own_pos",
         "t.latitude IS NOT NULL AND t.longitude IS NOT NULL",
         None,
+        "t.latitude", "t.longitude",
     ),
     "person": (
-        "{t} t JOIN place gp ON gp.id = t.birthplace_id",
-        "gp.latitude AS lat, gp.longitude AS lon",
-        "gp.latitude IS NOT NULL AND gp.longitude IS NOT NULL",
+        "{t} t LEFT JOIN place gp ON gp.id = t.birthplace_id",
+        "COALESCE(t.latitude, gp.latitude) AS lat, "
+        "COALESCE(t.longitude, gp.longitude) AS lon, "
+        "CASE WHEN t.latitude IS NOT NULL AND t.longitude IS NOT NULL "
+        "THEN 1 ELSE 0 END AS own_pos",
+        "((t.latitude IS NOT NULL AND t.longitude IS NOT NULL) "
+        "OR (gp.latitude IS NOT NULL AND gp.longitude IS NOT NULL))",
         ("birthplace", "مكان الميلاد"),
+        "COALESCE(t.latitude, gp.latitude)", "COALESCE(t.longitude, gp.longitude)",
     ),
     "institution": (
-        "{t} t JOIN place gp ON gp.id = t.place_id",
-        "gp.latitude AS lat, gp.longitude AS lon",
-        "gp.latitude IS NOT NULL AND gp.longitude IS NOT NULL",
+        "{t} t LEFT JOIN place gp ON gp.id = t.place_id",
+        "COALESCE(t.latitude, gp.latitude) AS lat, "
+        "COALESCE(t.longitude, gp.longitude) AS lon, "
+        "CASE WHEN t.latitude IS NOT NULL AND t.longitude IS NOT NULL "
+        "THEN 1 ELSE 0 END AS own_pos",
+        "((t.latitude IS NOT NULL AND t.longitude IS NOT NULL) "
+        "OR (gp.latitude IS NOT NULL AND gp.longitude IS NOT NULL))",
         ("location", "الموقع"),
+        "COALESCE(t.latitude, gp.latitude)", "COALESCE(t.longitude, gp.longitude)",
     ),
     "event": (
-        "{t} t JOIN place gp ON gp.id = t.place_id",
-        "gp.latitude AS lat, gp.longitude AS lon",
-        "gp.latitude IS NOT NULL AND gp.longitude IS NOT NULL",
+        "{t} t LEFT JOIN place gp ON gp.id = t.place_id",
+        "COALESCE(t.latitude, gp.latitude) AS lat, "
+        "COALESCE(t.longitude, gp.longitude) AS lon, "
+        "CASE WHEN t.latitude IS NOT NULL AND t.longitude IS NOT NULL "
+        "THEN 1 ELSE 0 END AS own_pos",
+        "((t.latitude IS NOT NULL AND t.longitude IS NOT NULL) "
+        "OR (gp.latitude IS NOT NULL AND gp.longitude IS NOT NULL))",
         ("place", "المكان"),
+        "COALESCE(t.latitude, gp.latitude)", "COALESCE(t.longitude, gp.longitude)",
     ),
 }
 
@@ -72,15 +96,22 @@ def layer_catalog(conn: sqlite3.Connection) -> list[dict]:
     """Every mappable layer, with how many records are located and how many are not.
 
     The numbers matter to the interface: a layer that shows 719 places out of 1 118 is
-    telling the researcher something about the data, not about the map.
+    telling the researcher something about the data, not about the map. `precise`
+    counts records standing at their own recorded coordinates; `associated` counts
+    records shown only at the place they are linked to (their own position is not
+    recorded, and the place's coordinates are never read as theirs).
     """
     out = []
     for etype in MAPPED_LAYERS:
         spec = ENTITIES[etype]
-        from_clause, _, has_pos, anchor = JOINS[etype]
+        from_clause, _, has_pos, anchor, _, _ = JOINS[etype]
         located = conn.execute(
             f"SELECT COUNT(*) c FROM {from_clause.format(t=spec.table)} "
             f"WHERE t.deleted_at IS NULL AND {has_pos}"
+        ).fetchone()["c"]
+        precise = conn.execute(
+            f"SELECT COUNT(*) c FROM {spec.table} t WHERE t.deleted_at IS NULL "
+            f"AND t.latitude IS NOT NULL AND t.longitude IS NOT NULL"
         ).fetchone()["c"]
         total = conn.execute(
             f"SELECT COUNT(*) c FROM {spec.table} t WHERE t.deleted_at IS NULL"
@@ -89,6 +120,7 @@ def layer_catalog(conn: sqlite3.Connection) -> list[dict]:
             "entity_type": etype,
             "label_en": spec.label_en, "label_ar": spec.label_ar,
             "located": located, "total": total, "unlocated": total - located,
+            "precise": precise, "associated": located - precise,
             "anchor": anchor[0] if anchor else "own position",
             "anchor_ar": anchor[1] if anchor else "الموقع الخاص",
             "icon": spec.icon or "map-pin",
@@ -231,13 +263,12 @@ def features(conn: sqlite3.Connection, *, bbox: tuple | None = None, zoom: float
         where, params, where_warnings = repo.build_where(
             spec, {**layer_filters, "entity": etype}, conn)
         warning_sets[etype] = layer_warnings + where_warnings
-        _from_clause, _pos_cols, has_pos, _anchor = JOINS[etype]
+        _from_clause, _pos_cols, has_pos, _anchor, lat_expr, lon_expr = JOINS[etype]
         label_en, label_ar = LABELS[etype]
         clause = f"{where} AND {has_pos}"
         args = list(params)
         if bbox_clause:
-            clause += " AND " + bbox_clause.replace("!lat", "gp.latitude" if etype != "place" else "t.latitude") \
-                                       .replace("!lon", "gp.longitude" if etype != "place" else "t.longitude")
+            clause += " AND " + bbox_clause.replace("!lat", lat_expr).replace("!lon", lon_expr)
             args += bbox_params
         total = conn.execute(
             f"SELECT COUNT(*) c FROM {JOINS[etype][0].format(t=spec.table)} WHERE {clause}",
@@ -268,7 +299,7 @@ def features(conn: sqlite3.Connection, *, bbox: tuple | None = None, zoom: float
         "SELECT id, code FROM lookup WHERE domain='record_status'")}
     for etype, total, clause, args in counted:
         spec = ENTITIES[etype]
-        from_clause, pos_cols, _has_pos, anchor = JOINS[etype]
+        from_clause, pos_cols, _has_pos, anchor, _lat_expr, _lon_expr = JOINS[etype]
         label_en, label_ar = LABELS[etype]
         rows = conn.execute(
             f"SELECT t.id, t.code, {label_en} AS label_en, {label_ar} AS label_ar, "
@@ -281,8 +312,9 @@ def features(conn: sqlite3.Connection, *, bbox: tuple | None = None, zoom: float
                 "label_ar": r["label_ar"] or r["label_en"] or r["code"],
                 "lat": round(float(r["lat"]), 7), "lon": round(float(r["lon"]), 7),
                 "status": status.get(r["record_status_id"]),
-                "anchor_en": anchor[0] if anchor else None,
-                "anchor_ar": anchor[1] if anchor else None,
+                "position": "precise" if r["own_pos"] else "associated",
+                "anchor_en": anchor[0] if (anchor and not r["own_pos"]) else None,
+                "anchor_ar": anchor[1] if (anchor and not r["own_pos"]) else None,
             })
         per_layer[etype] = {"total": total, "returned": len(rows),
                             "truncated": total > len(rows)}
@@ -301,28 +333,39 @@ def features(conn: sqlite3.Connection, *, bbox: tuple | None = None, zoom: float
 
 
 def _anchor_of(conn: sqlite3.Connection, etype: str, rec_id: int) -> dict | None:
-    """The position of one record, and the place it was inherited from."""
+    """The position of one record, and how it got one.
+
+    `position` is "precise" when the point is the record's own recorded
+    coordinate, and "associated" when the record is only shown at the place it
+    is linked to. The anchor label names that association — it is not the
+    record's position and must never be read as one.
+    """
     if etype not in JOINS:
         return None
     spec = ENTITIES[etype]
-    from_clause, pos_cols, has_pos, anchor = JOINS[etype]
-    # a place is its own anchor; everything else inherits one through `gp`
+    from_clause, pos_cols, has_pos, anchor, _, _ = JOINS[etype]
+    # a place is its own anchor; everything else may fall back to `gp`
     pl = "t" if etype == "place" else "gp"
     row = conn.execute(
         f"SELECT t.id, t.code, {pos_cols}, {pl}.id AS place_id, {pl}.name_en AS place_en, "
-        f"{pl}.name_ar AS place_ar, {pl}.geo_precision, {pl}.country_id "
+        f"{pl}.name_ar AS place_ar, "
+        f"CASE WHEN t.latitude IS NOT NULL AND t.longitude IS NOT NULL "
+        f"THEN t.geo_precision ELSE {pl}.geo_precision END AS geo_precision, "
+        f"{pl}.country_id "
         f"FROM {from_clause.format(t=spec.table)} "
         f"WHERE t.id = ? AND t.deleted_at IS NULL AND {has_pos}", (rec_id,)).fetchone()
     if not row:
         return None
+    own = bool(row["own_pos"])
     country = conn.execute("SELECT label_en, label_ar, code FROM lookup WHERE id=?",
                            (row["country_id"],)).fetchone() if row["country_id"] else None
     return {
         "lat": round(float(row["lat"]), 7), "lon": round(float(row["lon"]), 7),
         "place_id": row["place_id"], "place_en": row["place_en"], "place_ar": row["place_ar"],
         "precision": row["geo_precision"],
-        "anchor_en": anchor[0] if anchor else "own position",
-        "anchor_ar": anchor[1] if anchor else "الموقع الخاص",
+        "position": "precise" if own else "associated",
+        "anchor_en": anchor[0] if (anchor and not own) else "own position",
+        "anchor_ar": anchor[1] if (anchor and not own) else "الموقع الخاص",
         "country_en": country["label_en"] if country else None,
         "country_ar": country["label_ar"] if country else None,
     }
@@ -331,9 +374,10 @@ def _anchor_of(conn: sqlite3.Connection, etype: str, rec_id: int) -> dict | None
 def detail(conn: sqlite3.Connection, etype: str, rec_id: int) -> dict:
     """Everything the inspector shows for one selected feature.
 
-    Coordinates in both notations and in every CRS the registry reports, the place the
-    position was inherited from, the country the point falls in (from the local
-    basemap, not a geocoding service), and the record's own located relationships.
+    Coordinates in both notations and in every CRS the registry reports, whether the
+    point is the record's own position or an association with a linked place, the
+    country the point falls in (from the local basemap, not a geocoding service), and
+    the record's own located relationships.
     """
     spec = ENTITIES.get(etype)
     if spec is None:
@@ -354,10 +398,12 @@ def detail(conn: sqlite3.Connection, etype: str, rec_id: int) -> dict:
     }
     if anchor is None:
         payload["reason"] = {"code": "no_coordinates",
-                             "message_en": "This record has no coordinates: its place is not "
-                                           "georeferenced, or it has no place at all.",
-                             "message_ar": "هذا السجل بلا إحداثيات: مكانه غير مُسنَد جغرافياً، "
-                                           "أو لا يوجد مكان مرتبط به."}
+                             "message_en": "This record has no coordinates of its own, and "
+                                           "the place it is associated with (if any) is not "
+                                           "georeferenced — so it has no position on the map.",
+                             "message_ar": "هذا السجل بلا إحداثيات خاصة، والمكان المرتبط "
+                                           "به (إن وُجد) غير مُسنَد جغرافياً — فهو بلا موقع "
+                                           "على الخريطة."}
         return payload
     payload["position"] = {
         **anchor,
@@ -416,6 +462,247 @@ def _located_relationships(conn: sqlite3.Connection, etype: str, rec_id: int) ->
 
 
 # --------------------------------------------------------------------------- #
+# relationship-aware geographical discovery
+# --------------------------------------------------------------------------- #
+# Selecting a record must reveal every geographical point connected to it
+# through the registry's own links — its own position, its associated place,
+# its organization, the events it took part in — and, one bounded step further,
+# the points those records bring with them. Every point keeps its identity and
+# says *why* it is here (`via`); nothing is merged because two records share a
+# name, a city, or similar coordinates.
+
+NETWORK_DEPTH_DEFAULT = 2
+NETWORK_DEPTH_MAX = 3
+NETWORK_LIMIT_DEFAULT = 120
+NETWORK_EDGE_CAP = 200
+
+
+def _relationship_edges(conn: sqlite3.Connection, etype: str, rec_id: int,
+                        cap: int | None = 200) -> tuple[list[tuple[str, int, dict]], bool]:
+    """Every record this one is linked to by a relationship row (both sides).
+
+    Event participants live here too: the participants module rewrites the
+    participant link types as ordinary relationships. `cap` bounds *indirect*
+    expansion only — pass None for the selected record itself, whose direct
+    relationships are essential and must never be silently dropped. The second
+    return value reports whether the cap actually cut edges away.
+    """
+    sql = ("SELECT r.id, r.code, r.entity1_type, r.entity1_id, r.entity2_type, r.entity2_id, "
+           "l.label_en, l.label_ar FROM relationship r "
+           "LEFT JOIN lookup l ON l.id = r.relationship_type_id "
+           "WHERE r.deleted_at IS NULL AND ((r.entity1_type=? AND r.entity1_id=?) "
+           "OR (r.entity2_type=? AND r.entity2_id=?))")
+    args: list = [etype, rec_id, etype, rec_id]
+    if cap is not None:
+        sql += " LIMIT ?"
+        args.append(cap + 1)
+    rows = conn.execute(sql, args).fetchall()
+    overflow = cap is not None and len(rows) > cap
+    rows = rows[:cap] if cap is not None else rows
+    out: list[tuple[str, int, dict]] = []
+    for r in rows:
+        if r["entity1_type"] == etype and r["entity1_id"] == rec_id:
+            other_type, other_id = r["entity2_type"], r["entity2_id"]
+        else:
+            other_type, other_id = r["entity1_type"], r["entity1_id"]
+        if other_type == etype and other_id == rec_id:
+            continue
+        out.append((other_type, int(other_id), {
+            "kind": "relationship", "relationship_id": r["id"], "code": r["code"],
+            "label_en": r["label_en"] or "related record",
+            "label_ar": r["label_ar"] or "سجل ذو صلة",
+        }))
+    return out, overflow
+
+
+def _fk_edges(conn: sqlite3.Connection, etype: str, rec_id: int,
+              cap: int | None = 200) -> tuple[list[tuple[str, int, dict]], bool]:
+    """Association links recorded as foreign keys, forward and reverse.
+
+    These are the registry's own semantics (birthplace, affiliated organization,
+    event place, place hierarchy) — never anything invented from names or
+    coinciding coordinates. As with relationships, `cap` bounds indirect
+    expansion only (None = never drop, for the selected record), and the
+    second return value reports whether a cap cut edges away.
+    """
+    out: list[tuple[str, int, dict]] = []
+    overflow = False
+
+    def one(target: str, tid, field: str, en: str, ar: str) -> None:
+        if tid not in (None, ""):
+            out.append((target, int(tid),
+                        {"kind": "fk", "field": field, "label_en": en, "label_ar": ar}))
+
+    def many(target: str, field: str, en: str, ar: str) -> None:
+        nonlocal overflow
+        rows = conn.execute(
+            f"SELECT id FROM {ENTITIES[target].table} WHERE {field}=? "
+            f"AND deleted_at IS NULL LIMIT ?",
+            (rec_id, (cap + 1) if cap is not None else -1)).fetchall()
+        if cap is not None and len(rows) > cap:
+            overflow = True
+            rows = rows[:cap]
+        for sub in rows:
+            one(target, sub["id"], field, en, ar)
+
+    if etype == "person":
+        row = conn.execute(
+            "SELECT birthplace_id, affiliated_institution_id FROM person WHERE id=?",
+            (rec_id,)).fetchone()
+        if row:
+            one("place", row["birthplace_id"], "birthplace_id", "birthplace", "مكان الميلاد")
+            one("institution", row["affiliated_institution_id"],
+                "affiliated_institution_id", "affiliated organization", "المؤسسة المرتبطة")
+    elif etype == "institution":
+        row = conn.execute("SELECT place_id FROM institution WHERE id=?", (rec_id,)).fetchone()
+        if row:
+            one("place", row["place_id"], "place_id", "location", "الموقع")
+        many("person", "affiliated_institution_id",
+             "affiliated person", "شخص منتسب")
+    elif etype == "event":
+        row = conn.execute("SELECT place_id FROM event WHERE id=?", (rec_id,)).fetchone()
+        if row:
+            one("place", row["place_id"], "place_id", "event place", "مكان الحدث")
+    elif etype == "place":
+        row = conn.execute("SELECT parent_place_id FROM place WHERE id=?", (rec_id,)).fetchone()
+        if row:
+            one("place", row["parent_place_id"], "parent_place_id",
+                "parent place", "المكان الأعلى")
+        many("place", "parent_place_id", "sub-place", "مكان تابع")
+        many("person", "birthplace_id", "person born here", "شخص مولود هنا")
+        many("institution", "place_id", "organization located here", "مؤسسة موجودة هنا")
+        many("event", "place_id", "event held here", "حدث عُقد هنا")
+    return out, overflow
+
+
+def _net_edges(conn: sqlite3.Connection, etype: str, rec_id: int,
+               cap: int | None = 200) -> tuple[list[tuple[str, int, dict]], bool]:
+    fk, fk_over = _fk_edges(conn, etype, rec_id, cap)
+    rel, rel_over = _relationship_edges(conn, etype, rec_id, cap)
+    return fk + rel, fk_over or rel_over
+
+
+def network(conn: sqlite3.Connection, etype: str, rec_id: int,
+            depth: int = NETWORK_DEPTH_DEFAULT, limit: int = NETWORK_LIMIT_DEFAULT) -> dict:
+    """The geographical network around one record.
+
+    Breadth-first over the registry's own links (foreign-key associations and
+    relationship rows, in both directions), bounded by `depth` (1–3) and by a
+    point budget. Each located record contributes exactly one point — at its
+    OWN position first, or at its associated place marked `associated` — and
+    carries `via`: the link that brought it here, with the intermediate record
+    named when the point was reached indirectly. Circular traversal stops at
+    the visited set; duplicates never become duplicate markers.
+    """
+    spec = ENTITIES.get(etype)
+    if spec is None:
+        raise KeyError(etype)
+    depth = max(1, min(int(depth or NETWORK_DEPTH_DEFAULT), NETWORK_DEPTH_MAX))
+    limit = max(1, min(int(limit or NETWORK_LIMIT_DEFAULT), 500))
+    points: list[dict] = []
+    placed: dict[tuple[str, int], dict] = {}
+    visited: set[tuple[str, int]] = set()
+    unlocated: list[dict] = []
+
+    def record_label(t: str, rid: int) -> tuple[str | None, str | None, str | None]:
+        s = ENTITIES.get(t)
+        if s is None:
+            return None, None, None
+        label_en, label_ar = LABELS.get(t, ("t.name_en", "t.name_ar"))
+        row = conn.execute(
+            f"SELECT t.code, {label_en} le, {label_ar} la FROM {s.table} t "
+            f"WHERE t.id = ? AND t.deleted_at IS NULL", (rid,)).fetchone()
+        if not row:
+            return None, None, None
+        return row["code"], row["le"], row["la"]
+
+    def add_point(t: str, rid: int, via: dict, d: int, primary: bool) -> None:
+        if (t, rid) in placed:
+            return
+        anchor = _anchor_of(conn, t, rid) if t in JOINS else None
+        code, le, la = record_label(t, rid)
+        if code is None:
+            return
+        if anchor is None:
+            unlocated.append({"entity_type": t, "id": rid, "code": code,
+                              "label_en": le, "label_ar": la, "via": via, "depth": d})
+            return
+        point = {
+            "entity_type": t, "id": rid, "code": code,
+            "label_en": le or la or code, "label_ar": la or le or code,
+            "lat": anchor["lat"], "lon": anchor["lon"],
+            "position": anchor["position"],
+            "anchor_en": anchor["anchor_en"], "anchor_ar": anchor["anchor_ar"],
+            "place_id": anchor["place_id"], "place_en": anchor["place_en"],
+            "place_ar": anchor["place_ar"],
+            "primary": primary, "depth": d, "via": via,
+        }
+        placed[(t, rid)] = point
+        points.append(point)
+
+    record = repo.get_record(conn, spec, rec_id)
+    if not record:
+        raise LookupError("record not found")
+
+    frontier: list[tuple[str, int]] = []
+    if etype == "relationship":
+        rel = conn.execute(
+            "SELECT id, code, entity1_type, entity1_id, entity2_type, entity2_id "
+            "FROM relationship WHERE id=? AND deleted_at IS NULL", (rec_id,)).fetchone()
+        if not rel:
+            raise LookupError("record not found")
+        via = {"kind": "relationship", "relationship_id": rel["id"], "code": rel["code"],
+               "label_en": "side of this relationship", "label_ar": "طرف من هذه العلاقة"}
+        for t, i in ((rel["entity1_type"], rel["entity1_id"]),
+                     (rel["entity2_type"], rel["entity2_id"])):
+            if t in JOINS:
+                add_point(t, int(i), dict(via), 1, True)
+                frontier.append((t, int(i)))
+        visited.add(("relationship", int(rec_id)))
+    else:
+        add_point(etype, int(rec_id),
+                  {"kind": "self", "label_en": "this record", "label_ar": "هذا السجل"},
+                  0, True)
+        frontier.append((etype, int(rec_id)))
+        visited.add((etype, int(rec_id)))
+
+    edges_truncated = False
+    for d in range(1, depth + 1):
+        if not frontier or len(points) >= limit:
+            break
+        nxt: list[tuple[str, int]] = []
+        for t, i in frontier:
+            # depth 1 carries the selected record's OWN links — essential direct
+            # relationships, never capped; deeper hops may cap, and say so.
+            edges, over = _net_edges(conn, t, i,
+                                     cap=None if d == 1 else NETWORK_EDGE_CAP)
+            edges_truncated = edges_truncated or over
+            for t2, i2, via in edges:
+                if t2 not in JOINS or (t2, i2) in visited:
+                    continue
+                visited.add((t2, i2))
+                step = dict(via)
+                step["depth"] = d
+                if d > 1:
+                    code, le, la = record_label(t, i)
+                    step["through_type"] = t
+                    step["through_id"] = i
+                    step["through_label_en"] = le or code
+                    step["through_label_ar"] = la or code
+                add_point(t2, i2, step, d, False)
+                nxt.append((t2, i2))
+        frontier = nxt
+    return {
+        "entity_type": etype, "id": int(rec_id),
+        "depth": depth, "limit": limit,
+        "points": points[:limit], "count": min(len(points), limit),
+        "truncated": len(points) > limit,
+        "edges_truncated": edges_truncated,
+        "unlocated": unlocated[:limit], "unlocated_count": len(unlocated),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # statistical groups ("N records at this place")
 # --------------------------------------------------------------------------- #
 def groups(conn: sqlite3.Connection, *, bbox: tuple | None = None, zoom: float = 0,
@@ -424,7 +711,7 @@ def groups(conn: sqlite3.Connection, *, bbox: tuple | None = None, zoom: float =
     """Aggregate by place: the "what is here" panel, and the naive-marker fix."""
     wanted = [name for name in (layers or MAPPED_LAYERS) if name in JOINS]
     filters = filters or {}
-    rows: dict[int, dict] = {}
+    rows: dict[Any, dict] = {}
     bbox_clause, bbox_params = (None, [])
     if bbox:
         bbox_clause, bbox_params = _bbox_sql(bbox)
@@ -435,22 +722,40 @@ def groups(conn: sqlite3.Connection, *, bbox: tuple | None = None, zoom: float =
         where, params, where_warnings = repo.build_where(
             spec, {**layer_filters, "entity": etype}, conn)
         warning_sets[etype] = layer_warnings + where_warnings
-        from_clause, pos_cols, has_pos, _ = JOINS[etype]
+        from_clause, pos_cols, has_pos, _, lat_expr, lon_expr = JOINS[etype]
         clause = f"{where} AND {has_pos}"
         args = list(params)
         if bbox_clause:
-            prefix = "t." if etype == "place" else "gp."
-            clause += " AND " + bbox_clause.replace("!lat", prefix + "latitude") \
-                                            .replace("!lon", prefix + "longitude")
+            clause += " AND " + bbox_clause.replace("!lat", lat_expr).replace("!lon", lon_expr)
             args += bbox_params
         pl = "t" if etype == "place" else "gp"
+        label_en, label_ar = LABELS[etype]
         for r in conn.execute(
-                f"SELECT {pl}.id AS pid, {pl}.name_en, {pl}.name_ar, {pos_cols}, COUNT(*) c "
+                f"SELECT {pl}.id AS pid, {pl}.name_en, {pl}.name_ar, "
+                f"{pl}.latitude AS pl_lat, {pl}.longitude AS pl_lon, "
+                f"t.id AS tid, {label_en} AS own_name_en, {label_ar} AS own_name_ar, "
+                f"{pos_cols}, COUNT(*) c "
                 f"FROM {from_clause.format(t=spec.table)} "
-                f"WHERE {clause} GROUP BY {pl}.id", args):
-            g = rows.setdefault(r["pid"], {
-                "place_id": r["pid"], "label_en": r["name_en"], "label_ar": r["name_ar"],
-                "lat": round(float(r["lat"]), 7), "lon": round(float(r["lon"]), 7),
+                f"WHERE {clause} GROUP BY COALESCE({pl}.id, -t.id)", args):
+            # Rows sharing an anchor place count at the place; a row with no
+            # located anchor place stands at its own point and forms its own
+            # group. The place's coordinates are the place's — a group is named
+            # for the place and positioned at the place, never at its records.
+            if r["pid"] is None:
+                key: Any = f"own:{r['tid']}"
+                g_label_en, g_label_ar = r["own_name_en"], r["own_name_ar"]
+                g_lat, g_lon, g_place = r["lat"], r["lon"], None
+            else:
+                key = r["pid"]
+                g_label_en, g_label_ar = r["name_en"], r["name_ar"]
+                # a linked place may itself be unlocated: the group then stands
+                # at the resolved point, never at a made-up one
+                g_lat = r["pl_lat"] if r["pl_lat"] is not None else r["lat"]
+                g_lon = r["pl_lon"] if r["pl_lon"] is not None else r["lon"]
+                g_place = r["pid"]
+            g = rows.setdefault(key, {
+                "place_id": g_place, "label_en": g_label_en, "label_ar": g_label_ar,
+                "lat": round(float(g_lat), 7), "lon": round(float(g_lon), 7),
                 "count": 0, "by_layer": {},
             })
             g["count"] += r["c"]
@@ -574,9 +879,11 @@ def query(conn: sqlite3.Connection, *, mode: str, lat: float | None = None,
 def search(conn: sqlite3.Connection, text: str, limit: int = 12) -> dict:
     """One search box for everything on the map.
 
-    A coordinate is a position. A name is a registry record (a place first, because a
-    place is the thing that *has* a position) or a country from the basemap. Neither
-    result is invented: every hit carries the record it came from.
+    A coordinate is a position. A name is a registry record of any mapped kind —
+    person, institution, event or place — standing at its own coordinates (or
+    shown, distinctly marked, at its associated place), or a country from the
+    basemap. Neither result is invented: every hit carries the record it came
+    from and the class of its position.
     """
     text = (text or "").strip()
     if not text:
@@ -592,7 +899,7 @@ def search(conn: sqlite3.Connection, text: str, limit: int = 12) -> dict:
         # the label columns are qualified with the record alias: the place join in
         # `from_clause` carries its own name_en/name_ar, so a bare column is ambiguous
         label_en, label_ar = LABELS[etype]
-        from_clause, pos_cols, has_pos, _ = JOINS[etype]
+        from_clause, pos_cols, has_pos, _, _, _ = JOINS[etype]
         for r in conn.execute(
                 f"SELECT t.id, t.code, {label_en} le, {label_ar} la, {pos_cols} "
                 f"FROM {from_clause.format(t=spec.table)} "
@@ -602,6 +909,7 @@ def search(conn: sqlite3.Connection, text: str, limit: int = 12) -> dict:
             out.append({"kind": "record", "entity_type": etype, "id": r["id"],
                         "code": r["code"], "label_en": r["le"], "label_ar": r["la"],
                         "lat": round(float(r["lat"]), 7), "lon": round(float(r["lon"]), 7),
+                        "position": "precise" if r["own_pos"] else "associated",
                         "layer_en": spec.label_en, "layer_ar": spec.label_ar})
         if len(out) >= limit:
             break

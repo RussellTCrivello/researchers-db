@@ -17,7 +17,11 @@
   };
   const MAP_ENTITIES = new Set(["person", "institution", "place", "event"]);
   /* People, places and organizations keep the table and the record on one page. */
-  const INSPECT_ENTITIES = new Set(["person", "institution", "place"]);
+  /* The record panel beside the list covers every entity; person, place and
+     institution carry the classic trio, and relationship, source and event
+     carry their own advanced tabs. */
+  const INSPECT_ENTITIES = new Set(["person", "institution", "place",
+                                    "relationship", "source", "event"]);
   function canInspect(entity) { return INSPECT_ENTITIES.has(entity); }
   function viewsFor(entity) {
     const base = ["table", "cards", "gallery", "list"];
@@ -526,7 +530,7 @@
         ${queryEcho(st)}
         ${filterChips(entity, data)}
         ${bulkBar(entity)}
-        <div class="list-stage${inspectOpen ? " tri no-map" : ""}" data-list-stage>
+        <div class="list-stage${inspectOpen ? " split" : ""}" data-list-stage>
           <div class="list-scroll${canPick ? " can-inspect" : ""}"
                data-scroll-body tabindex="0" aria-label="${esc(A.pluralOf(entity))}">
             ${st.loading ? loadingBlock() : viewBody(entity, data)}
@@ -698,6 +702,10 @@
       st._listPins.forEach(m => { try { m.remove(); } catch (e) { /* */ } });
       st._listPins = null;
     }
+    if (st && st._listAttrib) {
+      try { st._listAttrib.remove(); } catch (e) { /* */ }
+      st._listAttrib = null;
+    }
     if (st && st._listMap) {
       try { st._listMap.remove(); } catch (e) { /* already gone */ }
       st._listMap = null;
@@ -719,6 +727,25 @@
       <div class="list-map-canvas" data-map-canvas></div>
       <div class="list-map-card" data-map-card hidden></div>
     </div>`;
+  }
+
+  /** The base map's own attribution, as its terms require — kept under any map
+   *  that boots a provider style.  Offline beds carry no third-party mark. */
+  function paintMapAttribution(canvas, providerId, mapCfg, st, slot) {
+    try {
+      if (st[slot]) { st[slot].remove(); st[slot] = null; }
+      const entry = ((mapCfg && mapCfg.providers) || []).find(p => p.id === providerId);
+      if (!entry || String(entry.kind || "").startsWith("vector")) return;
+      const text = A.state.lang === "ar" ? entry.attribution_ar : entry.attribution_en;
+      const el = document.createElement("div");
+      el.className = "inspect-map-attrib small muted";
+      el.innerHTML = `<a href="${esc(entry.attribution_url || "#")}" target="_blank"`
+        + ` rel="noopener noreferrer">${esc(text || "")}</a>`
+        + (entry.terms_url ? ` · <a href="${esc(entry.terms_url)}" target="_blank"`
+          + ` rel="noopener noreferrer">${esc(entry.license || "")}</a>` : "");
+      canvas.parentElement.insertBefore(el, canvas.nextSibling);
+      st[slot] = el;
+    } catch (e) { /* attribution must never break the map */ }
   }
 
   async function mountListMap(entity) {
@@ -773,8 +800,10 @@
       </li>`;
     }).join("");
 
+    const mapCfg = await (A.mapConfig ? A.mapConfig().catch(() => null) : null);
+    const defaultProvider = (A.mapDefault && A.mapDefault().provider) || "local";
     const bootStyle = (A.geopin && A.geopin.secondaryStyle)
-      ? A.geopin.secondaryStyle("osm")
+      ? A.geopin.secondaryStyle(defaultProvider, mapCfg)
       : { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
           paint: { "background-color": "#e8eef4" } }] };
     const map = new window.maplibregl.Map({
@@ -786,6 +815,7 @@
     });
     st._listMap = map;
     st._listPins = [];
+    paintMapAttribution(canvas, defaultProvider, mapCfg, st, "_listAttrib");
     map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
     map.on("load", () => {
@@ -797,7 +827,9 @@
         bounds.extend([p.lon, p.lat]);
         if (A.geopin) {
           const m = A.geopin.marker(map, [p.lon, p.lat], {
-            etype: entity, label: label || p.code, size: "sm", showLabel: false
+            etype: entity, label: label || p.code, size: "sm", showLabel: false,
+            associated: p.position === "associated",
+            title: (label || p.code) + (p.position === "associated" ? " · " + t("geo.associatedPoint") : "")
           });
           if (m) {
             const el = m.getElement();
@@ -838,12 +870,18 @@
   const INSPECT_STATS = {
     person: ["relationships_count", "citations_count", "positions_count", "completeness"],
     institution: ["persons_count", "relationships_count", "positions_count", "completeness"],
-    place: ["children_count", "institutions_count", "persons_born_count", "relationships_count", "completeness"]
+    place: ["children_count", "institutions_count", "persons_born_count", "relationships_count", "completeness"],
+    relationship: ["duration_years", "start_year", "end_year"],
+    source: ["citations_count", "primary_for_count", "completeness"],
+    event: ["participants_count", "completeness"]
   };
   const INSPECT_GROUPS = ["identity", "life", "career", "location", "geo", "timing", "link",
     "detail", "people", "profile", "content", "assessment", "research", "history",
     "contact", "meta"];
 
+  /* The panel itself: identity + three tabs (Details · Relationships · Map).
+     The map lives inside the panel as a persistent host — its WebGL context
+     survives tab switches instead of being torn down and rebuilt. */
   function inspectShell() {
     return `<aside class="inspect" data-inspect aria-label="${esc(t("inspect.aria"))}">
       <div class="inspect-head">
@@ -867,17 +905,8 @@
       <div class="inspect-id" data-inspect-id></div>
       <div class="inspect-tabs" data-inspect-tabs role="tablist"></div>
       <div class="inspect-body" data-inspect-body role="tabpanel"></div>
-    </aside>`;
-  }
-
-  function mapPaneShell() {
-    return `<aside class="inspect-map-pane" data-inspect-map-pane aria-label="${esc(t("inspect.map"))}">
-      <div class="inspect-head">
-        <span class="inspect-head-label">${icon("map-pin")} ${esc(t("inspect.map"))}</span>
-        <span class="spacer"></span>
-        <a class="btn ghost sm" href="#/geo">${esc(t("view.openGeo"))}</a>
-      </div>
-      <div class="inspect-map-wrap">
+      <div class="inspect-map-wrap" data-inspect-map-wrap hidden>
+        <div class="inspect-map-bar" data-inspect-map-bar></div>
         <div class="inspect-map" data-inspect-map></div>
         <div class="inspect-caption" data-inspect-caption hidden></div>
       </div>
@@ -888,35 +917,38 @@
     disposeInspectMap(entity);
     const stage = document.querySelector("[data-list-stage]");
     const pane = document.querySelector("[data-inspect]");
-    const mapPane = document.querySelector("[data-inspect-map-pane]");
     if (pane) pane.remove();
-    if (mapPane) mapPane.remove();
-    if (stage) stage.classList.remove("tri");
+    if (stage) stage.classList.remove("split");
   }
 
-  function ensureMapPane(entity) {
+  function ensureInspectPane(entity) {
     const stage = document.querySelector("[data-list-stage]");
     if (!stage) return null;
-    let mapPane = stage.querySelector("[data-inspect-map-pane]");
-    if (!mapPane) {
+    stage.classList.add("split");
+    let pane = stage.querySelector("[data-inspect]");
+    if (!pane) {
       const wrap = document.createElement("div");
-      wrap.innerHTML = mapPaneShell();
-      mapPane = wrap.firstElementChild;
-      stage.appendChild(mapPane);
-      hydrateIcons(mapPane);
+      wrap.innerHTML = inspectShell();
+      pane = wrap.firstElementChild;
+      stage.appendChild(pane);
+      hydrateIcons(pane);
     }
-    stage.classList.remove("no-map");
-    mapPane.hidden = false;
-    void entity;
-    return mapPane;
+    bindInspect(entity);
+    return pane;
   }
 
-  function removeMapPane(entity) {
-    disposeInspectMap(entity);
-    const stage = document.querySelector("[data-list-stage]");
-    const mapPane = document.querySelector("[data-inspect-map-pane]");
-    if (mapPane) mapPane.remove();
-    if (stage) stage.classList.add("no-map");
+  /** Show the map tab's persistent host (and hide the text body), or back. */
+  function showMapTab(entity, on) {
+    const body = document.querySelector("[data-inspect-body]");
+    const wrap = document.querySelector("[data-inspect-map-wrap]");
+    if (body) body.hidden = !!on;
+    if (wrap) wrap.hidden = !on;
+    if (on) {
+      requestAnimationFrame(() => {
+        const map = state[entity] && state[entity]._inspectMap;
+        if (map) { try { map.resize(); } catch (e) { /* not ready */ } }
+      });
+    }
   }
 
   function bindInspect(entity) {
@@ -980,14 +1012,24 @@
 
   function disposeInspectMap(entity) {
     const st = state[entity];
-    if (st && st._inspectPin) {
+    if (!st || typeof st !== "object") return;
+    (st._inspectPins || []).forEach(pin => {
+      try { pin.remove(); } catch (e) { /* */ }
+    });
+    st._inspectPins = null;
+    if (st._inspectPin) {
       try { st._inspectPin.remove(); } catch (e) { /* */ }
       st._inspectPin = null;
     }
-    if (st && st._inspectMap) {
+    if (st._inspectAttrib) {
+      try { st._inspectAttrib.remove(); } catch (e) { /* */ }
+      st._inspectAttrib = null;
+    }
+    if (st._inspectMap) {
       try { st._inspectMap.remove(); } catch (e) { /* already gone */ }
       st._inspectMap = null;
     }
+    st._inspectMapKey = null;
   }
 
   function markInspected(entity) {
@@ -995,23 +1037,6 @@
     document.querySelectorAll("[data-scroll-body] [data-id]").forEach(el => {
       el.classList.toggle("inspected", id != null && Number(el.dataset.id) === Number(id));
     });
-  }
-
-  function ensureInspectPane(entity) {
-    const stage = document.querySelector("[data-list-stage]");
-    if (!stage) return null;
-    stage.classList.add("tri");
-    if (!stage.querySelector("[data-inspect-map-pane]")) stage.classList.add("no-map");
-    let pane = stage.querySelector("[data-inspect]");
-    if (!pane) {
-      const wrap = document.createElement("div");
-      wrap.innerHTML = inspectShell();
-      pane = wrap.firstElementChild;
-      stage.appendChild(pane);
-      hydrateIcons(pane);
-    }
-    bindInspect(entity);
-    return pane;
   }
 
   function closeInspect(entity) {
@@ -1106,38 +1131,51 @@
       .filter((id, i, arr) => id && arr.indexOf(id) === i);
   }
 
-  function nonEventRelations(rec) {
-    return (rec.relationships || []).filter(r => r.other_type !== "event");
-  }
-
+  /* Each entity's tabs answer its own questions: a relationship is about its
+     two parties and the evidence for it; a source about what it claims and
+     where those claims reach; an event about who came and when. The map closes
+     every set — location is the one question they all share. */
   function inspectTabsFor(entity, rec) {
-    const spec = A.entitySpec(entity) || {};
-    const tabs = [
-      { key: "details", label: t("inspect.tab.details") }
-    ];
-    /* Events lead the related-record frontier — ahead of relations and positions. */
-    if (entity !== "event") {
-      tabs.push({ key: "events", label: t("inspect.tab.events"),
-        n: linkedEventIds(rec).length });
-    }
-    const rels = entity === "event" ? (rec.relationships || []) : nonEventRelations(rec);
-    tabs.push(
-      { key: "relations", label: t("inspect.tab.relations"),
-        n: rels.length }
-    );
-    if (spec.has_positions) {
-      tabs.push({ key: "positions", label: t("inspect.tab.positions"),
-        n: (rec.positions || []).length });
-    }
-    tabs.push(
-      { key: "citations", label: t("inspect.tab.citations"),
-        n: (rec.citations || rec.evidence || []).length },
-      { key: "attachments", label: t("inspect.tab.attachments"),
-        n: (rec.attachments || []).length },
-      { key: "history", label: t("inspect.tab.history"),
-        n: (rec.history || []).length }
-    );
-    return tabs;
+    const relN = (rec.relationships || []).length;
+    const evN = (rec.citations || rec.evidence || []).length ||
+      ((rec.evidence_summary || {}).total || 0);
+    const sets = {
+      person: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "relationships", label: t("inspect.tab.relationships"), n: relN },
+        { key: "map", label: t("inspect.tab.map") }
+      ],
+      institution: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "relationships", label: t("inspect.tab.relationships"), n: relN },
+        { key: "map", label: t("inspect.tab.map") }
+      ],
+      place: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "relationships", label: t("inspect.tab.relationships"), n: relN },
+        { key: "map", label: t("inspect.tab.map") }
+      ],
+      relationship: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "parties", label: t("inspect.tab.parties"), n: 2 },
+        { key: "evidence", label: t("inspect.tab.evidence"), n: evN },
+        { key: "map", label: t("inspect.tab.map") }
+      ],
+      source: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "claims", label: t("inspect.tab.claims"),
+          n: (rec._derived || {}).citations_count },
+        { key: "coverage", label: t("inspect.tab.coverage") },
+        { key: "map", label: t("inspect.tab.map") }
+      ],
+      event: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "participants", label: t("inspect.tab.participants"), n: relN },
+        { key: "chronology", label: t("inspect.tab.chronology") },
+        { key: "map", label: t("inspect.tab.map") }
+      ]
+    };
+    return sets[entity] || sets.person;
   }
 
   function paintInspectTabs(entity, rec) {
@@ -1157,6 +1195,10 @@
         st.inspectTab = btn.dataset.inspectTab;
         paintInspectTabs(entity, rec);
         paintInspectTab(entity, rec, st._inspectLoc || {});
+        /* the strip was rebuilt under the pointer: put keyboard focus back on
+           the active tab so Esc and the arrow keys keep working */
+        const again = document.querySelector(`[data-inspect-tab="${st.inspectTab}"]`);
+        if (again && again.focus) again.focus();
       };
     });
   }
@@ -1166,19 +1208,33 @@
     const body = document.querySelector("[data-inspect-body]");
     if (!body) return;
     const tab = st.inspectTab || "details";
-    if (tab === "details") body.innerHTML = inspectDetailsHtml(entity, rec, loc);
-    else if (tab === "positions") body.innerHTML = inspectPositionsHtml(entity, rec);
-    else if (tab === "relations") body.innerHTML = inspectRelationsHtml(entity, rec);
-    else if (tab === "events") body.innerHTML = inspectEventsHtml(entity, rec);
-    else if (tab === "citations") body.innerHTML = inspectCitationsHtml(entity, rec);
-    else if (tab === "attachments") body.innerHTML = inspectAttachmentsHtml(entity, rec);
-    else if (tab === "history") body.innerHTML = inspectHistoryHtml(entity, rec);
-    else body.innerHTML = "";
+    if (tab === "map") {
+      body.setAttribute("data-inspect-ready", "1");
+      showMapTab(entity, true);
+      /* the map model is built per entity and lazily: a party map resolves its
+         two sides, a source map the places its claims reach */
+      loadMapTab(entity, rec);
+      return;
+    }
+    showMapTab(entity, false);
+    if (tab === "relationships") body.innerHTML = inspectRelationshipsHtml(entity, rec);
+    else if (tab === "parties") body.innerHTML = inspectPartiesHtml(entity, rec);
+    else if (tab === "evidence") body.innerHTML = inspectEvidenceTabHtml(entity, rec);
+    else if (tab === "claims") body.innerHTML = inspectClaimsTabHtml(entity, rec);
+    else if (tab === "coverage") body.innerHTML = inspectCoverageTabHtml(entity, rec);
+    else if (tab === "participants") body.innerHTML = inspectParticipantsHtml(entity, rec);
+    else if (tab === "chronology") body.innerHTML = inspectChronologyHtml(entity, rec);
+    else body.innerHTML = inspectDetailsHtml(entity, rec, loc);
     body.dataset.inspectReady = "1";
     body.setAttribute("data-inspect-ready", "1");
     hydrateIcons(body);
     wireInspectTab(entity, rec, body);
-    if (tab === "events") loadInspectEvents(entity, rec, body);
+    if (tab === "relationships") renderRelGraph(entity, rec, body);
+    if (tab === "parties") loadPartiesAnalysis(entity, rec, body);
+    if (tab === "claims") loadClaimsTab(entity, rec, body);
+    if (tab === "coverage") loadCoverageTab(entity, rec, body);
+    if (tab === "chronology") loadChronologyTab(entity, rec, body);
+    if (body.querySelector("[data-inspect-events]")) loadInspectEvents(entity, rec, body);
   }
 
   function inspectDetailsHtml(entity, rec, loc) {
@@ -1199,12 +1255,13 @@
     const tags = (rec.tags || []).map(tg =>
       `<span class="chip">${esc(A.state.lang === "ar" ? (tg.label_ar || tg.label_en) : (tg.label_en || tg.label_ar))}</span>`
     ).join("");
-    let placeLine = "";
-    if (loc && loc.label) {
-      placeLine = loc.placeId
-        ? `<a href="#/entity/place/${loc.placeId}">${esc(loc.label)}</a>`
-        : esc(loc.label);
-    }
+    /* The anchor strip names where the record shows on the map; the place link
+       comes from the resolved ref, so it renders before any map is built. */
+    const anchorKey = entity === "person" ? "birthplace_id" : (entity === "place" ? null : "place_id");
+    const aref = anchorKey ? (rec._refs || {})[anchorKey] : null;
+    const placeLine = aref
+      ? `<a href="#/entity/place/${aref.id}">${esc(refName(aref))}</a>`
+      : "";
     const sections = INSPECT_GROUPS.filter(g => groups[g]).map(g => `
       <div class="inspect-section">
         <div class="inspect-section-title">${esc(t("form.groups." + g) || g)}</div>
@@ -1212,11 +1269,38 @@
           `<dt>${esc(A.fieldLabelSafe(f))}</dt><dd>${inspectFieldValue(entity, rec, f)}</dd>`
         ).join("")}</dl>
       </div>`).join("");
+    /* The Details tab is the whole dossier: fields first, then the related
+       rows — each entity keeps the sections that speak for it. A relationship's
+       claims sit in its Evidence tab, a source's in Claims and Coverage; the
+       rest fold positions, events, sources, files and the change log here. */
+    const spec = A.entitySpec(entity) || {};
+    const parts = [];
+    if (spec.has_positions) {
+      parts.push(inspectSection(t("inspect.tab.positions"), inspectPositionsHtml(entity, rec)));
+    }
+    if (entity === "relationship") {
+      parts.push(inspectSection(t("inspect.rel.principal"), inspectPrincipalHtml(entity, rec)));
+    } else if (entity === "event") {
+      parts.push(
+        inspectSection(t("inspect.tab.events"), inspectEventsHtml(entity, rec)),
+        inspectSection(t("inspect.tab.citations"), inspectCitationsHtml(entity, rec))
+      );
+    } else if (entity !== "source") {
+      parts.push(
+        inspectSection(t("inspect.tab.events"), inspectEventsHtml(entity, rec)),
+        inspectSection(t("inspect.tab.citations"), inspectCitationsHtml(entity, rec))
+      );
+    }
+    parts.push(
+      inspectSection(t("inspect.tab.attachments"), inspectAttachmentsHtml(entity, rec)),
+      inspectSection(t("inspect.tab.history"), inspectHistoryHtml(entity, rec))
+    );
     return `<div data-inspect-ready>
       <div class="inspect-loc">${esc(t("inspect.anchor." + entity))}${placeLine ? " · " + placeLine : ""}</div>
       ${stats ? `<div class="inspect-stats">${stats}</div>` : ""}
       ${tags ? `<div class="inspect-tags" style="margin-bottom:10px">${tags}</div>` : ""}
       ${sections || `<div class="inspect-empty">${esc(t("list.noRecords"))}</div>`}
+      ${parts.join("")}
       <div class="inspect-section">
         <div class="inspect-section-title">${esc(t("rec.system"))}</div>
         <dl class="dl inspect-dl compact">
@@ -1227,6 +1311,13 @@
           <dt>v</dt><dd>${esc(rec.version)}</dd>
         </dl>
       </div>
+    </div>`;
+  }
+
+  function inspectSection(title, inner) {
+    return `<div class="inspect-section">
+      <div class="inspect-section-title">${esc(title)}</div>
+      ${inner}
     </div>`;
   }
 
@@ -1256,28 +1347,285 @@
     </div>`;
   }
 
-  function inspectRelationsHtml(entity, rec) {
-    const rows = entity === "event" ? (rec.relationships || []) : nonEventRelations(rec);
+  /* --------------------------------------------- relationships visualised --- */
+  /* Node colours follow the relationship atlas so one record looks the same
+     wherever it is drawn. */
+  const REL_STYLE = {
+    person: { color: "#2f6f4f" }, institution: { color: "#1f5d8b" },
+    place: { color: "#8a5a1f" }, event: { color: "#7b3f8f" },
+    source: { color: "#8b3a3a" }, relationship: { color: "#4b5563" }
+  };
+
+  function relLabel(r) {
+    return (A.state.lang === "ar" ? (r.type_ar || r.type_en) : (r.type_en || r.type_ar || "")) || "";
+  }
+
+  function inspectRelationshipsHtml(entity, rec) {
+    void entity;
+    const rows = rec.relationships || [];
     return `<div data-inspect-ready>
       <div class="flex" style="margin-bottom:8px">
         <button type="button" class="btn sm primary" data-add-rel>
           ${icon("plus")} ${esc(t("rec.addRelationship"))}</button>
+        <a class="btn sm" href="#/map?focus=${esc(entity)}:${rec.id}">
+          ${icon("share")} ${esc(t("geo.showOnAtlas"))}</a>
       </div>
-      ${rows.length ? `<div class="table-wrap"><table class="data compact"><thead><tr>
+      ${rows.length ? `
+        <div class="rel-graph-box">
+          <div class="rel-graph-tools">
+            <button type="button" class="icon-btn" data-rel-zoom="in"
+                    title="${esc(t("inspect.rel.zoomIn"))}"
+                    aria-label="${esc(t("inspect.rel.zoomIn"))}">＋</button>
+            <button type="button" class="icon-btn" data-rel-zoom="out"
+                    title="${esc(t("inspect.rel.zoomOut"))}"
+                    aria-label="${esc(t("inspect.rel.zoomOut"))}">−</button>
+            <button type="button" class="icon-btn" data-rel-zoom="reset"
+                    title="${esc(t("inspect.rel.zoomReset"))}"
+                    aria-label="${esc(t("inspect.rel.zoomReset"))}">${icon("crosshair")}</button>
+          </div>
+          <div class="rel-graph" data-rel-graph></div>
+        </div>
+        <div class="rel-hint small muted">${esc(t("inspect.rel.hint"))}</div>
+        <div class="rel-legend" data-rel-legend></div>
+        <div class="table-wrap">${relTableHtml(rows)}</div>`
+        : `<div class="inspect-empty">${esc(t("rec.noRelationships"))}</div>`}
+    </div>`;
+  }
+
+  function relTableHtml(rows) {
+    return `<table class="data compact"><thead><tr>
         <th>${esc(t("log.entity"))}</th>
         <th>${esc(A.t("ui.type"))}</th>
         <th>${esc(A.t("ui.from"))}</th>
         <th>${esc(A.t("ui.to"))}</th></tr></thead><tbody>
-        ${rows.map(r => `<tr>
+        ${rows.map(r => {
+          const evN = (r.evidence || []).length ||
+            ((r.evidence_counts || {}).supports || 0) + ((r.evidence_counts || {}).contradicts || 0) +
+            ((r.evidence_counts || {}).contextualizes || 0);
+          return `<tr>
           <td><a href="#/entity/${esc(r.other_type)}/${r.other_id}">${esc(A.truncate(r.other_name || "", 40))}</a>
             <span class="kv-sub">${esc(A.label(r.other_type))}</span></td>
-          <td>${esc(A.state.lang === "ar" ? (r.type_ar || r.type_en) : (r.type_en || r.type_ar || ""))}
-            ${r.outgoing ? "→" : "←"}</td>
+          <td>${esc(relLabel(r))} ${r.outgoing ? "→" : "←"}
+            ${r.disputed ? `<span class="badge red" title="${esc(t("inspect.rel.disputed"))}">⚠</span>` : ""}
+            ${evN ? `<span class="badge gray" title="${esc(t("inspect.rel.evidence"))}">${fmtNum(evN)}</span>` : ""}</td>
           <td>${esc(r.start_date || "—")}</td>
-          <td>${esc(r.end_date || "—")}</td></tr>`).join("")}
-        </tbody></table></div>`
-        : `<div class="inspect-empty">${esc(t("rec.noRelationships"))}</div>`}
-    </div>`;
+          <td>${esc(r.end_date || "—")}</td></tr>`;
+        }).join("")}
+        </tbody></table>`;
+  }
+
+  function relGraphModel(entity, rec) {
+    const centre = {
+      key: entity + ":" + rec.id, type: entity, id: rec.id,
+      label: A.dispTitle(rec, entity) || rec.code || "#" + rec.id,
+      href: `#/entity/${entity}/${rec.id}`
+    };
+    const byKey = new Map();
+    (rec.relationships || []).forEach(r => {
+      if (!r.other_type || !r.other_id) return;
+      const key = r.other_type + ":" + r.other_id;
+      let node = byKey.get(key);
+      if (!node) {
+        node = {
+          key, type: r.other_type, id: Number(r.other_id),
+          label: r.other_name || refName(r.other_ref) || ("#" + r.other_id),
+          href: `#/entity/${r.other_type}/${r.other_id}`, rels: []
+        };
+        byKey.set(key, node);
+      }
+      node.rels.push(r);
+    });
+    return { centre, nodes: Array.from(byKey.values()) };
+  }
+
+  /** Direction of the whole pair: every row, not just the first. */
+  function relDirection(node) {
+    const dirs = new Set(node.rels.map(r =>
+      r.symmetric || (r.direction && r.direction !== "directed")
+        ? "sym" : (r.outgoing ? "out" : "in")));
+    return dirs.size > 1 ? "sym" : (Array.from(dirs)[0] || "out");
+  }
+
+  function toDMS(v, pos, neg) {
+    const hemi = v >= 0 ? pos : neg;
+    const a = Math.abs(v);
+    const d = Math.floor(a);
+    const m = Math.floor((a - d) * 60);
+    const s = ((a - d) * 60 - m) * 60;
+    return `${d}°${m}′${s.toFixed(1)}″${hemi}`;
+  }
+
+  /* The ego-network: the selected record at the centre, every connected record
+     on concentric rings.  Hover spotlights one branch, clicking a node opens
+     that record, the tools zoom and pan. */
+  function renderRelGraph(entity, rec, body) {
+    const host = body.querySelector("[data-rel-graph]");
+    if (!host) return;
+    const model = relGraphModel(entity, rec);
+    const shown = model.nodes.slice(0, 28);
+    const overflow = model.nodes.length - shown.length;
+    const W = 700, H = 560, cx = 350, cy = 280;
+    const inner = shown.slice(0, 12), outer = shown.slice(12);
+    const place = (list, radius) => list.forEach((n, i) => {
+      const ang = -Math.PI / 2 + 2 * Math.PI * (i + 0.5) / list.length;
+      n.x = cx + radius * Math.cos(ang);
+      n.y = cy + radius * Math.sin(ang);
+      n.r = radius > 200 ? 21 : 26;
+    });
+    place(inner, 150);
+    if (outer.length) place(outer, 235);
+
+    const centreR = 34;
+    const edgesHtml = shown.map(n => {
+      const dx = n.x - cx, dy = n.y - cy;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      const x1 = cx + ux * (centreR + 2), y1 = cy + uy * (centreR + 2);
+      const x2 = cx + ux * (len - n.r - 2), y2 = cy + uy * (len - n.r - 2);
+      const dir = relDirection(n);
+      const markerStart = dir === "in" || dir === "sym" ? ' marker-start="url(#relArrow)"' : "";
+      const markerEnd = dir === "out" || dir === "sym" ? ' marker-end="url(#relArrow)"' : "";
+      const kinds = n.rels.map(relLabel).filter(Boolean);
+      const uniq = kinds.filter((k, i) => kinds.indexOf(k) === i);
+      const labelText = uniq.slice(0, 2).join(" · ") + (uniq.length > 2 ? " +" + (uniq.length - 2) : "");
+      const lx = x1 + (x2 - x1) * 0.55, ly = y1 + (y2 - y1) * 0.55;
+      return `<g class="rel-edge" data-key="${esc(n.key)}">
+        <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+              ${markerStart}${markerEnd}></line>
+        ${labelText ? `<text class="rel-edge-label" x="${lx.toFixed(1)}" y="${(ly - 5).toFixed(1)}"
+              text-anchor="middle">${esc(A.truncate(labelText, 26))}</text>` : ""}
+      </g>`;
+    }).join("");
+
+    const nodeHtml = n => {
+      const style = REL_STYLE[n.type] || REL_STYLE.relationship;
+      const title = [n.label, A.label(n.type), n.rels.map(relLabel).filter(Boolean).join(" · ")]
+        .filter(Boolean).join(" — ");
+      return `<g class="rel-node" data-key="${esc(n.key)}" transform="translate(${n.x.toFixed(1)},${n.y.toFixed(1)})"
+                tabindex="0" role="link" aria-label="${esc(title)}">
+        <title>${esc(title)}</title>
+        <circle r="${n.r}" fill="${style.color}" class="rel-dot"></circle>
+        <text class="rel-initials" text-anchor="middle" dy="4">${esc(A.initials(n.label))}</text>
+        <text class="rel-name" text-anchor="middle" y="${n.r + 15}">${esc(A.truncate(n.label, 18))}</text>
+      </g>`;
+    };
+
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img"
+        aria-label="${esc(t("inspect.tab.relationships"))}">
+      <defs>
+        <marker id="relArrow" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#64748b"></path>
+        </marker>
+      </defs>
+      ${edgesHtml}
+      <g class="rel-node centre" data-key="${esc(model.centre.key)}"
+         transform="translate(${cx},${cy})" tabindex="0" role="link"
+         aria-label="${esc(model.centre.label)}">
+        <title>${esc(model.centre.label)}</title>
+        <circle r="${centreR}" fill="#17395c" class="rel-dot"></circle>
+        <text class="rel-initials" text-anchor="middle" dy="4">${esc(A.initials(model.centre.label))}</text>
+        <text class="rel-name" text-anchor="middle" y="${centreR + 15}">${esc(A.truncate(model.centre.label, 20))}</text>
+      </g>
+      ${shown.map(nodeHtml).join("")}
+    </svg>`;
+
+    const legend = body.querySelector("[data-rel-legend]");
+    if (legend) {
+      const types = [model.centre.type].concat(shown.map(n => n.type))
+        .filter((k, i, arr) => arr.indexOf(k) === i);
+      legend.innerHTML = `<b class="small muted">${esc(t("inspect.rel.legend"))}</b>` +
+        types.map(ty => `<span><i style="background:${(REL_STYLE[ty] || REL_STYLE.relationship).color}"></i>${esc(A.label(ty))}</span>`).join("");
+    }
+    if (overflow > 0) {
+      const hint = body.querySelector(".rel-hint");
+      if (hint) hint.textContent += " · " + t("inspect.rel.more", { n: overflow });
+    }
+
+    /* --- interaction: spotlight · open · zoom · pan ---------------------- */
+    const svg = host.querySelector("svg");
+    const byKey = new Map();
+    svg.querySelectorAll("[data-key]").forEach(el => {
+      if (!byKey.has(el.dataset.key)) byKey.set(el.dataset.key, []);
+      byKey.get(el.dataset.key).push(el);
+    });
+    const spotlight = (key) => {
+      if (!key) { delete svg.dataset.hot; svg.querySelectorAll(".hot").forEach(el => el.classList.remove("hot")); return; }
+      svg.dataset.hot = key;
+      svg.querySelectorAll(".hot").forEach(el => el.classList.remove("hot"));
+      (byKey.get(key) || []).forEach(el => el.classList.add("hot"));
+    };
+    svg.querySelectorAll(".rel-node").forEach(g => {
+      g.addEventListener("mouseenter", () => spotlight(g.dataset.key));
+      g.addEventListener("mouseleave", () => spotlight(null));
+      g.addEventListener("focus", () => spotlight(g.dataset.key));
+      g.addEventListener("blur", () => spotlight(null));
+      const open = () => {
+        const key = g.dataset.key;
+        const target = key === model.centre.key ? model.centre
+          : shown.find(n => n.key === key);
+        if (target && target.href) App.go(target.href);
+      };
+      g.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); }
+      });
+      let downAt = null;
+      g.addEventListener("mousedown", (ev) => { downAt = [ev.clientX, ev.clientY]; });
+      g.addEventListener("click", (ev) => {
+        if (downAt && Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]) > 5) return;
+        ev.preventDefault();
+        open();
+      });
+    });
+
+    /* zoom: buttons, and ctrl/cmd + wheel so plain scrolling still works */
+    let view = { x: 0, y: 0, w: W, h: H };
+    const applyView = () => svg.setAttribute("viewBox",
+      `${view.x} ${view.y} ${view.w} ${view.h}`);
+    const zoomAt = (factor, px, py) => {
+      const nw = Math.min(W * 1.6, Math.max(W * 0.18, view.w * factor));
+      const scale = nw / view.w;
+      view.x = px - (px - view.x) * scale;
+      view.y = py - (py - view.y) * scale;
+      view.w = nw;
+      view.h = view.h * scale;
+      applyView();
+    };
+    body.querySelectorAll("[data-rel-zoom]").forEach(btn => {
+      btn.onclick = () => {
+        const kind = btn.dataset.relZoom;
+        if (kind === "reset") { view = { x: 0, y: 0, w: W, h: H }; applyView(); return; }
+        zoomAt(kind === "in" ? 0.8 : 1.25, view.x + view.w / 2, view.y + view.h / 2);
+      };
+    });
+    svg.addEventListener("wheel", (ev) => {
+      if (!(ev.ctrlKey || ev.metaKey)) return;
+      ev.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const px = view.x + (ev.clientX - rect.left) / rect.width * view.w;
+      const py = view.y + (ev.clientY - rect.top) / rect.height * view.h;
+      zoomAt(ev.deltaY > 0 ? 1.12 : 0.89, px, py);
+    }, { passive: false });
+    let pan = null;
+    svg.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0 || (ev.target.closest && ev.target.closest(".rel-node"))) return;
+      pan = { x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y };
+      svg.classList.add("panning");
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* older engine */ }
+    });
+    svg.addEventListener("pointermove", (ev) => {
+      if (!pan) return;
+      const rect = svg.getBoundingClientRect();
+      view.x = pan.vx - (ev.clientX - pan.x) / rect.width * view.w;
+      view.y = pan.vy - (ev.clientY - pan.y) / rect.height * view.h;
+      applyView();
+    });
+    const endPan = () => {
+      pan = null;
+      svg.classList.remove("panning");
+    };
+    svg.addEventListener("pointerup", endPan);
+    svg.addEventListener("pointercancel", endPan);
   }
 
   function eventTypeLabel(ev) {
@@ -1417,6 +1765,601 @@
     </div>`;
   }
 
+  /* ================================= relationship · source · event ==== */
+  /* The three advanced entities get their own reading of the record. A
+     relationship is its two parties and the argument for it; a source is what
+     it claims and where those claims reach; an event is who came and when.
+     Each block below works from data already at hand or one round trip away. */
+
+  function supportChip(kind) {
+    const map = {
+      supports: ["green", "\u2713", "inspect.ev.supports"],
+      contradicts: ["red", "\u2715", "inspect.ev.contradicts"],
+      contextualizes: ["gray", "\u25cb", "inspect.ev.contextualizes"]
+    };
+    const meta = map[kind] || map.supports;
+    return `<span class="badge ${meta[0]}">${meta[1]} ${esc(t(meta[2]))}</span>`;
+  }
+
+  function entityGlyph(etype) {
+    return etype === "person" ? "user" : etype === "institution" ? "building"
+      : etype === "place" ? "map-pin" : etype === "event" ? "calendar"
+      : etype === "source" ? "book" : "link";
+  }
+
+  /* ------------------------------------------------ relationship: parties */
+  function inspectPartiesHtml(entity, rec) {
+    const dir = (rec.direction || "directed") === "directed";
+    const card = (etype, eid, ename, ref, role) => `
+      <div class="party-card">
+        ${role ? `<div class="party-role">${esc(role)}</div>` : ""}
+        <div class="party-type">${icon(entityGlyph(etype))} ${esc(A.label(etype) || etype || "")}</div>
+        <div class="party-name" dir="auto"><a href="#/entity/${esc(etype || "")}/${esc(eid)}">${esc(ename || refName(ref) || "#" + eid)}</a></div>
+        ${ename && refName(ref) && ename !== refName(ref) ? `<div class="small muted" dir="auto">${esc(refName(ref))}</div>` : ""}
+      </div>`;
+    return `<div data-inspect-ready>
+      <div class="party-strip">
+        ${card(rec.entity1_type, rec.entity1_id, rec.entity1_name, (rec._refs || {}).entity1_id,
+               dir ? A.t("ui.from") : "")}
+        <div class="party-arrow">${dir ? "\u2192" : "\u21c4"}</div>
+        ${card(rec.entity2_type, rec.entity2_id, rec.entity2_name, (rec._refs || {}).entity2_id,
+               dir ? A.t("ui.to") : "")}
+      </div>
+      <div class="inspect-section">
+        <div class="inspect-section-title">${esc(t("inspect.parties.analysis"))}</div>
+        <div data-parties-analysis>
+          <div class="skeleton" style="width:82%"></div>
+          <div class="skeleton" style="width:58%;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* The analysis under the two cards: how large each party's neighbourhood is,
+     what kinds of records surround it, and which connections they share — the
+     registry's own view of why this relationship is interesting. */
+  async function loadPartiesAnalysis(entity, rec, body) {
+    const host = body.querySelector("[data-parties-analysis]");
+    if (!host) return;
+    const st = state[entity];
+    const seq = st._inspectSeq;
+    const sides = [
+      { type: rec.entity1_type, id: rec.entity1_id },
+      { type: rec.entity2_type, id: rec.entity2_id }
+    ].filter(x => x.type && x.id);
+    try {
+      const dossiers = await Promise.all(sides.map(x =>
+        api.get(`/api/graph/node/${x.type}/${x.id}`).catch(() => null)));
+      if (seq !== st._inspectSeq) return;
+      const [da, db] = dossiers;
+      const na = (da && da.neighbours) || [];
+      const nbIds = new Set(((db && db.neighbours) || []).map(n => n.id));
+      const mutual = na.filter(n => nbIds.has(n.id));
+      const deg = d => (d && d.counts && d.counts.relationships) || 0;
+      const byTypeRows = d => Object.keys((d && d.counts && d.counts.by_type) || {}).map(k => ({
+        label_en: A.label(k) || k, label_ar: A.label(k) || k,
+        value: d.counts.by_type[k]
+      }));
+      const sideBlock = (d, x) => `
+        <div class="party-analysis-side">
+          <div class="flex"><a href="#/entity/${esc(x.type)}/${esc(x.id)}"><b dir="auto">${esc((d && d.title) || ("#" + x.id))}</b></a>
+            <span class="spacer"></span><b>${fmtNum(deg(d))}</b></div>
+          <div class="small muted" style="margin-bottom:6px">${esc(t("inspect.parties.degree"))}</div>
+          ${byTypeRows(d).length ? A.chart("bar", byTypeRows(d)) : ""}
+        </div>`;
+      host.innerHTML = `
+        <div class="party-analysis-grid">
+          ${da ? sideBlock(da, sides[0]) : ""}
+          ${db ? sideBlock(db, sides[1]) : ""}
+        </div>
+        <div class="inspect-section-title" style="margin-top:12px">${esc(t("inspect.parties.mutual"))}</div>
+        ${mutual.length ? `<div class="inspect-tags">${mutual.map(n => `
+          <a class="chip" href="${esc(n.href || ("#/entity/" + n.type + "/" + n.record_id))}"
+             title="${esc(n.label)}">${icon(entityGlyph(n.type))} ${esc(A.truncate(n.label, 28))}</a>`).join("")}</div>
+          <div class="small muted" style="margin-top:6px">${esc(t("inspect.parties.mutualNote"))}</div>`
+          : `<div class="inspect-empty">${esc(t("inspect.parties.mutualNone"))}</div>`}`;
+      hydrateIcons(host);
+    } catch (err) {
+      if (seq !== st._inspectSeq) return;
+      host.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
+    }
+  }
+
+  /* The one source a relationship is filed under, kept on the details sheet. */
+  function inspectPrincipalHtml(entity, rec) {
+    void entity;
+    if (!rec.source_id) return `<div class="inspect-empty">${esc(t("rec.noCitations"))}</div>`;
+    const ref = (rec._refs || {}).source_id;
+    const title = (rec._derived || {}).source_title;
+    return `<dl class="dl inspect-dl compact">
+      <dt>${esc(t("common.source"))}</dt>
+      <dd><a href="#/entity/source/${rec.source_id}">${esc(title || refName(ref) || ("#" + rec.source_id))}</a></dd>
+    </dl>`;
+  }
+
+  /* ------------------------------------------------ relationship: evidence */
+  function inspectEvidenceTabHtml(entity, rec) {
+    void entity;
+    const rows = rec.citations || rec.evidence || [];
+    const s = rec.evidence_summary || {};
+    const ref = (rec._refs || {}).source_id;
+    const title = (rec._derived || {}).source_title;
+    return `<div data-inspect-ready>
+      <div class="flex" style="margin-bottom:8px">
+        <button type="button" class="btn sm primary" data-add-cite>
+          ${icon("plus")} ${esc(t("inspect.ev.add"))}</button>
+      </div>
+      ${rec.source_id ? `<div class="notice ok small" style="margin-bottom:8px">
+        ${esc(t("inspect.rel.principal"))}: <a href="#/entity/source/${rec.source_id}">${esc(title || refName(ref) || ("#" + rec.source_id))}</a></div>` : ""}
+      ${s.disputed ? `<div class="notice warn small" style="margin-bottom:8px">
+        ${esc(t("inspect.rel.disputed"))}</div>` : ""}
+      <div class="inspect-stats">
+        <div><b>${fmtNum(s.supports || 0)}</b><span>${esc(t("inspect.ev.supports"))}</span></div>
+        <div><b>${fmtNum(s.contradicts || 0)}</b><span>${esc(t("inspect.ev.contradicts"))}</span></div>
+        <div><b>${fmtNum(s.contextualizes || 0)}</b><span>${esc(t("inspect.ev.contextualizes"))}</span></div>
+      </div>
+      <div data-cite-body>${A.evidence
+        ? A.evidence.list(rows, { empty: t("rec.noCitations") })
+        : (rows.length ? "" : `<div class="inspect-empty">${esc(t("rec.noCitations"))}</div>`)}</div>
+    </div>`;
+  }
+
+  /* ------------------------------------------------------- source: claims */
+  /* What this source says, claim by claim — contradictions first, because
+     contested claims are the ones a reviewer must see. */
+  async function fetchClaims(entity, rec) {
+    const st = state[entity];
+    if (st._claimsFor === rec.id && st._claimsRows) return st._claimsRows;
+    const doc = await api.get(`/api/evidence?source_id=${rec.id}`);
+    const rows = doc.evidence || [];
+    st._claimsFor = rec.id;
+    st._claimsRows = rows;
+    return rows;
+  }
+
+  function inspectClaimsTabHtml(entity, rec) {
+    void entity;
+    return `<div data-inspect-ready>
+      <div class="flex" style="margin-bottom:8px">
+        <button type="button" class="btn sm primary" data-add-cite>
+          ${icon("plus")} ${esc(t("inspect.claims.add"))}</button>
+      </div>
+      ${rec.supported_information ? `<div class="notice small" dir="auto" style="margin-bottom:8px">
+        ${esc(rec.supported_information)}</div>` : ""}
+      <div data-claims-host>
+        <div class="skeleton" style="width:70%"></div>
+        <div class="skeleton" style="width:92%;margin-top:8px"></div>
+        <div class="skeleton" style="width:58%;margin-top:8px"></div>
+      </div>
+    </div>`;
+  }
+
+  async function loadClaimsTab(entity, rec, body) {
+    const host = body.querySelector("[data-claims-host]");
+    if (!host) return;
+    const st = state[entity];
+    const seq = st._inspectSeq;
+    try {
+      const rows = await fetchClaims(entity, rec);
+      if (seq !== st._inspectSeq) return;
+      let filterType = null;
+      const paint = () => {
+        host.innerHTML = claimsLedgerHtml(rows, filterType);
+        hydrateIcons(host);
+        host.querySelectorAll("[data-claim-filter]").forEach(btn => {
+          btn.onclick = () => {
+            filterType = btn.dataset.claimFilter || null;
+            paint();
+          };
+        });
+      };
+      paint();
+    } catch (err) {
+      if (seq !== st._inspectSeq) return;
+      host.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
+    }
+  }
+
+  function claimsLedgerHtml(rows, filterType) {
+    const counts = {};
+    rows.forEach(r => {
+      const k = (r.target || {}).type;
+      if (k) counts[k] = (counts[k] || 0) + 1;
+    });
+    const chips = [`<button type="button" class="chip ${filterType ? "" : "on"}" data-claim-filter="">
+        ${esc(t("inspect.claims.all"))} · ${fmtNum(rows.length)}</button>`]
+      .concat(Object.keys(counts).map(k =>
+        `<button type="button" class="chip ${filterType === k ? "on" : ""}" data-claim-filter="${esc(k)}">
+        ${icon(entityGlyph(k))} ${esc(A.label(k) || k)} · ${fmtNum(counts[k])}</button>`)).join("");
+    const shown = filterType ? rows.filter(r => (r.target || {}).type === filterType) : rows;
+    return `
+      <div class="claim-filters">${chips}</div>
+      ${shown.length ? shown.map(r => {
+        const tgt = r.target || {};
+        const verif = A.state.lang === "ar" ? (r.verification_ar || r.verification_en)
+          : (r.verification_en || r.verification_ar);
+        return `<div class="claim-row">
+          <div class="flex wrap" style="gap:6px">
+            ${supportChip(r.support_type)}
+            ${tgt.type ? `<a class="claim-target" href="#/entity/${esc(tgt.type)}/${esc(tgt.id)}">
+              ${icon(entityGlyph(tgt.type))} ${esc(A.truncate(tgt.label || ("#" + tgt.id), 48))}</a>` : ""}
+            ${r.field_key ? `<span class="chip mono-cell">${esc(r.field_key)}</span>` : ""}
+            <span class="spacer"></span>
+            <button type="button" class="icon-btn" data-unlink="${esc(r.id)}"
+                    title="${esc(t("inspect.claims.withdraw"))}">${icon("trash")}</button>
+          </div>
+          ${r.supported_claim ? `<div class="claim-text" dir="auto">${esc(r.supported_claim)}</div>` : ""}
+          <div class="claim-meta small muted">
+            ${r.page_or_timestamp ? `${esc(t("inspect.claims.at"))} ${esc(r.page_or_timestamp)} · ` : ""}
+            ${esc(verif || t("inspect.claims.unverified"))}
+            ${r.reviewer ? ` · ${esc(r.reviewer)}` : ""}</div>
+        </div>`;
+      }).join("") : `<div class="inspect-empty">${esc(t("inspect.claims.none"))}</div>`}
+    `;
+  }
+
+  /* ------------------------------------------------------ source: coverage */
+  /* Where the claims reach: which kinds of records this source speaks for,
+     how the claims bear on them, and how well they have been verified. */
+  function inspectCoverageTabHtml(entity, rec) {
+    void entity; void rec;
+    return `<div data-inspect-ready>
+      <div data-coverage-host>
+        <div class="skeleton" style="width:70%"></div>
+        <div class="skeleton" style="width:92%;margin-top:8px"></div>
+      </div>
+    </div>`;
+  }
+
+  async function loadCoverageTab(entity, rec, body) {
+    const host = body.querySelector("[data-coverage-host]");
+    if (!host) return;
+    const st = state[entity];
+    const seq = st._inspectSeq;
+    try {
+      const rows = await fetchClaims(entity, rec);
+      if (seq !== st._inspectSeq) return;
+      const byType = {};
+      const bySupport = { supports: 0, contradicts: 0, contextualizes: 0 };
+      const byVerif = {};
+      const reached = new Set();
+      rows.forEach(r => {
+        const k = (r.target || {}).type;
+        if (k) byType[k] = (byType[k] || 0) + 1;
+        bySupport[r.support_type] = (bySupport[r.support_type] || 0) + 1;
+        const v = (A.state.lang === "ar" ? (r.verification_ar || r.verification_en)
+          : (r.verification_en || r.verification_ar)) || t("inspect.claims.unverified");
+        byVerif[v] = (byVerif[v] || 0) + 1;
+        const tgt = r.target;
+        if (tgt && tgt.type && tgt.id) reached.add(tgt.type + ":" + tgt.id);
+      });
+      const typeRows = Object.keys(byType).map(k => ({
+        label_en: A.label(k) || k, label_ar: A.label(k) || k, value: byType[k]
+      }));
+      const supportRows = [
+        { label_en: t("inspect.ev.supports"), label_ar: t("inspect.ev.supports"),
+          value: bySupport.supports, color: "green" },
+        { label_en: t("inspect.ev.contradicts"), label_ar: t("inspect.ev.contradicts"),
+          value: bySupport.contradicts, color: "red" },
+        { label_en: t("inspect.ev.contextualizes"), label_ar: t("inspect.ev.contextualizes"),
+          value: bySupport.contextualizes, color: "gray" }
+      ].filter(r => r.value > 0);
+      const verifRows = Object.keys(byVerif).map(k => ({
+        label_en: k, label_ar: k, value: byVerif[k]
+      }));
+      const primaryFor = (rec._derived || {}).primary_for_count;
+      const per = rows.length && reached.size ? rows.length / reached.size : 0;
+      host.innerHTML = `
+        <div class="inspect-stats">
+          <div><b>${fmtNum(rows.length)}</b><span>${esc(t("inspect.tab.claims"))}</span></div>
+          <div><b>${fmtNum(reached.size)}</b><span>${esc(t("inspect.coverage.reached"))}</span></div>
+          <div><b>${fmtNum(primaryFor || 0)}</b><span>${esc(t("inspect.coverage.primaryFor"))}</span></div>
+          ${per ? `<div><b>${per.toFixed(1)}</b><span>${esc(t("inspect.coverage.avg"))}</span></div>` : ""}
+        </div>
+        ${rows.length ? `
+          <div class="inspect-section">
+            <div class="inspect-section-title">${esc(t("inspect.coverage.byType"))}</div>
+            ${A.chart("bar", typeRows)}
+          </div>
+          <div class="inspect-section">
+            <div class="inspect-section-title">${esc(t("inspect.coverage.bySupport"))}</div>
+            ${A.chart("donut", supportRows)}
+          </div>
+          <div class="inspect-section">
+            <div class="inspect-section-title">${esc(t("inspect.coverage.byVerification"))}</div>
+            ${A.chart("bar", verifRows)}
+          </div>` : `<div class="inspect-empty">${esc(t("inspect.claims.none"))}</div>`}
+      `;
+    } catch (err) {
+      if (seq !== st._inspectSeq) return;
+      host.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
+    }
+  }
+
+  /* ------------------------------------------------ event: participants */
+  /* People and organizations on an event are stored as real relationships,
+     so the same rows power the role chart, the table and the map. */
+  function inspectParticipantsHtml(entity, rec) {
+    const rows = (rec.relationships || []).filter(r => r.other_type && r.other_id);
+    const roleCount = {};
+    rows.forEach(r => {
+      const k = relLabel(r) || t("inspect.tab.relationships");
+      roleCount[k] = (roleCount[k] || 0) + 1;
+    });
+    const roleRows = Object.keys(roleCount).map(k => ({
+      label_en: k, label_ar: k, value: roleCount[k]
+    }));
+    return `<div data-inspect-ready>
+      <div class="flex" style="margin-bottom:8px">
+        <button type="button" class="btn sm primary" data-add-rel>
+          ${icon("plus")} ${esc(t("inspect.part.add"))}</button>
+      </div>
+      ${rows.length ? `
+        <div class="inspect-section">
+          <div class="inspect-section-title">${esc(t("inspect.part.byRole"))}</div>
+          ${A.chart("bar", roleRows)}
+        </div>
+        <div class="table-wrap"><table class="data compact"><thead><tr>
+          <th>${esc(t("common.name"))}</th>
+          <th>${esc(A.t("ui.type"))}</th>
+          <th>${esc(A.t("ui.from"))}</th>
+          <th>${esc(A.t("ui.to"))}</th>
+        </tr></thead><tbody>
+        ${rows.map(r => {
+          const evN = (r.evidence || []).length ||
+            ((r.evidence_counts || {}).supports || 0) + ((r.evidence_counts || {}).contradicts || 0) +
+            ((r.evidence_counts || {}).contextualizes || 0);
+          return `<tr>
+            <td><a href="#/entity/${esc(r.other_type)}/${esc(r.other_id)}">${esc(A.truncate(r.other_name || refName(r.other_ref) || ("#" + r.other_id), 40))}</a>
+              <span class="kv-sub">${esc(A.label(r.other_type))}</span></td>
+            <td>${esc(relLabel(r) || "—")}
+              ${r.disputed ? `<span class="badge red" title="${esc(t("inspect.rel.disputed"))}">⚠</span>` : ""}
+              ${evN ? `<span class="badge gray" title="${esc(t("inspect.rel.evidence"))}">${fmtNum(evN)}</span>` : ""}</td>
+            <td>${esc(r.start_date || "—")}</td>
+            <td>${esc(r.end_date || "—")}</td>
+          </tr>`;
+        }).join("")}
+        </tbody></table></div>`
+        : `<div class="inspect-empty">${esc(t("inspect.part.none"))}</div>`}
+    </div>`;
+  }
+
+  /* ---------------------------------------------------- event: chronology */
+  /* The event on a time line of its neighbourhood: the ±5-year window around
+     it, this event's year marked, and any events linked to it directly. */
+  function inspectChronologyHtml(entity, rec) {
+    void entity;
+    const y0 = Number(((rec.start_date || "").match(/\d{4}/) || [])[0]);
+    const y1 = Number(((rec.end_date || "").match(/\d{4}/) || [])[0]);
+    const dur = y0 && y1 && y1 > y0 ? y1 - y0 : null;
+    const ribbon = (rec.start_date || rec.end_date) ? `
+      <div class="chrono-ribbon">
+        <span class="chrono-end mono-cell">${esc(rec.start_date || "…")}</span>
+        <span class="chrono-line"></span>
+        ${dur != null ? `<span class="badge amber">${fmtNum(dur)} ${esc(t("common.year") || "y")}</span>` : ""}
+        <span class="chrono-line"></span>
+        <span class="chrono-end mono-cell">${esc(rec.end_date || t("inspect.chrono.ongoing"))}</span>
+      </div>` : "";
+    const linked = (rec.relationships || []).filter(r => r.other_type === "event" && r.other_id);
+    return `<div data-inspect-ready>
+      ${ribbon}
+      <div class="inspect-section">
+        <div class="inspect-section-title">${esc(t("inspect.chrono.around"))}</div>
+        <div data-chrono-host>
+          <div class="skeleton" style="width:82%"></div>
+          <div class="skeleton" style="width:62%;margin-top:8px"></div>
+        </div>
+      </div>
+      <div class="inspect-section">
+        <div class="inspect-section-title">${esc(t("inspect.chrono.linked"))}</div>
+        ${linked.length ? `<div class="inspect-tags">${linked.map(r => `
+          <a class="chip" href="#/entity/event/${esc(r.other_id)}">${icon("calendar")} ${esc(A.truncate(r.other_name || ("#" + r.other_id), 30))}</a>`).join("")}</div>`
+          : `<div class="inspect-empty">${esc(t("inspect.chrono.noneLinked"))}</div>`}
+      </div>
+    </div>`;
+  }
+
+  async function loadChronologyTab(entity, rec, body) {
+    const host = body.querySelector("[data-chrono-host]");
+    if (!host) return;
+    const st = state[entity];
+    const seq = st._inspectSeq;
+    const year = Number(((rec.start_date || "").match(/\d{4}/) || [])[0]) || (rec._derived || {}).year || null;
+    if (!year) {
+      host.innerHTML = `<div class="inspect-empty">${esc(t("inspect.chrono.noYear"))}</div>`;
+      return;
+    }
+    const y0 = year - 5, y1 = year + 5;
+    try {
+      const doc = await api.post("/api/event/query", {
+        where: [
+          { field: "start_date", op: "year_gte", value: String(y0) },
+          { field: "start_date", op: "year_lte", value: String(y1) }
+        ],
+        sort: [{ key: "start_date", dir: "asc" }],
+        page_size: 60
+      });
+      if (seq !== st._inspectSeq) return;
+      const rows = (doc.items || []).filter(i => i.id !== rec.id);
+      host.innerHTML = `
+        <div class="small muted" style="margin-bottom:6px">${esc(t("inspect.chrono.window").replace("{n}", "±5"))}</div>
+        ${chronoAxisHtml(rows, year, rec)}
+        ${rows.length ? `
+          <div class="chrono-list">${rows.map(ev => {
+            const ey = (ev.start_date || "").match(/\d{4}/);
+            const place = (ev._refs || {}).place_id;
+            return `<div class="chrono-row${ey && Number(ey[0]) === Number(year) ? " is-focus-year" : ""}">
+              <span class="chrono-year mono-cell">${esc(ey ? ey[0] : "—")}</span>
+              <a href="#/entity/event/${ev.id}">${esc(A.truncate(A.dispTitle(ev, "event") || ev.code || ("#" + ev.id), 46))}</a>
+              <span class="spacer"></span>
+              ${place ? `<a class="small" href="#/entity/place/${esc(place.id)}">${esc(A.truncate(place.label, 24))}</a>` : ""}
+            </div>`;
+          }).join("")}</div>`
+          : `<div class="inspect-empty">${esc(t("inspect.chrono.none"))}</div>`}`;
+    } catch (err) {
+      if (seq !== st._inspectSeq) return;
+      host.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
+    }
+  }
+
+  /* A hand-drawn axis: the window's years ticked, a dot per event, this
+     event's year marked in amber — orientation at a glance, offline. */
+  function chronoAxisHtml(rows, year, rec) {
+    const y0 = year - 5, y1 = year + 5;
+    const span = y1 - y0;
+    const x = y => 6 + ((y - y0) / span) * 588;
+    const ticks = [];
+    for (let y = y0; y <= y1; y++) {
+      const focus = y === year;
+      ticks.push(`<line x1="${x(y).toFixed(1)}" y1="${focus ? 12 : 26}" x2="${x(y).toFixed(1)}" y2="30"
+        stroke="${focus ? "#b5751a" : "#c9d2da"}" stroke-width="${focus ? 2 : 1}"/>`);
+      ticks.push(`<text x="${x(y).toFixed(1)}" y="44" text-anchor="middle" font-size="9"
+        fill="${focus ? "#b5751a" : "#8b97a2"}">${y}</text>`);
+    }
+    const dots = rows.map(ev => {
+      const ey = Number(((ev.start_date || "").match(/\d{4}/) || [])[0]);
+      if (!ey || ey < y0 || ey > y1) return "";
+      return `<circle cx="${x(ey).toFixed(1)}" cy="22" r="4" fill="#166d75">
+        <title>${esc((A.dispTitle(ev, "event") || "") + " · " + (ev.start_date || ""))}</title></circle>`;
+    }).join("");
+    return `<svg class="chrono-axis" viewBox="0 0 600 52" role="img"
+      aria-label="${esc(t("inspect.chrono.around"))}">
+      <line x1="6" y1="30" x2="594" y2="30" stroke="#c9d2da" stroke-width="1"/>
+      ${ticks.join("")}
+      ${dots}
+      <circle cx="${x(year).toFixed(1)}" cy="22" r="5.5" fill="#b5751a" stroke="#fff" stroke-width="1.5">
+        <title>${esc(A.dispTitle(rec, "event") || "")}</title></circle>
+    </svg>`;
+  }
+
+  /* --------------------------------------------- where the record shows --- */
+  /* A record's anchor is the place where it can be shown: its own coordinates
+     for a place, the birthplace of a person, the seat of an institution, the
+     venue of an event. A relationship has two anchors and draws the tie
+     between them; a source has as many anchors as the records it claims
+     about — its geographic footprint. */
+  async function anchorOfRecord(etype, rec) {
+    if (!rec) return null;
+    if (etype === "place") {
+      if (rec.latitude == null || rec.longitude == null) return null;
+      return { lat: Number(rec.latitude), lon: Number(rec.longitude),
+               label: A.dispTitle(rec, "place") || "", placeId: rec.id,
+               position: "precise" };
+    }
+    if (etype === "source" || etype === "relationship") return null;
+    /* The record's own coordinates first: a linked place never lends its
+       position. It only anchors records whose own position is not recorded,
+       and such a point is marked "associated" so nothing reads it as theirs. */
+    if (rec.latitude != null && rec.longitude != null) {
+      return { lat: Number(rec.latitude), lon: Number(rec.longitude),
+               label: A.dispTitle(rec, etype) || "", position: "precise" };
+    }
+    const key = etype === "person" ? "birthplace_id" : "place_id";
+    const ref = (rec._refs || {})[key];
+    if (!rec[key]) return null;
+    try {
+      const place = await api.get(`/api/place/${rec[key]}`);
+      if (place.latitude == null || place.longitude == null) return null;
+      return { lat: Number(place.latitude), lon: Number(place.longitude),
+               label: A.dispTitle(place, "place") || refName(ref),
+               placeId: place.id, position: "associated" };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function pointKey(p) { return p.lat.toFixed(4) + "," + p.lon.toFixed(4); }
+
+  /** Small deterministic offset for markers that genuinely share one point:
+      separate records never merge into one marker — they fan out just enough
+      to stay individually selectable. */
+  function spiralOffset(slot) {
+    if (!slot) return [0, 0];
+    const angle = slot * 2.39996;
+    const r = 11 + 7 * Math.sqrt(slot);
+    return [Math.round(Math.cos(angle) * r), Math.round(Math.sin(angle) * r)];
+  }
+
+  function haversineKm(a, b) {
+    const R = 6371, rad = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
+    const h = Math.sin(dLat / 2) ** 2 +
+      Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
+    return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+  }
+
+  function boundsOf(pts) {
+    const lats = pts.map(p => p.lat), lons = pts.map(p => p.lon);
+    return [[Math.min.apply(null, lons), Math.min.apply(null, lats)],
+            [Math.max.apply(null, lons), Math.max.apply(null, lats)]];
+  }
+
+  /** Why a network point is on this map: its provenance, in the active
+      language — "birthplace", "event held here", or an indirect hop through
+      a named intermediate record. */
+  function viaText(via) {
+    if (!via || via.kind === "self") return "";
+    const ar = A.state.lang === "ar";
+    const base = (ar ? (via.label_ar || via.label_en) : (via.label_en || via.label_ar)) || "";
+    const through = (via.through_label_en || via.through_label_ar)
+      ? (ar ? (via.through_label_ar || via.through_label_en) : (via.through_label_en || via.through_label_ar))
+      : "";
+    return through ? (base + " (" + t("geo.via") + " " + through + ")") : base;
+  }
+
+  /** The map model for the panel: every geographical point connected to the
+      record through the registry's own links (the server's bounded network
+      traversal — own positions, associated places, organizations, events, and
+      one step further, each with its provenance), the tie between a
+      relationship's two sides, and what the caption should say. */
+  async function mapModelFor(entity, rec) {
+    const model = { label: "", points: [], link: false, distance: null };
+    try {
+      const net = await api.get(`/api/map/network?entity=${encodeURIComponent(entity)}&id=${rec.id}&depth=2&limit=120`);
+      (net.points || []).forEach(p => {
+        const label = A.state.lang === "ar" ? (p.label_ar || p.label_en) : (p.label_en || p.label_ar);
+        model.points.push({
+          lat: Number(p.lat), lon: Number(p.lon),
+          label: label || p.code || "",
+          primary: !!p.primary,
+          position: p.position,
+          placeId: p.place_id || null,
+          via: p.via || null, entityType: p.entity_type, recId: p.id
+        });
+      });
+    } catch (e) {
+      /* an empty model shows the panel's own "no position" message */
+    }
+    if (entity === "relationship") {
+      const sides = model.points.filter(p => p.primary);
+      model.link = sides.length === 2;
+      if (model.link) model.distance = haversineKm(sides[0], sides[1]);
+      model.label = sides.map(p => p.label).filter(Boolean).join(" \u2194 ");
+    } else {
+      const main = model.points.find(p => p.primary) || model.points[0] || null;
+      if (main) {
+        model.placeId = main.placeId;
+        model.label = main.label;
+      }
+    }
+    return model;
+  }
+
+  async function loadMapTab(entity, rec) {
+    const st = state[entity];
+    const seq = st._inspectSeq;
+    try {
+      const model = await mapModelFor(entity, rec);
+      if (seq !== st._inspectSeq) return;
+      st._inspectLoc = model;
+      paintMapBar(entity, rec, model);
+      mountInspectMap(entity, model);
+    } catch (err) {
+      if (seq !== st._inspectSeq) return;
+      showMapEmpty(entity);
+    }
+  }
+
   function wireInspectTab(entity, rec, body) {
     const reload = () => refreshInspect(entity);
     const addRel = body.querySelector("[data-add-rel]");
@@ -1432,7 +2375,19 @@
     const addCite = body.querySelector("[data-add-cite]");
     if (addCite) addCite.onclick = () => {
       if (A.evidence && A.evidence.addDialog) {
-        A.evidence.addDialog({ entityType: entity, entityId: rec.id, onSaved: reload });
+        /* the dialog takes three shapes: a claim about this record, a claim on
+           this relationship, or a claim this source makes about a record the
+           researcher names in the dialog */
+        const opts = { onSaved: reload };
+        if (entity === "relationship") opts.relationshipId = rec.id;
+        else if (entity === "source") {
+          opts.sourceId = rec.id;
+          opts.sourceTitle = A.dispTitle(rec, "source") || rec.code || ("#" + rec.id);
+        } else {
+          opts.entityType = entity;
+          opts.entityId = rec.id;
+        }
+        A.evidence.addDialog(opts);
       } else if (A.linkSource) {
         A.linkSource(entity, rec.id, reload);
       }
@@ -1522,71 +2477,235 @@
     m.body.querySelector("#posInstHost").appendChild(instCombo);
   }
 
-  async function locateRecord(entity, rec) {
-    if (entity === "place") {
-      if (rec.latitude != null && rec.longitude != null) {
-        return { lat: Number(rec.latitude), lon: Number(rec.longitude), label: A.dispTitle(rec, "place") || "" };
-      }
-      return { label: "" };
-    }
-    const key = entity === "person" ? "birthplace_id" : "place_id";
-    const ref = (rec._refs || {})[key];
-    if (!rec[key]) return { label: "" };
-    try {
-      const place = await api.get(`/api/place/${rec[key]}`);
-      const label = A.dispTitle(place, "place") || refName(ref);
-      if (place.latitude == null || place.longitude == null) return { label, placeId: place.id };
-      return {
-        lat: Number(place.latitude), lon: Number(place.longitude),
-        label, placeId: place.id
-      };
-    } catch (e) {
-      return { label: refName(ref), placeId: rec[key] };
-    }
-  }
+  /* locateRecord was retired: anchorOfRecord / mapModelFor above answer the
+     same question for all six entities, and lazily. */
 
-  function showUnlocated() {
-    removeMapPane();
-  }
-
-  function mountInspectMap(entity, loc) {
-    disposeInspectMap(entity);
-    if (loc.lat == null || loc.lon == null || !window.maplibregl) {
-      removeMapPane(entity);
-      return;
-    }
-    ensureMapPane(entity);
+  function showMapEmpty(entity) {
     const canvas = document.querySelector("[data-inspect-map]");
-    if (!canvas) {
-      removeMapPane(entity);
+    const cap = document.querySelector("[data-inspect-caption]");
+    if (cap) cap.hidden = true;
+    if (!canvas) return;
+    canvas.classList.add("is-empty");
+    canvas.innerHTML = `<div class="inspect-map-empty">
+      ${icon("map-pin")}
+      <div>${esc(t("inspect.unlocated"))}</div>
+      <div class="small muted">${esc(t("inspect.unlocatedHint." + entity))}</div>
+    </div>`;
+    hydrateIcons(canvas);
+  }
+
+  /** The Map tab's toolbar: copy, recentre, and every navigation option.
+      Works from the map model — one point or many, the caption keeps count. */
+  function paintMapBar(entity, rec, model) {
+    const bar = document.querySelector("[data-inspect-map-bar]");
+    const cap = document.querySelector("[data-inspect-caption]");
+    if (!bar) return;
+    const pts = (model && model.points) || [];
+    const located = pts.length > 0;
+    const main = pts.find(p => p.primary) || pts[0] || null;
+    const multi = pts.length > 1;
+    bar.innerHTML = `
+      <button type="button" class="btn sm" data-map-copy ${located ? "" : "disabled"}>
+        ${icon("file")} ${esc(t("inspect.map.copy"))}</button>
+      <button type="button" class="btn sm" data-map-recentre ${located ? "" : "disabled"}>
+        ${icon("crosshair")} ${esc(t("inspect.map.recentre"))}</button>
+      <a class="btn sm" href="#/geo?sel=${esc(entity)}:${rec.id}">
+        ${icon("globe")} ${esc(t("view.openGeo"))}</a>
+      <a class="btn sm" href="#/map?focus=${esc(entity)}:${rec.id}">
+        ${icon("share")} ${esc(t("geo.showOnAtlas"))}</a>
+      ${main && main.placeId ? `<a class="btn sm" href="#/entity/place/${main.placeId}">
+        ${icon("map-pin")} ${esc(main.label || t("inspect.coords"))}</a>` : ""}`;
+    hydrateIcons(bar);
+    if (cap) {
+      if (located) {
+        const mainAssociated = main.position === "associated";
+        cap.hidden = false;
+        cap.innerHTML = `<span>${esc(mainAssociated ? t("inspect.anchor." + entity) : t("geo.ownPosition"))}</span>
+          ${mainAssociated ? `<span class="badge gray">${esc(t("geo.associatedPoint"))}</span>` : ""}
+          ${multi ? `<span class="badge gray">${esc(t("inspect.map.multi").replace("{n}", String(pts.length)))}</span>` : ""}
+          ${model && model.distance != null ? `<span class="badge amber">${esc(t("inspect.map.distance"))} ${fmtNum(model.distance)} km</span>` : ""}
+          <b dir="ltr">${main.lat.toFixed(5)}, ${main.lon.toFixed(5)}</b>
+          <span dir="ltr" class="small">${esc(toDMS(main.lat, "N", "S"))} ${esc(toDMS(main.lon, "E", "W"))}</span>`;
+      } else {
+        cap.hidden = true;
+      }
+    }
+    const copy = bar.querySelector("[data-map-copy]");
+    if (copy) copy.onclick = () => {
+      if (!located) return;
+      const text = pts.map(p => `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`).join("\n");
+      const done = () => toast(t("inspect.map.copied"), "ok", 1400);
+      const fallback = () => {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); done(); } catch (e) { /* refused */ }
+        ta.remove();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else fallback();
+    };
+    const recentre = bar.querySelector("[data-map-recentre]");
+    if (recentre) recentre.onclick = () => {
+      const map = state[entity] && state[entity]._inspectMap;
+      if (!map || !located) return;
+      try {
+        if (multi) map.fitBounds(boundsOf(pts), { padding: 56, duration: 300 });
+        else map.easeTo({ center: [main.lon, main.lat], duration: 300 });
+      } catch (e) { /* */ }
+    };
+  }
+
+  async function mountInspectMap(entity, model) {
+    const canvas = document.querySelector("[data-inspect-map]");
+    if (!canvas) return;
+    const st = state[entity];
+    const pts = ((model && model.points) || []).filter(p => p && p.lat != null && p.lon != null);
+    /* one marker per RECORD: separate records never merge because they share
+       a point — coincident markers fan out by a small spiral offset so each
+       stays individually selectable */
+    const uniq = [];
+    const seen = new Set();
+    const at = new Map();
+    pts.forEach(p => {
+      const k = (p.entityType || "") + ":" + (p.recId || "") + "@" + pointKey(p);
+      if (seen.has(k)) return;
+      seen.add(k);
+      const pk = pointKey(p);
+      const n = at.get(pk) || 0;
+      at.set(pk, n + 1);
+      p._slot = n;
+      uniq.push(p);
+    });
+    if (!uniq.length || !window.maplibregl) {
+      disposeInspectMap(entity);
+      showMapEmpty(entity);
       return;
     }
+    /* already showing this record: just bring it back to size */
+    const key = entity + ":" + uniq.map(p => (p.entityType || "") + ":" + (p.recId || "") + "@" + pointKey(p)).join("|");
+    if (st._inspectMap && st._inspectMapKey === key) {
+      requestAnimationFrame(() => { try { st._inspectMap.resize(); } catch (e) { /* */ } });
+      return;
+    }
+    disposeInspectMap(entity);
     canvas.classList.remove("is-empty");
     canvas.innerHTML = "";
-    const bootStyle = (A.geopin && A.geopin.secondaryStyle)
-      ? A.geopin.secondaryStyle("osm")
-      : { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
-          paint: { "background-color": "#e8eef4" } }] };
-    const map = new window.maplibregl.Map({
-      container: canvas,
-      style: bootStyle,
-      center: [loc.lon, loc.lat],
-      zoom: 8,
-      attributionControl: false
-    });
-    state[entity]._inspectMap = map;
-    state[entity]._inspectPin = null;
+    /* Offline-first, like every map in this application: the bundled street
+       pack is the base, no tile server is contacted.  The full geographic
+       workspace (linked from the toolbar) carries the online providers. */
+    const mapCfg = await (A.mapConfig ? A.mapConfig().catch(() => null) : null);
+    const defaultProvider = (A.mapDefault && A.mapDefault().provider) || "local";
+    const bootStyle = { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
+        paint: { "background-color": "#e8eef4" } }] };
+    let map;
+    try {
+      map = new window.maplibregl.Map({
+        container: canvas,
+        style: bootStyle,
+        center: [uniq[0].lon, uniq[0].lat],
+        zoom: 8,
+        attributionControl: false
+      });
+    } catch (e) {
+      showMapEmpty(entity);
+      return;
+    }
+    st._inspectMap = map;
+    st._inspectMapKey = key;
+    st._inspectPins = [];
+    paintMapAttribution(canvas, defaultProvider, mapCfg, st, "_inspectAttrib");
     map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.on("load", () => {
-      const title = (loc.label || loc.code || "").toString();
-      if (A.geopin) {
-        state[entity]._inspectPin = A.geopin.marker(map, [loc.lon, loc.lat], {
-          etype: entity, label: title, selected: true, size: "lg", showLabel: !!title
-        });
+      if (uniq.length > 1) {
+        try { map.fitBounds(boundsOf(uniq), { padding: 56, duration: 0 }); } catch (e) { /* */ }
+      }
+      uniq.forEach(p => {
+        const title = (p.label || "").toString();
+        /* an associated point is shown at its place — say so, never let the
+           marker imply the place's coordinates are the record's own; every
+           marker also says why it is here (its provenance in the network) */
+        const assoc = p.position === "associated";
+        const why = viaText(p.via);
+        const tip = title + (why ? " · " + why : "") + (assoc ? " · " + t("geo.associatedPoint") : "");
+        if (p.primary !== false) {
+          if (A.geopin) {
+            st._inspectPins.push(A.geopin.marker(map, [p.lon, p.lat], {
+              etype: entity, label: title, selected: true, size: "lg", showLabel: !!title,
+              title: tip, associated: assoc, offset: spiralOffset(p._slot)
+            }));
+          }
+        } else {
+          /* context points: plain dots, quieter than the anchors */
+          const el = document.createElement("div");
+          el.className = "inspect-map-dot" + (assoc ? " assoc" : "");
+          if (tip) el.title = tip;
+          st._inspectPins.push(new window.maplibregl.Marker({
+            element: el, offset: spiralOffset(p._slot)
+          }).setLngLat([p.lon, p.lat]).addTo(map));
+        }
+      });
+      if (model && model.link && uniq.length >= 2) drawInspectLink(map, uniq[0], uniq[1]);
+      let streetPack = null;
+      const repaintOverlays = () => {
+        if (streetPack && st._inspectMap === map) {
+          A.applyVectormapLayers(map, streetPack, { fit: false });
+          /* the style load can outlast the first pass; redraw the tie */
+          if (model && model.link && uniq.length >= 2) drawInspectLink(map, uniq[0], uniq[1]);
+        }
+      };
+      if (A.loadVectormap && A.applyVectormapLayers) {
+        A.loadVectormap().then(inflated => {
+          if (st._inspectMap !== map) return;
+          streetPack = inflated;
+          repaintOverlays();
+        }).catch(() => { /* the pack is optional; the markers still answer */ });
+      }
+      /* honour the default map view: a raster choice (standard, aerial or
+         terrain) becomes the bed under the street pack; the offline choices
+         keep this quiet graphical bed */
+      if (A.mapConfig && A.geopin && A.geopin.secondaryStyle) {
+        const wantsRaster = ["osm", "esri-street", "carto-light", "carto-dark",
+          "esri-imagery", "esri-hybrid", "opentopomap"].includes(defaultProvider);
+        if (wantsRaster) {
+          const bed = A.geopin.secondaryStyle(defaultProvider, mapCfg);
+          if (bed && bed.sources && Object.keys(bed.sources).length) {
+            map.setStyle(bed);
+            map.once("styledata", repaintOverlays);
+          }
+        }
       }
       try { map.resize(); } catch (e) { /* container not laid out yet */ }
     });
+    map.on("error", (e) => {
+      /* a missing layer must not reach the console as an error */
+      if (e && e.error && e.error.message && /webgl/i.test(e.error.message)) {
+        disposeInspectMap(entity);
+        showMapEmpty(entity);
+      }
+    });
     requestAnimationFrame(() => { try { map.resize(); } catch (e) { /* gone */ } });
+  }
+
+  /** The tie between the two sides of a relationship: one dashed line. */
+  function drawInspectLink(map, a, b) {
+    try {
+      if (map.getLayer("inspect-link")) map.removeLayer("inspect-link");
+      if (map.getSource("inspect-link")) map.removeSource("inspect-link");
+      map.addSource("inspect-link", {
+        type: "geojson",
+        data: { type: "Feature", properties: {},
+                geometry: { type: "LineString", coordinates: [[a.lon, a.lat], [b.lon, b.lat]] } }
+      });
+      map.addLayer({
+        id: "inspect-link", type: "line", source: "inspect-link",
+        paint: { "line-color": "#b5751a", "line-width": 2, "line-dasharray": [2, 2] }
+      });
+    } catch (e) { /* the style is not ready; the line is a nicety */ }
   }
 
   async function fillInspect(entity, id) {
@@ -1595,51 +2714,47 @@
     ensureInspectPane(entity);
     const pane = document.querySelector("[data-inspect]");
     if (!pane) return;
-    disposeInspectMap(entity);
-    removeMapPane(entity);
     const idHost = pane.querySelector("[data-inspect-id]");
     const tabs = pane.querySelector("[data-inspect-tabs]");
     const body = pane.querySelector("[data-inspect-body]");
     if (idHost) idHost.innerHTML = `<div class="skeleton" style="width:70%"></div>`;
     if (tabs) tabs.innerHTML = "";
     if (body) {
+      body.hidden = false;
+      body.removeAttribute("data-inspect-ready");
       body.innerHTML = `<div class="skeleton" style="width:70%"></div>
         <div class="skeleton" style="width:92%;margin-top:8px"></div>
         <div class="skeleton" style="width:58%;margin-top:8px"></div>`;
     }
+    const wrap = pane.querySelector("[data-inspect-map-wrap]");
+    if (wrap) wrap.hidden = true;
     syncInspectNav(entity);
     try {
       const rec = await api.get(`/api/${entity}/${id}`);
       if (seq !== st._inspectSeq || !document.querySelector("[data-inspect]")) return;
-      const loc = await locateRecord(entity, rec);
-      if (seq !== st._inspectSeq || !document.querySelector("[data-inspect]")) return;
-      st._inspectLoc = loc;
+      /* the map model is built lazily, when the Map tab asks for it */
+      st._inspectLoc = {};
       st._inspectRec = rec;
       const liveId = document.querySelector("[data-inspect-id]");
-      const liveCap = document.querySelector("[data-inspect-caption]");
       if (!liveId) return;
       liveId.innerHTML = inspectIdentityHtml(entity, rec);
       hydrateIcons(liveId);
       paintInspectTabs(entity, rec);
-      paintInspectTab(entity, rec, loc);
+      paintInspectTab(entity, rec, st._inspectLoc);
       syncInspectNav(entity);
-      if (loc && loc.lat != null && loc.lon != null) {
-        if (liveCap) {
-          liveCap.hidden = false;
-          liveCap.innerHTML = `<span>${esc(t("inspect.anchor." + entity))}</span>
-            <b dir="ltr">${loc.lat.toFixed(5)}, ${loc.lon.toFixed(5)}</b>`;
-        }
-        mountInspectMap(entity, loc);
-      } else {
-        showUnlocated();
-      }
     } catch (err) {
       if (seq !== st._inspectSeq) return;
+      /* the record is gone (deleted or merged elsewhere): drop the selection
+         instead of asking again on every redraw */
+      if (err && err.status === 404) {
+        closeInspect(entity);
+        return;
+      }
       const liveBody = document.querySelector("[data-inspect-body]");
       if (liveBody) {
+        liveBody.hidden = false;
         liveBody.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
       }
-      removeMapPane(entity);
     }
   }
 

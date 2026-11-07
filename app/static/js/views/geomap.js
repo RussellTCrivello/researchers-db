@@ -173,7 +173,9 @@
         properties: {
           etype: p.entity_type, id: p.id, code: p.code,
           label: A.state.lang === "ar" ? (p.label_ar || p.label_en) : (p.label_en || p.label_ar),
-          lat: p.lat, lon: p.lon, status: p.status || ""
+          lat: p.lat, lon: p.lon, status: p.status || "",
+          position: p.position || "precise",
+          anchor: A.state.lang === "ar" ? (p.anchor_ar || "") : (p.anchor_en || "")
         },
         geometry: { type: "Point", coordinates: [p.lon, p.lat] }
       }))
@@ -246,6 +248,14 @@
               <div id="geoProviderList" class="geo-provider-list"></div>
               <div class="geo-menu-head">${esc(t("geo.mapLayers"))}</div>
               <div id="geoOverlayList"></div>
+            </div>
+          </div>
+          <div class="geo-menu-wrap">
+            <button class="btn ghost sm" id="geoDownloadBtn" aria-expanded="false"
+                    title="${esc(t("mapdl.title"))}">${icon("download")}<span class="hide-sm">${esc(t("mapdl.short"))}</span></button>
+            <div class="geo-menu geo-download-menu" id="geoDownloadMenu" hidden>
+              <div class="geo-menu-head">${esc(t("mapdl.title"))}</div>
+              <div id="geoDownloadBody"></div>
             </div>
           </div>
           <div class="geo-menu-wrap">
@@ -379,7 +389,7 @@
       "bottom-left");
 
     /* --------------------------------------------------- basemap + layers --- */
-    const LOCAL_SOURCES = ["countries", "lakes", "coastline", "rivers", "places"];
+    const LOCAL_SOURCES = ["countries", "admin_1", "urban", "lakes", "coastline", "rivers", "places"];
 
     function wantBasemap() {
       const k = state.provider.kind;
@@ -598,7 +608,10 @@
             "circle-blur": 0.35
           }
         });
-        /* Fallback pin (always present): crisp disc. Dimmed once glyphs load. */
+        /* Fallback pin (always present): crisp disc. Dimmed once glyphs load.
+           An "associated" point stands at a linked place, not at the record's
+           own position — it renders dimmer with a wider ring, so nobody reads
+           the place's coordinates as the record's. */
         map.addLayer({
           id: "geo-points", type: "circle", source: "records",
           filter: ["!", ["has", "point_count"]],
@@ -606,8 +619,8 @@
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3.2, 8, 5.2, 14, 7],
             "circle-color": etypeColor,
             "circle-stroke-color": "#fff",
-            "circle-stroke-width": 1.5,
-            "circle-opacity": 0.95
+            "circle-stroke-width": ["case", ["==", ["get", "position"], "associated"], 2.4, 1.5],
+            "circle-opacity": ["case", ["==", ["get", "position"], "associated"], 0.5, 0.95]
           }
         });
         map.addLayer({
@@ -788,6 +801,11 @@
           { id: "base-countries-line", type: "line", source: "base-countries",
             paint: { "line-color": "#b9c6d2", "line-width": 0.8 } }
         ],
+        admin_1: [{ id: "base-admin_1", type: "line", source: "base-admin_1", minzoom: 4,
+                    paint: { "line-color": "#c9b896", "line-width": 0.7,
+                             "line-dasharray": [2, 2] } }],
+        urban: [{ id: "base-urban", type: "fill", source: "base-urban",
+                  paint: { "fill-color": "#e8e0d4", "fill-opacity": 0.85 } }],
         lakes: [{ id: "base-lakes", type: "fill", source: "base-lakes",
                   paint: { "fill-color": "#cfe3f2" } }],
         coastline: [{ id: "base-coastline", type: "line", source: "base-coastline",
@@ -1638,6 +1656,13 @@
       const pos = doc.position;
       const country = pos && pos.country_polygon
         ? (lang === "ar" ? pos.country_polygon.name_ar : pos.country_polygon.name_en) : null;
+      /* an associated point is shown at its place — name the association, never
+         present the place's coordinates as the record's own position */
+      const assocPos = !!(pos && pos.position === "associated");
+      const anchorText = !pos ? "" : assocPos
+        ? ((lang === "ar" ? pos.anchor_ar : pos.anchor_en) + ": " +
+           (lang === "ar" ? (pos.place_ar || pos.place_en) : (pos.place_en || pos.place_ar)))
+        : t("geo.ownPosition");
       dom.rightBody.innerHTML = `
         <div class="geo-inspector">
           <div class="geo-insp-head">
@@ -1649,7 +1674,8 @@
           ${pos ? `
             ${coordBlock(pos.lat, pos.lon, `
               <div class="geo-kv"><span>${esc(t("geo.anchor"))}</span>
-                <b dir="auto">${esc(lang === "ar" ? pos.anchor_ar : pos.anchor_en)}: ${esc(lang === "ar" ? (pos.place_ar || pos.place_en) : (pos.place_en || pos.place_ar))}</b></div>
+                <b dir="auto">${esc(anchorText)}</b></div>
+              ${assocPos ? `<div class="notice small">${esc(t("geo.associatedPoint"))}</div>` : ""}
               ${pos.precision ? `<div class="geo-kv"><span>${esc(t("geo.precision"))}</span><b>${esc(pos.precision)}</b></div>` : ""}
               ${country ? `<div class="geo-kv"><span>${esc(t("geo.country"))}</span><b dir="auto">${esc(country)}</b></div>` : ""}
               ${pos.country_en ? `<div class="geo-kv"><span>${esc(t("geo.recordCountry"))}</span><b dir="auto">${esc(lang === "ar" ? pos.country_ar : pos.country_en)}</b></div>` : ""}
@@ -1873,6 +1899,205 @@
       layersBtn.setAttribute("aria-expanded", String(!dom.layersMenu.hidden));
       renderLayerMenu();
     };
+
+    const dlBtn = root.querySelector("#geoDownloadBtn");
+    const dlMenu = root.querySelector("#geoDownloadMenu");
+    dlBtn.onclick = () => {
+      dlMenu.hidden = !dlMenu.hidden;
+      dlBtn.setAttribute("aria-expanded", String(!dlMenu.hidden));
+      if (dlMenu.hidden) {
+        if (state._dlTimer) { clearInterval(state._dlTimer); state._dlTimer = null; }
+      } else {
+        loadDownloads();
+        state._dlTimer = setInterval(() => {
+          if (!dlMenu.hidden) loadDownloads(); else {
+            clearInterval(state._dlTimer); state._dlTimer = null;
+          }
+        }, 2500);
+      }
+    };
+
+    /* ------------------------------------------------- map downloads ------- */
+    /* A region's tiles, of any map type whose terms allow it, pulled once and
+       kept for good — the app's own store answers every later view offline. */
+    function estimateTiles(w, s2, e, n, zmin, zmax) {
+      const ty = (lat, z) => {
+        lat = Math.max(-85.0511, Math.min(85.0511, lat));
+        const siny = Math.sin(lat * Math.PI / 180);
+        return Math.max(0, Math.min(2 ** z - 1,
+          Math.floor((0.5 - Math.log((1 + siny) / (1 - siny)) / (4 * Math.PI)) * 2 ** z)));
+      };
+      const tx = (lon, z) => Math.max(0, Math.min(2 ** z - 1,
+        Math.floor((lon + 180) / 360 * 2 ** z)));
+      let total = 0;
+      for (let z = zmin; z <= zmax; z++) {
+        total += (tx(e, z) - tx(w, z) + 1) * (ty(s2, z) - ty(n, z) + 1);
+      }
+      return total;
+    }
+
+    function dlBbox() {
+      const area = (root.querySelector("#dlArea") || {}).value || "viewport";
+      if (area === "world") return { w: -180, s: -85, e: 180, n: 85 };
+      if (area === "working") {
+        const wa = (state.conf.offline_pack || {}).working_area
+          || { w: 34.2, s: 31.2, e: 34.6, n: 31.6 };
+        return { w: wa.w, s: wa.s, e: wa.e, n: wa.n };
+      }
+      const b = map.getBounds();
+      return { w: b.getWest(), s: b.getSouth(), e: b.getEast(), n: b.getNorth() };
+    }
+
+    function fmtN(v) {
+      try { return new Intl.NumberFormat(A.state.lang === "ar" ? "ar" : "en").format(v); }
+      catch (e) { return String(v); }
+    }
+
+    async function loadDownloads() {
+      const body = root.querySelector("#geoDownloadBody");
+      if (!body) return;
+      let doc = null;
+      try { doc = await api.get("/api/geo/downloads"); } catch (e) { /* offline box */ }
+      const lang = A.state.lang;
+      const caps = (doc && doc.caps) || { max_zoom: 15, max_tiles: 25000, delay_ms: 250 };
+      const provs = (doc && doc.providers) || [];
+      const jobs = (doc && doc.jobs) || [];
+      const stats = (doc && doc.stats) || { tiles: 0, bytes: 0 };
+      const sel = body.querySelector("#dlArea");
+      const keptArea = sel ? sel.value : "viewport";
+      const zminEl = body.querySelector("#dlZMin");
+      const zmaxEl = body.querySelector("#dlZMax");
+      const keptZMin = zminEl ? zminEl.value : "0";
+      const keptZMax = zmaxEl ? zmaxEl.value : "12";
+      const keptChecked = new Set(Array.from(
+        body.querySelectorAll("input[data-dl-prov]:checked")).map(el => el.value));
+
+      const groups = ["offline", "standard", "aerial", "terrain"];
+      const provBox = groups.map(g => {
+        const members = provs.filter(p => p.group === g);
+        if (!members.length) return "";
+        return `<div class="dl-group">${members.map(p => {
+          const label = lang === "ar" ? p.label_ar : p.label_en;
+          const note = lang === "ar" ? p.download_note_ar : p.download_note_en;
+          const ok = p.downloadable;
+          return `<label class="geo-check${ok ? "" : " dl-off"}">
+              <input type="checkbox" data-dl-prov="${esc(p.id)}" value="${esc(p.id)}"
+                     ${ok && keptChecked.has(p.id) ? "checked" : ""} ${ok ? "" : "disabled"}>
+              <span dir="auto">${esc(label)}</span>
+              ${ok ? "" : `<span class="badge gray">${esc(t("mapdl.notAllowed"))}</span>`}
+              ${note ? `<span class="small muted dl-note" dir="auto">${esc(note)}</span>` : ""}
+            </label>`;
+        }).join("")}</div>`;
+      }).join("");
+
+      const jobRows = jobs.map(j => {
+        const p = provs.find(x => x.id === j.provider) || { label_en: j.provider, label_ar: j.provider };
+        const label = lang === "ar" ? p.label_ar : p.label_en;
+        const pct = j.total ? Math.round(((j.done + j.skipped) / j.total) * 100) : 0;
+        const cls = j.status === "done" ? "green" : (j.status === "failed" || j.status === "canceled")
+          ? "red" : (j.status === "paused" ? "amber" : "blue");
+        const acts = [];
+        if (["queued", "running"].includes(j.status))
+          acts.push(`<button class="btn ghost sm" data-dl-act="pause" data-id="${j.id}">${esc(t("mapdl.pause"))}</button>`,
+                    `<button class="btn ghost sm" data-dl-act="cancel" data-id="${j.id}">${esc(t("mapdl.cancel"))}</button>`);
+        if (["paused", "failed"].includes(j.status))
+          acts.push(`<button class="btn ghost sm" data-dl-act="resume" data-id="${j.id}">${esc(t("mapdl.resume"))}</button>`);
+        acts.push(`<button class="btn ghost sm danger" data-dl-act="delete" data-id="${j.id}">${esc(t("mapdl.delete"))}</button>`);
+        return `<div class="dl-job">
+            <div class="dl-job-top">
+              <b dir="auto">${esc(label)}</b>
+              <span class="badge ${cls}">${esc(t("mapdl." + j.status))}</span>
+            </div>
+            <div class="dl-job-meta small muted" dir="auto">${esc(j.name)}</div>
+            <div class="dl-progress"><span style="width:${pct}%"></span></div>
+            <div class="dl-job-meta small muted">${fmtN(j.done + j.skipped)} / ${fmtN(j.total)} · z${j.minzoom}–${j.maxzoom}${j.error ? ` · <span class="err">${esc(j.error)}</span>` : ""}</div>
+            <div class="btn-row">${acts.join("")}</div>
+          </div>`;
+      }).join("");
+
+      body.innerHTML = `
+        <div class="small muted dl-hint">${esc(t("mapdl.needNetwork"))}</div>
+        <div class="dl-field"><label>${esc(t("mapdl.area"))}</label>
+          <select class="ghost-select" id="dlArea">
+            <option value="viewport" ${keptArea === "viewport" ? "selected" : ""}>${esc(t("mapdl.areaView"))}</option>
+            <option value="working" ${keptArea === "working" ? "selected" : ""}>${esc(t("mapdl.areaWorking"))}</option>
+            <option value="world" ${keptArea === "world" ? "selected" : ""}>${esc(t("mapdl.areaWorld"))}</option>
+          </select></div>
+        <div class="dl-field dl-zooms"><label>${esc(t("mapdl.zooms"))}</label>
+          <input type="number" id="dlZMin" min="0" max="${caps.max_zoom}" value="${esc(keptZMin)}">
+          <span>–</span>
+          <input type="number" id="dlZMax" min="0" max="${caps.max_zoom}" value="${esc(keptZMax)}"></div>
+        <div class="dl-field"><label>${esc(t("mapdl.types"))}</label>
+          <button class="btn ghost sm" id="dlAll">${esc(t("mapdl.selectAll"))}</button>
+          ${provBox}</div>
+        <div class="dl-field"><label>${esc(t("mapdl.estimate"))}</label>
+          <b id="dlEstimate">…</b>
+          <span class="small muted">${esc(t("mapdl.stored"))}: ${fmtN(stats.tiles)} · ${fmtN(Math.round((stats.bytes || 0) / 1e6))} MB</span></div>
+        <div class="btn-row">
+          <button class="btn primary" id="dlStart">${icon("download")} ${esc(t("mapdl.start"))}</button>
+          <a class="btn ghost" href="/api/geo/offline-pack.zip">${esc(t("mapdl.downloadZip"))}</a>
+        </div>
+        <div class="small muted">${esc(t("mapdl.bundledHint"))}</div>
+        <div class="geo-menu-head">${esc(t("mapdl.jobs"))}</div>
+        <div class="dl-jobs">${jobRows || `<div class="small muted">${esc(t("mapdl.noJobs"))}</div>`}</div>`;
+
+      const refreshEstimate = () => {
+        const box = dlBbox();
+        const zmin = Math.max(0, Math.min(caps.max_zoom, Number((root.querySelector("#dlZMin") || {}).value) || 0));
+        const zmax = Math.max(zmin, Math.min(caps.max_zoom, Number((root.querySelector("#dlZMax") || {}).value) || 0));
+        const n = estimateTiles(box.w, box.s, box.e, box.n, zmin, zmax);
+        const el = root.querySelector("#dlEstimate");
+        if (el) {
+          el.textContent = fmtN(n);
+          el.className = n > caps.max_tiles ? "err" : "";
+        }
+      };
+      ["#dlArea", "#dlZMin", "#dlZMax"].forEach(q => {
+        const el = root.querySelector(q);
+        if (el) el.oninput = refreshEstimate;
+      });
+      refreshEstimate();
+      const allBtn = root.querySelector("#dlAll");
+      if (allBtn) allBtn.onclick = () => {
+        body.querySelectorAll("input[data-dl-prov]:not(:disabled)")
+          .forEach(cb => { cb.checked = true; });
+      };
+      body.querySelectorAll("[data-dl-act]").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const act = btn.dataset.dlAct;
+          try {
+            if (act === "delete") {
+              await api.del(`/api/geo/downloads/${id}?purge=false`);
+            } else {
+              await api.post(`/api/geo/downloads/${id}/${act}`);
+            }
+          } catch (e) { /* the list below will show the truth */ }
+          loadDownloads();
+        };
+      });
+      const startBtn = root.querySelector("#dlStart");
+      if (startBtn) startBtn.onclick = async () => {
+        const ids = Array.from(body.querySelectorAll("input[data-dl-prov]:checked"))
+          .map(el => el.value);
+        if (!ids.length) return;
+        const box = dlBbox();
+        const zmin = Math.max(0, Math.min(caps.max_zoom, Number((root.querySelector("#dlZMin") || {}).value) || 0));
+        const zmax = Math.max(zmin, Math.min(caps.max_zoom, Number((root.querySelector("#dlZMax") || {}).value) || 0));
+        startBtn.disabled = true;
+        try {
+          const res = await api.post("/api/geo/downloads", {
+            providers: ids, bbox: box, minzoom: zmin, maxzoom: zmax
+          });
+          const refused = (res.results || []).filter(r => !r.ok);
+          if (refused.length) {
+            console.warn("map downloads refused:", refused);
+          }
+        } catch (e) { console.warn("map download start:", e); }
+        startBtn.disabled = false;
+        loadDownloads();
+      };
+    }
 
     function renderLayerMenu() {
       const lang = A.state.lang;

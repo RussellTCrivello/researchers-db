@@ -1841,3 +1841,125 @@ def test_map_field_filters_narrow_the_layer_that_owns_the_field(client):
     }).json()
     assert grouped["total_records"] == (
         base["place"]["total"] + base["institution"]["total"] + base["event"]["total"])
+
+
+# ---------------------------------------------------------------------------
+# Regression: defects found by the 2026-11-07 integration audit
+# ---------------------------------------------------------------------------
+
+def test_import_update_mode_updates_and_accepts_exported_refs(client):
+    """Mode "update" updates matched rows — it never silently creates, and the
+    resolved "Label [CODE]" reference format that export itself produces must
+    import back cleanly.
+
+    The audit found mode="update" (the settings enum's middle option) falling
+    through to the create branch because the matcher only knew "upsert" and an
+    unreachable "update_only": rows either failed required checks or duplicated
+    records. The resolved export format was also refused by the FK resolver,
+    so an exported file could not be imported back.
+    """
+    import app.db as dbmod
+    from app import transfer
+    from app.repo import ENTITIES as R_ENTITIES
+
+    conn_db = dbmod.connect()
+    try:
+        place = None
+        for r in conn_db.execute("SELECT id, code, name_en FROM place WHERE deleted_at IS NULL LIMIT 1"):
+            place = dict(r)
+        assert place
+        title = "Round Trip Event"
+        conn_db.execute(
+            "INSERT INTO event (code, title_en, title_ar, record_status_id, created_at, created_by)"
+            " VALUES ('EVT-9001', ?, ?, (SELECT id FROM lookup WHERE domain='record_status' AND code='draft'),"
+            " '2026-01-01', 't')", (title, "حدث"))
+        conn_db.commit()
+
+        rows = [{"title_en": title, "Start date": "2001",
+                 "Place": f"{place['name_en']} [{place['code']}]",
+                 "Latitude": "12.5", "Longitude": "22.5"}]
+        mapping = {"title_en": "title_en", "Start date": "start_date",
+                   "Place": "place_id", "Latitude": "latitude", "Longitude": "longitude"}
+        rep = transfer.process_rows(conn_db, R_ENTITIES["event"], rows, mapping,
+                                    mode="update", actor="audit", dry_run=False,
+                                    match_on=["title_en"], reason="regression")
+        assert rep["failed"] == 0, rep["errors"]
+        assert rep["created"] == 0, "update mode must never create"
+        assert rep["updated"] == 1
+        got = conn_db.execute(
+            "SELECT latitude, longitude, place_id FROM event WHERE title_en=?",
+            (title,)).fetchone()
+        assert (got["latitude"], got["longitude"]) == (12.5, 22.5)
+        assert got["place_id"] == place["id"], "resolved 'Label [CODE]' must map back"
+    finally:
+        if conn_db is not None:
+            conn_db.execute("DELETE FROM event WHERE code='EVT-9001'")
+            conn_db.commit()
+            conn_db.close()
+
+
+def test_registry_adoption_moves_the_legacy_folder_even_into_an_occupied_target(tmp_path):
+    """db.adopt_legacy_data_dir is the single relocation path.
+
+    Regression: the first relocation attempt refused to move when the target
+    already contained an `uploads` folder (created at import time), silently
+    stranding the real registry at app/app/data while a fresh demo database was
+    created beside it. Items move one by one; existing items are never
+    overwritten; nothing is ever deleted.
+    """
+    from app import db
+
+    data_dir = tmp_path / "app" / "data"
+    legacy = tmp_path / "app" / "app" / "data"
+    # the poisoned case: target already occupied by the import-time uploads dir
+    (data_dir / "uploads").mkdir(parents=True)
+    (legacy / "uploads").mkdir(parents=True)
+    (legacy / "registry.db").write_bytes(b"the-real-registry")
+    (legacy / "uploads" / "photo.jpg").write_bytes(b"media")
+    (legacy / "registry.db-wal").write_bytes(b"journal")
+
+    status = db.adopt_legacy_data_dir(data_dir, legacy)
+    assert status == "moved"
+    assert (data_dir / "registry.db").read_bytes() == b"the-real-registry"
+    assert (data_dir / "registry.db-wal").read_bytes() == b"journal"
+    assert (data_dir / "uploads" / "photo.jpg").read_bytes() == b"media"
+    assert not (legacy / "registry.db").exists(), "the legacy copy must travel, not duplicate"
+
+
+def test_registry_adoption_never_overwrites_and_reports_two_registries(tmp_path):
+    from app import db
+
+    data_dir = tmp_path / "data"
+    legacy = tmp_path / "legacy"
+    data_dir.mkdir()
+    legacy.mkdir()
+    (data_dir / "registry.db").write_bytes(b"current")
+    (legacy / "registry.db").write_bytes(b"stranded")
+    (legacy / "extra.txt").write_bytes(b"loose")
+
+    status = db.adopt_legacy_data_dir(data_dir, legacy)
+    assert status == "both", "two registries must be reported, not silently merged"
+    assert (data_dir / "registry.db").read_bytes() == b"current", "existing registry must win"
+    assert (legacy / "registry.db").read_bytes() == b"stranded", "nothing may be deleted"
+    assert not (data_dir / "extra.txt").exists(), "two registries = move nothing, warn and wait for a human"
+
+
+def test_registry_adoption_survives_a_locked_file_without_losing_data(tmp_path, monkeypatch, capsys):
+    import shutil as _shutil
+
+    from app import db
+
+    data_dir = tmp_path / "data"
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "registry.db").write_bytes(b"locked-data")
+
+    real_move = _shutil.move
+    monkeypatch.setattr(_shutil, "move",
+                        lambda *a, **k: (_ for _ in ()).throw(PermissionError("in use")))
+    status = db.adopt_legacy_data_dir(data_dir, legacy)
+    monkeypatch.setattr(_shutil, "move", real_move)
+
+    assert status == "none"
+    assert (legacy / "registry.db").read_bytes() == b"locked-data", "a failed move must not delete"
+    assert "WARNING" in capsys.readouterr().out

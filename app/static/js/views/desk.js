@@ -865,7 +865,7 @@
          <b class="mono-cell">${esc(crsText(v))}</b></div>`).join("");
       return `
         <div class="desk-kv-list">
-          <div class="desk-kv"><span>${esc(t("desk.anchor"))}</span><b>${esc(label(pos, "anchor_en", "anchor_ar") || "—")}</b></div>
+          <div class="desk-kv"><span>${esc(t("desk.anchor"))}</span><b>${esc(label(pos, "anchor_en", "anchor_ar") || t("desk.ownPosition"))}</b></div>
           <div class="desk-kv"><span>${esc(t("desk.dd"))}</span><b class="mono-cell">${pos.lat.toFixed(6)}, ${pos.lon.toFixed(6)}</b></div>
           <div class="desk-kv"><span>${esc(t("desk.dms"))}</span>
             <b class="mono-cell dms-pair"><span>${dms(pos.lat, "lat")}</span><span>${dms(pos.lon, "lon")}</span></b></div>
@@ -1454,7 +1454,8 @@
         <div class="notice err">${esc(err.message || String(err))}</div></div>`;
       return;
     }
-    const provider = D.conf.providers.find(p => p.id === (pre.provider || D.conf.provider.id)) || D.conf.provider;
+    const defaultView = (A.mapDefault && A.mapDefault().provider) || D.conf.provider.id;
+    const provider = D.conf.providers.find(p => p.id === (pre.provider || defaultView)) || D.conf.provider;
 
     root.innerHTML = `
       <div class="desk${D.netOpen ? " net-open" : ""}${D.grid ? " is-grid" : ""}" data-desk>

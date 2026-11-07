@@ -59,10 +59,17 @@ def default_data_dir() -> Path:
     env = os.environ.get("SIRAJ_DATA_DIR")
     if env:
         return Path(env).expanduser().resolve()
-    return (ROOT / "app" / "data").resolve()
+    # ROOT is the `app` package; the project folder is its parent.
+    return (ROOT.parent / "app" / "data").resolve()
 
 
 def apply_data_dir() -> Path:
+    """Pick the data folder and export it for child imports.
+
+    The registry itself is adopted from any pre-fix folder by ``app.db`` at
+    import time (see ``db.adopt_legacy_data_dir``) — the launcher only resolves
+    and publishes the path, so both always agree.
+    """
     path = default_data_dir()
     path.mkdir(parents=True, exist_ok=True)
     os.environ.setdefault("SIRAJ_DATA_DIR", str(path))

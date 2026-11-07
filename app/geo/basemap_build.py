@@ -51,9 +51,15 @@ SOURCES = [
     ("50m", "coastline", "ne_50m_coastline.geojson", "line", 0.004, 2),
     ("50m", "lakes", "ne_50m_lakes.geojson", "polygon", 0.004, 4),
     ("50m", "rivers", "ne_50m_rivers_lake_centerlines.geojson", "line", 0.004, 2),
-    # the local gazetteer: 1 251 cities with Arabic names, used for name search and
-    # for georeferencing registry places that were entered by name only
-    ("50m", "places", "ne_50m_populated_places.geojson", "point", 0.0, 1),
+    # subnational boundaries and built-up areas: the same world coverage, the
+    # next two rungs of the administrative and human landscape. admin_1 takes
+    # the 10m source (4 596 subdivisions — the 50m cut keeps only the largest)
+    # simplified at the 50m tolerance, so every province in the world is there.
+    ("50m", "admin_1", "ne_10m_admin_1_states_provinces.geojson", "polygon", 0.004, 4),
+    ("50m", "urban", "ne_50m_urban_areas.geojson", "polygon", 0.004, 4),
+    # the local gazetteer: 7 343 cities with Arabic names, used for name search
+    # and for georeferencing registry places that were entered by name only
+    ("50m", "places", "ne_10m_populated_places.geojson", "point", 0.0, 1),
 ]
 
 LAYER_LABELS = {
@@ -62,6 +68,8 @@ LAYER_LABELS = {
     "lakes": ("Lakes", "البحيرات"),
     "rivers": ("Rivers", "الأنهار"),
     "places": ("Cities", "المدن"),
+    "admin_1": ("States & provinces", "الولايات والمحافظات"),
+    "urban": ("Urban areas", "المناطق الحضرية"),
 }
 
 
@@ -178,6 +186,18 @@ def _props(feature: dict, layer: str) -> dict:
             "continent": p.get("CONTINENT") or "",
             "region": p.get("REGION_UN") or "",
         })
+    if layer == "admin_1":
+        out.update({
+            "iso_a2": p.get("iso_a2") or p.get("ISO_A2") or "",
+            "iso_3166_2": p.get("iso_3166_2") or "",
+            "country": p.get("admin") or p.get("ADM0NAME") or "",
+            "region": p.get("region") or "",
+            "type": p.get("type_en") or p.get("type") or "",
+        })
+    if layer == "urban":
+        out.update({
+            "area_sqkm": p.get("area_sqkm") or 0,
+        })
     return {k: v for k, v in out.items() if v}
 
 
@@ -253,7 +273,7 @@ def build(source_dir: Path, target: Path) -> dict:
     conn.executemany("INSERT INTO meta VALUES (?,?)", [
         ("pack_version", str(PACK_VERSION)),
         ("generated_at", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
-        ("source", "Natural Earth (naturalearthdata.com), 1:110m and 1:50m"),
+        ("source", "Natural Earth (naturalearthdata.com), 1:110m, 1:50m and 1:10m"),
         ("license", "public domain"),
         ("attribution", "Basemap: Natural Earth (public domain)"),
         ("quant", str(QUANT)),

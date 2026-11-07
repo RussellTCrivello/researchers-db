@@ -748,6 +748,7 @@
      invent a key the backend would refuse. */
 
   const PREF_OF = {                         // setting key → personal preference name
+    "map.provider": "map_provider",
     "display.theme": "theme",
     "display.density": "density",
     "display.page_size": "page_size",
@@ -762,6 +763,8 @@
   function settingValue(field, value) {
     if (String(value) === "true") return t("common.on");
     if (String(value) === "false") return t("common.off");
+    const choice = (field.choices || []).find(c => String(c.value) === String(value));
+    if (choice) return A.state.lang === "ar" ? choice.label_ar : choice.label_en;
     const key = `adm.value.${field.key.replace(/\./g, "_")}.${value}`;
     const label = t(key);
     return label === key ? String(value) : label;
@@ -778,9 +781,20 @@
         </label>`;
     }
     if (f.kind === "enum") {
+      const option = (v) =>
+        `<option value="${esc(v)}" ${String(v) === String(value) ? "selected" : ""}>${esc(settingValue(f, v))}</option>`;
+      const choices = f.choices || [];
+      const groups = f.choice_groups || [];
+      if (choices.length && groups.length) {
+        const body = groups.map(g => {
+          const members = choices.filter(c => c.group === g.id).map(c => option(c.value)).join("");
+          const label = A.state.lang === "ar" ? g.label_ar : g.label_en;
+          return members ? `<optgroup label="${esc(label)}">${members}</optgroup>` : "";
+        }).join("");
+        return `<select class="ghost-select" id="${id}" data-set="${esc(f.key)}" data-kind="enum">${body}</select>`;
+      }
       return `<select class="ghost-select" id="${id}" data-set="${esc(f.key)}" data-kind="enum">
-          ${(f.values || []).map(v =>
-            `<option value="${esc(v)}" ${String(v) === String(value) ? "selected" : ""}>${esc(settingValue(f, v))}</option>`).join("")}
+          ${(f.values || []).map(option).join("")}
         </select>`;
     }
     if (f.kind === "int") {

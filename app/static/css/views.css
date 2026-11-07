@@ -399,25 +399,20 @@ html { scroll-behavior: smooth; }
   flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain;
   scroll-behavior: smooth; scrollbar-gutter: stable;
 }
-/* three fixed columns: table · details · map */
+/* two halves: the data view · the record panel (Details · Relationships · Map) */
 .list-stage {
   flex: 1 1 auto; min-height: 0; min-width: 0;
   display: flex; flex-direction: row; align-items: stretch;
 }
-.list-stage.tri {
+.list-stage.split {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.95fr) minmax(240px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
 }
-.list-stage.tri.no-map {
-  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr);
-}
 .list-stage > .list-scroll { flex: 1 1 auto; min-width: 0; min-height: 0; }
-.list-stage.tri > .list-scroll {
+.list-stage.split > .list-scroll {
   border-inline-end: 1px solid var(--border);
 }
-.list-stage.tri.no-map .inspect { border-inline-end: 0; }
-.inspect-map-pane[hidden] { display: none !important; }
 .list-scroll.can-inspect tbody tr[data-id],
 .list-scroll.can-inspect .ecard,
 .list-scroll.can-inspect .rrow { cursor: pointer; }
@@ -431,12 +426,7 @@ html { scroll-behavior: smooth; }
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
   overflow: hidden;
   background: var(--surface);
-  border-inline-end: 1px solid var(--border);
-}
-.inspect-map-pane {
-  display: flex; flex-direction: column; min-height: 0; min-width: 0;
-  overflow: hidden;
-  background: var(--surface);
+  border-inline-start: 1px solid var(--border);
 }
 .inspect-head {
   display: flex; align-items: center; gap: 6px; flex: none;
@@ -453,9 +443,15 @@ html { scroll-behavior: smooth; }
 }
 .inspect-nav [data-inspect-index] { min-width: 4.5em; text-align: center; }
 .inspect-map-wrap {
-  position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
+  position: relative; flex: 1 1 auto; min-height: 220px; overflow: hidden;
+  display: flex; flex-direction: column;
 }
-.inspect-map { height: 100%; width: 100%; background: #e8eef4; }
+.inspect-map-wrap[hidden] { display: none !important; }
+.inspect-map-bar {
+  display: flex; flex-wrap: wrap; gap: 4px; flex: none;
+  padding: 8px 10px; border-bottom: 1px solid var(--border);
+}
+.inspect-map { flex: 1 1 auto; height: auto; width: 100%; background: #e8eef4; }
 [data-theme="dark"] .inspect-map { background: #1a2633; }
 .inspect-map.is-empty {
   display: flex; align-items: center; justify-content: center;
@@ -512,6 +508,7 @@ html { scroll-behavior: smooth; }
   font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums;
 }
 .inspect-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 12px 14px; }
+.inspect-body[hidden] { display: none; }
 .inspect-body .card { box-shadow: none; border: 1px solid var(--border); margin: 0 0 10px; }
 .inspect-body .card-head { padding: 8px 10px; }
 .inspect-body .card-head h3 { font-size: 13px; }
@@ -533,6 +530,59 @@ html { scroll-behavior: smooth; }
 .inspect-timeline .when { font-size: 11.5px; color: var(--text-3); }
 .inspect-timeline .what { font-size: 12.5px; margin-top: 2px; }
 .inspect-empty { padding: 18px 8px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+/* ---- relationships tab: the ego-network -------------------------------- */
+.rel-graph-box {
+  position: relative;
+  border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+.rel-graph {
+  width: 100%; height: clamp(260px, 42vh, 430px);
+  cursor: grab; touch-action: none;
+}
+.rel-graph:active { cursor: grabbing; }
+.rel-graph svg { width: 100%; height: 100%; display: block; }
+.rel-graph svg.panning { cursor: grabbing; }
+.rel-graph-tools {
+  position: absolute; z-index: 2; inset-block-start: 6px; inset-inline-end: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.rel-graph-tools .icon-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  width: 28px; height: 28px; font-size: 14px;
+}
+.rel-node { cursor: pointer; outline: none; }
+.rel-node .rel-dot { stroke: var(--surface); stroke-width: 2.5px; }
+.rel-node.centre .rel-dot { stroke: var(--gold); stroke-width: 3.5px; }
+.rel-node text { pointer-events: none; user-select: none; }
+.rel-node .rel-initials { font-size: 12px; font-weight: 650; fill: #fff; }
+.rel-node .rel-name {
+  font-size: 11.5px; fill: var(--text);
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round;
+}
+.rel-node:focus-visible .rel-dot { stroke: var(--gold); stroke-width: 3.5px; }
+.rel-edge line { stroke: var(--text-3); stroke-width: 1.6px; stroke-opacity: .75; }
+.rel-edge-label {
+  font-size: 10px; fill: var(--text-2);
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round;
+}
+.rel-graph svg[data-hot] .rel-node,
+.rel-graph svg[data-hot] .rel-edge { opacity: .3; }
+.rel-graph svg[data-hot] .rel-node.hot,
+.rel-graph svg[data-hot] .rel-edge.hot { opacity: 1; }
+.rel-node.hot .rel-dot { stroke: var(--gold); }
+.rel-hint { margin: 6px 2px 4px; }
+.rel-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+  margin: 4px 0 10px;
+}
+.rel-legend span {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--text-2);
+}
+.rel-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .list-scroll > .table-wrap { border: 0; border-radius: 0; overflow: visible; }
 .list-scroll > .cardgrid, .list-scroll > .rowlist { margin: 0; }
 .list-scroll .empty { padding: 44px 16px; }
@@ -651,26 +701,27 @@ html { scroll-behavior: smooth; }
   .list-toolbar { position: sticky; inset-block-start: 0; }
   .filter-dock { position: static; }
   .list-footer { position: sticky; inset-block-end: 0; }
-  .list-stage.tri {
+  .list-stage.split {
     display: flex; flex-direction: column;
     grid-template-columns: none;
   }
-  .list-stage.tri > .list-scroll {
+  .list-stage.split > .list-scroll {
     max-height: 38vh; border-inline-end: 0;
     border-bottom: 1px solid var(--border);
   }
   .inspect {
-    flex: 1 1 auto; max-height: 36vh;
-    border-inline-end: 0; border-bottom: 1px solid var(--border);
+    flex: 1 1 auto; max-height: 46vh;
+    border-inline-start: 0; border-bottom: 1px solid var(--border);
   }
-  .inspect-map-pane {
-    flex: 0 0 220px; min-height: 200px;
+  .inspect-map-wrap {
+    min-height: 240px;
   }
+  .rel-graph { height: clamp(220px, 34vh, 320px); }
 }
 @media print {
   .list-shell { height: auto; }
   .list-scroll { max-height: none; overflow: visible; }
-  .list-footer, .filter-dock, .inspect, .inspect-map-pane { display: none !important; }
+  .list-footer, .filter-dock, .inspect, .inspect-map-wrap { display: none !important; }
 }
 
 /* ---- record dossier: tab strip and action bar stay in reach ------------ */
@@ -2521,3 +2572,138 @@ svg.relmap .map-node.is-selected .atlas-label.is-dim { opacity: 1; }
   margin-top: 8px; padding-top: 8px;
   border-top: 1px solid var(--border, #d5dee6);
 }
+
+/* ==========================================================================
+   Record panel · the advanced entities: relationship, source, event
+   -------------------------------------------------------------------------- */
+/* relationship — the two parties, side by side, with the tie between them */
+.party-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px; align-items: stretch; margin-bottom: 12px;
+}
+.party-card {
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 10px 12px;
+}
+.party-role {
+  font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 4px;
+}
+.party-type {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--muted); margin-bottom: 3px;
+}
+.party-type svg { width: 13px; height: 13px; }
+.party-name { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.party-name a { color: var(--text); text-decoration: none; }
+.party-name a:hover { color: var(--primary, #33689a); text-decoration: underline; }
+.party-arrow {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--amber, #b5751a); padding: 0 2px;
+}
+[dir="rtl"] .party-arrow { transform: scaleX(-1); }
+.party-analysis-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+.party-analysis-side {
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 10px 12px;
+}
+
+/* source — the claims ledger */
+.claim-filters {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+}
+.claim-filters .chip {
+  cursor: pointer; border: 1px solid var(--border, #d5dee6);
+  background: var(--surface); color: var(--text-2);
+}
+.claim-filters .chip.on {
+  background: var(--primary-soft, #eaf1f8); border-color: var(--primary, #33689a);
+  color: var(--primary, #33689a); font-weight: 600;
+}
+.claim-row {
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 9px 11px; margin-bottom: 8px;
+}
+.claim-target {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-weight: 600; color: var(--text); text-decoration: none;
+}
+.claim-target svg { width: 13px; height: 13px; }
+.claim-target:hover { color: var(--primary, #33689a); text-decoration: underline; }
+.claim-text { margin: 5px 0 3px; font-size: 13px; line-height: 1.5; }
+.claim-meta { margin-top: 2px; }
+
+/* event — chronology */
+.chrono-ribbon {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border, #d5dee6); border-radius: 10px;
+  background: var(--surface); padding: 10px 12px; margin-bottom: 12px;
+}
+.chrono-end { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+.chrono-line {
+  flex: 1; height: 2px; border-radius: 1px;
+  background: linear-gradient(90deg, var(--border, #d5dee6), var(--amber, #b5751a), var(--border, #d5dee6));
+}
+.chrono-axis { width: 100%; height: auto; display: block; margin: 2px 0 8px; }
+.chrono-list { display: flex; flex-direction: column; gap: 2px; }
+.chrono-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 8px; font-size: 13px;
+}
+.chrono-row:hover { background: var(--surface-2, #f2f5f8); }
+.chrono-row.is-focus-year { background: var(--amber-soft, #f7efdd); }
+.chrono-row.is-focus-year .chrono-year { color: var(--amber, #b5751a); font-weight: 700; }
+.chrono-year { font-size: 11.5px; color: var(--muted); width: 4.5ch; flex: none; }
+
+/* the map's quiet context dots (participant origins, footprint) */
+.inspect-map-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--teal, #166d75); border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35); cursor: default;
+}
+
+/* An associated point stands at a linked place, not at the record's own
+   position: dimmed with a dashed halo so it never reads as theirs. */
+.inspect-map-dot.assoc {
+  opacity: .55;
+  border: 2px dashed var(--teal, #166d75);
+}
+.geo-pin.assoc { opacity: .62; }
+.geo-pin.assoc .geo-pin-disc {
+  outline: 2px dashed rgba(23, 57, 92, .55); outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ map downloads --- */
+.geo-download-menu { width: 340px; max-height: 72vh; overflow-y: auto; }
+.geo-download-menu .dl-hint { margin-bottom: 8px; }
+.geo-download-menu .dl-field { margin: 10px 0; }
+.geo-download-menu .dl-field > label { display: block; font-weight: 600; margin-bottom: 4px; }
+.geo-download-menu .dl-zooms input[type="number"] {
+  width: 64px; padding: 4px 6px; border: 1px solid var(--border-strong);
+  border-radius: 8px; background: var(--bg); color: var(--text);
+}
+.geo-download-menu .dl-zooms span { margin: 0 6px; }
+.geo-download-menu .dl-group { margin-top: 6px; }
+.geo-download-menu .dl-note { display: block; margin-inline-start: 22px; }
+.geo-download-menu .dl-off { opacity: 0.72; }
+.geo-download-menu .dl-jobs { display: flex; flex-direction: column; gap: 10px; }
+.geo-download-menu .dl-job {
+  border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
+}
+.geo-download-menu .dl-job-top { display: flex; align-items: center; gap: 8px; }
+.geo-download-menu .dl-job-top .badge { margin-inline-start: auto; }
+.geo-download-menu .dl-job-meta { margin-top: 2px; }
+.geo-download-menu .dl-progress {
+  height: 6px; border-radius: 999px; background: var(--bg-sunken, #eceff3);
+  margin: 6px 0 2px; overflow: hidden;
+}
+.geo-download-menu .dl-progress span {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--accent, #17395c); transition: width 0.4s ease;
+}
+.inspect-map-attrib { margin-top: 4px; }
+.inspect-map-attrib a { color: var(--muted, #6b7280); text-decoration: underline; }

@@ -4,8 +4,8 @@ A complete, production-shaped registry for **persons, institutions, places, even
 sources**, built for historical and biographical research in Arabic and English.
 
 It is a working application, not a mock-up: real database, real audit trail, real import/export,
-real reports — and **1 375 executed checks**: 110 unit tests, 407 API assertions, 696 browser
-assertions across nine Playwright harnesses that gate on console errors, and a 162-check audit of
+real reports — and **1 427 executed checks**: 110 unit tests, 407 API assertions, 748 browser
+assertions across ten Playwright harnesses that gate on console errors, and a 162-check audit of
 the data itself.
 
 ![status](https://img.shields.io/badge/checks-109%20unit%20·%20404%20API%20·%20609%20browser-1d7a52) ![lang](https://img.shields.io/badge/languages-AR%20·%20EN-c9a227) ![db](https://img.shields.io/badge/storage-SQLite%20WAL%20%2B%20FTS5-17395c)
@@ -53,6 +53,7 @@ The interface opens in Arabic (RTL) and switches to English with one click.
 | **Related-field inputs** | every field pointing at another table (and every large vocabulary) is a **searchable drop-down** with Arabic-aware search, recent choices and **inline creation of the missing record** in a pop-up — no lost form state, numbering/validation/audit still apply |
 | **Fields from related tables** | 52 declared derived fields (relationship/position/citation counts, institution & country names, birth/death years, age, durations, completeness) usable in **columns, filters, sort, export, saved views, card layouts and report pivots** |
 | **Display options** | four data views (table · cards · gallery · rows) per entity, a **card layout builder** (image / title / subtitle / badge / facts / KPI figures) with live preview, per-user column visibility for *any* field including derived ones, saved views, density control |
+| **Record panel beside the list** | pick a person, institution or place and the screen splits in two: the data keeps one half, the other becomes a three-tab panel — **Details** (the whole dossier: fields, positions, events, sources, files, change log — all editable in place), **Relationships** (the connections visualised as an interactive ego-network — hover spotlights a branch, click a node to open that record, zoom/pan tools, labelled edges, legend — plus every link listed), and **Map** (the record's coordinates in DD and DMS on the offline base map, marker, copy/recentre, links into the geographic workspace and the atlas); by default the data view owns the whole screen, `Esc` gives it back |
 | **Fixed chrome & progressive loading** | filter dock, column headers, saved-view bar and pagination stay pinned while only the data area scrolls (measured, height-fitted, smooth); pages **and** *Load more* / auto-load-on-scroll coexist; one-tap *Collapse filters* returns the space to the table |
 | **Imagery** | image upload (`/api/media`) with alt text on persons, institutions, places and events; portraits and gallery views; graceful placeholders when an image is missing |
 | **Duplicates & merge** | Arabic-normalised duplicate detection, review panel, dry-run merge plan, field filling, link/relationship migration, recoverable archive, full audit entry |

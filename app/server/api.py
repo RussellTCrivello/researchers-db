@@ -1039,21 +1039,30 @@ def citation_remove(link_id: int, conn=Depends(conn_dep),
 # ===========================================================================
 @app.get("/api/evidence")
 def evidence_list(entity_type: str | None = None, entity_id: int | None = None,
-                  relationship_id: int | None = None, conn=Depends(conn_dep)):
-    """Every claim a source makes about a target.
+                  relationship_id: int | None = None, source_id: int | None = None,
+                  conn=Depends(conn_dep)):
+    """Every claim a source makes about a target — or, mirrored, every claim
+    one source makes at all.
 
     `?relationship_id=` and `?entity_type=&entity_id=` are the two addressable
-    targets; asking for both is refused rather than guessed at.
+    targets; `?source_id=` turns the question around: what does this source
+    say, and about which records? Asking for a target *and* a source at once
+    is refused rather than guessed at.
     """
-    if relationship_id is not None and entity_id is not None:
-        raise HTTPException(422, "Ask for one target: relationship_id or entity_type+entity_id")
-    if relationship_id is None and entity_id is None:
-        raise HTTPException(422, "relationship_id, or entity_type with entity_id, is required")
-    try:
-        rows = repo.get_evidence(conn, entity_type=entity_type, entity_id=entity_id,
-                                 relationship_id=relationship_id)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from None
+    if source_id is not None:
+        if relationship_id is not None or entity_id is not None:
+            raise HTTPException(422, "Ask for one question: source_id, or a target")
+        rows = repo.get_claims_by_source(conn, source_id)
+    else:
+        if relationship_id is not None and entity_id is not None:
+            raise HTTPException(422, "Ask for one target: relationship_id or entity_type+entity_id")
+        if relationship_id is None and entity_id is None:
+            raise HTTPException(422, "source_id, relationship_id, or entity_type with entity_id, is required")
+        try:
+            rows = repo.get_evidence(conn, entity_type=entity_type, entity_id=entity_id,
+                                     relationship_id=relationship_id)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
     counts = {"supports": 0, "contradicts": 0, "contextualizes": 0}
     for ev in rows:
         counts[ev["support_type"]] = counts.get(ev["support_type"], 0) + 1

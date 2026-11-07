@@ -47,10 +47,12 @@ PROVIDERS = {
         "swatch": "#cfdbe6",
         "label_en": "Offline vector basemap",
         "label_ar": "خريطة أساس متجهية دون اتصال",
-        "hint_en": "Ships with the application: country outlines, coastlines, lakes and "
-                   "rivers from the bundled Natural Earth pack. Works with no network.",
-        "hint_ar": "تُشحن مع التطبيق: حدود الدول والسواحل والبحيرات والأنهار من حزمة "
-                   "ناتشورال إيرث المرفقة، وتعمل دون اتصال.",
+        "hint_en": "Ships with the application: countries, provinces, urban areas, "
+                   "coastlines, lakes, rivers and cities from the bundled Natural Earth "
+                   "pack. Covers the whole world with no network.",
+        "hint_ar": "تُشحن مع التطبيق: الدول والمقاطعات والمناطق الحضرية والسواحل "
+                   "والبحيرات والأنهار والمدن من حزمة ناتشورال إيرث المرفقة، وتغطي "
+                   "العالم كله دون اتصال.",
         "requires_network": False,
         "max_zoom": 12,
         "attribution_en": "Basemap: Natural Earth (public domain)",
@@ -61,7 +63,10 @@ PROVIDERS = {
         "usage_en": "No limits and no tracking. Attribution is shown even though the "
                     "licence does not require it.",
         "usage_ar": "بلا حدود وبلا تتبّع. يُعرض الإسناد رغم أن الترخيص لا يشترطه.",
-        "style": {
+                "downloadable": False,
+        "download_note_en": "This map type ships with the application — the bundled world packs already store it permanently.",
+        "download_note_ar": "نوع الخريطة هذا مرفق مع التطبيق — الحزم العالمية المرفقة تخزّنه بشكل دائم أصلاً.",
+"style": {
             "version": 8,
             "name": "SIRAJ local",
             "sources": {},
@@ -100,7 +105,10 @@ PROVIDERS = {
                     "heavy use, run your own tile server or use a commercial provider.",
         "usage_ar": "تنطبق سياسة استخدام البلاطات: حافظ على حركة معتدلة، واستخدم معرّفاً "
                     "صالحاً، ولا تنزّل البلاطات جملةً. للاستخدام الكثيف شغّل خادمك الخاص.",
-        "style": {
+                "downloadable": False,
+        "download_note_en": "OpenStreetMap's tile usage policy forbids bulk downloading and offline scraping. Use the bundled world street map for offline work — it stores the same map type permanently and needs no third party.",
+        "download_note_ar": "سياسة بلاطات خريطة الشارع المفتوح تمنع التنزيل الجماعي والنسخ دون اتصال. استخدم خريطة الشوارع العالمية المرفقة للعمل دون اتصال — فهي تخزّن نوع الخريطة نفسه بشكل دائم ودون طرف ثالث.",
+"style": {
             "version": 8,
             "name": "SIRAJ · OSM",
             "sources": {"base": {"type": "raster",
@@ -137,7 +145,10 @@ PROVIDERS = {
                     "should use an ArcGIS location-platform key of its own.",
         "usage_ar": "تُقدَّم خدمات إيزري العامة مع الإسناد وفق شروط الاستخدام. النسخ "
                     "عالية الحركة ينبغي أن تستخدم مفتاحاً خاصاً بها.",
-        "style": {
+                "downloadable": True,
+        "download_note_en": "Esri's terms allow modest local caching with attribution kept visible. Keep downloads to the regions your research needs.",
+        "download_note_ar": "شروط إيزري تسمح بتخزين محلي محدود مع إبقاء الإسناد ظاهراً. اقتصر على مناطق بحثك.",
+"style": {
             "version": 8,
             "name": "SIRAJ · Esri street",
             "sources": {"base": {"type": "raster",
@@ -175,7 +186,10 @@ PROVIDERS = {
                     "before pointing a public, high-traffic instance at them.",
         "usage_ar": "مجانية للاستخدام الخفيف مع الإسناد. راجع شروط خرائط كارتو قبل "
                     "توجيه نسخة عامة عالية الحركة إليها.",
-        "style": {
+                "downloadable": True,
+        "download_note_en": "Free for light use with attribution — modest regional downloads are within the terms; read CARTO's basemap terms for scale limits.",
+        "download_note_ar": "استخدام خفيف مجاني مع الإسناد — التنزيلات الإقليمية المحدودة ضمن الشروط؛ راجع شروط بلاطات كارتو للحدود.",
+"style": {
             "version": 8,
             "name": "SIRAJ · CARTO light",
             "sources": {"base": {"type": "raster",
@@ -209,7 +223,10 @@ PROVIDERS = {
         "terms_url": "https://carto.com/basemaps",
         "usage_en": "Same terms as the light basemap; attribution stays visible.",
         "usage_ar": "الشروط نفسها المطبقة على الخريطة الفاتحة، مع إبقاء الإسناد ظاهراً.",
-        "style": {
+                "downloadable": True,
+        "download_note_en": "Free for light use with attribution — modest regional downloads are within the terms; read CARTO's basemap terms for scale limits.",
+        "download_note_ar": "استخدام خفيف مجاني مع الإسناد — التنزيلات الإقليمية المحدودة ضمن الشروط؛ راجع شروط بلاطات كارتو للحدود.",
+"style": {
             "version": 8,
             "name": "SIRAJ · CARTO dark",
             "sources": {"base": {"type": "raster",
@@ -249,7 +266,10 @@ PROVIDERS = {
                     "ArcGIS location-platform key or a licensed imagery service.",
         "usage_ar": "تُقدَّم الصور من خدمة إيزري العامة ويجب إبقاء الإسناد ظاهراً. "
                     "الاستخدام المستمر أو التجاري ينبغي أن يستخدم مفتاحاً أو خدمة مرخّصة.",
-        "style": {
+                "downloadable": True,
+        "download_note_en": "Esri permits local caching of reasonable quantities with attribution. Keep downloads to the regions your research needs.",
+        "download_note_ar": "إيزري يسمح بتخزين محلي بكميات معقولة مع الإسناد. اقتصر على مناطق بحثك.",
+"style": {
             "version": 8,
             "name": "SIRAJ · aerial imagery",
             "sources": {"imagery": {"type": "raster",
@@ -286,7 +306,10 @@ PROVIDERS = {
                     "visible, and the same licensing note as the plain imagery applies.",
         "usage_ar": "خدمتان من إيزري في عرض واحد (الصور العالمية وطبقة الحدود والأسماء)، "
                     "ويبقى الإسنادان ظاهرين، مع ملاحظة الترخيص نفسها.",
-        "style": {
+                "downloadable": True,
+        "download_note_en": "Both Esri layers may be cached locally in reasonable quantities, with both attributions kept visible.",
+        "download_note_ar": "يجري تخزين طبقتي إيزري محلياً بكميات معقولة، مع إبقاء الإسنيدين ظاهرين.",
+"style": {
             "version": 8,
             "name": "SIRAJ · aerial hybrid",
             "sources": {
@@ -336,7 +359,10 @@ PROVIDERS = {
                     "bulk downloading is not permitted. Keep traffic modest.",
         "usage_ar": "خدمة بلاطات مجتمعية: يلزم الإسناد والمشاركة بالمثل، ولا يُسمح "
                     "بالتنزيل الكثيف. حافظ على حركة معتدلة.",
-        "style": {
+                "downloadable": False,
+        "download_note_en": "OpenTopoMap's tile usage policy does not permit bulk downloading. Keep traffic modest and interactive.",
+        "download_note_ar": "سياسة بلاطات أوپنتوبوماب لا تسمح بالتنزيل الجماعي. أبقِ الحركة متواضعة وتفاعلية.",
+"style": {
             "version": 8,
             "name": "SIRAJ · terrain",
             "sources": {"base": {"type": "raster",
@@ -359,12 +385,14 @@ PROVIDERS["streets-offline"] = {
     "kind": "vector-streets",
     "group": "offline",
     "swatch": "#e8f0e4",
-    "label_en": "Offline street map (Gaza)",
-    "label_ar": "خريطة الشوارع دون اتصال (غزة)",
-    "hint_en": "Bundled OpenStreetMap streets, places, water and parks for the "
-               "Gaza working area. No network. Ships as a compressed vectormap.",
-    "hint_ar": "شوارع وأماكن ومياه وحدائق من خريطة الشارع المفتوح لمنطقة غزة، "
-               "مضغوطة مع التطبيق، بلا شبكة.",
+    "label_en": "Offline street map (world)",
+    "label_ar": "خريطة الشوارع دون اتصال (العالم)",
+    "hint_en": "World base — borders, coastlines, rivers, urban areas and cities — "
+               "with OpenStreetMap street detail for the working area. No network. "
+               "Ships as compressed vectormaps.",
+    "hint_ar": "أساس عالمي — الحدود والسواحل والأنهار والمناطق الحضرية والمدن — "
+               "مع تفاصيل شوارع خريطة الشارع المفتوح لمنطقة العمل. بلا شبكة، "
+               "تُشحن مضغوطة.",
     "requires_network": False,
     "max_zoom": 18,
     "attribution_en": "© OpenStreetMap contributors",
@@ -374,7 +402,10 @@ PROVIDERS["streets-offline"] = {
     "terms_url": "https://www.openstreetmap.org/copyright",
     "usage_en": "Offline extract for research orientation. Attribution required.",
     "usage_ar": "مقتطف دون اتصال للتوجيه البحثي. يلزم الإسناد.",
-    "style": {
+            "downloadable": False,
+        "download_note_en": "This map type ships with the application — the bundled world packs already store it permanently.",
+        "download_note_ar": "نوع الخريطة هذا مرفق مع التطبيق — الحزم العالمية المرفقة تخزّنه بشكل دائم أصلاً.",
+"style": {
         "version": 8,
         "name": "SIRAJ streets offline",
         "sources": {},
@@ -393,9 +424,10 @@ PROVIDERS["streets-hybrid"] = {
     "swatch": "#dce8f2",
     "label_en": "Offline hybrid (Natural Earth + streets)",
     "label_ar": "مدمجة دون اتصال (ناتشورال إيرث + شوارع)",
-    "hint_en": "World Natural Earth underlay with the Gaza street pack on top when "
-               "you zoom into the working area.",
-    "hint_ar": "خلفية ناتشورال إيرث العالمية مع حزمة شوارع غزة فوقها عند التكبير.",
+    "hint_en": "World Natural Earth underlay with the world street pack on top; "
+               "street-level detail where the pack carries it.",
+    "hint_ar": "خلفية ناتشورال إيرث العالمية مع حزمة الشوارع العالمية فوقها؛ "
+               "وتفصيل على مستوى الشارع حيث تتوفر الحزمة.",
     "requires_network": False,
     "max_zoom": 18,
     "attribution_en": "Basemap: Natural Earth (public domain) · streets © OpenStreetMap contributors",
@@ -405,7 +437,10 @@ PROVIDERS["streets-hybrid"] = {
     "terms_url": "https://www.openstreetmap.org/copyright",
     "usage_en": "Both layers ship with the application; no network.",
     "usage_ar": "الطبقتان مرفقان مع التطبيق؛ بلا شبكة.",
-    "style": {
+            "downloadable": False,
+        "download_note_en": "This map type ships with the application — the bundled world packs already store it permanently.",
+        "download_note_ar": "نوع الخريطة هذا مرفق مع التطبيق — الحزم العالمية المرفقة تخزّنه بشكل دائم أصلاً.",
+"style": {
         "version": 8,
         "name": "SIRAJ streets hybrid",
         "sources": {},
@@ -439,6 +474,9 @@ def catalog() -> list[dict]:
             "attribution_url": prov["attribution_url"],
             "license": prov["license"], "terms_url": prov["terms_url"],
             "usage_en": prov["usage_en"], "usage_ar": prov["usage_ar"],
+            "downloadable": prov.get("downloadable", False),
+            "download_note_en": prov.get("download_note_en", ""),
+            "download_note_ar": prov.get("download_note_ar", ""),
         })
     return out
 

@@ -9,6 +9,7 @@
     python scripts/check.py --evidence    # + evidence as claims and the diagram grammar (36 checks)
     python scripts/check.py --query       # + the typed query language in the browser (14 checks)
     python scripts/check.py --atlas       # + the relationship atlas in a browser (54 checks)
+    python scripts/check.py --inspect     # + the record panel beside the list (52 checks)
     python scripts/check.py --crce        # + the compass-rose coordinate standard (93 checks)
     python scripts/check.py --structures  # + the structure deck in a browser (62 checks)
     python scripts/check.py --desk        # + the map desk — the registry as a place (87 checks)
@@ -47,6 +48,8 @@ def main() -> int:
                     help="also run tests/query_ui.py (the typed query language)")
     ap.add_argument("--atlas", action="store_true",
                     help="also run tests/atlas_ui.py (the relationship atlas)")
+    ap.add_argument("--inspect", action="store_true",
+                    help="also run tests/inspect_ui.py (the record panel beside the list)")
     ap.add_argument("--crce", action="store_true",
                     help="also run tests/crce_ui.py (the compass-rose standard)")
     ap.add_argument("--structures", action="store_true",
@@ -117,6 +120,9 @@ def main() -> int:
     if args.atlas:
         at = subprocess.run([sys.executable, "tests/atlas_ui.py"], cwd=ROOT)
         ok &= step("relationship atlas", at.returncode == 0)
+    if args.inspect:
+        ip = subprocess.run([sys.executable, "tests/inspect_ui.py"], cwd=ROOT)
+        ok &= step("record panel beside the list", ip.returncode == 0)
     if args.structures:
         st = subprocess.run([sys.executable, "tests/structures_ui.py"], cwd=ROOT)
         ok &= step("structure deck", st.returncode == 0)

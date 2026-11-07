@@ -994,6 +994,7 @@
     const canvas = el.querySelector("[data-coord-map]");
     let user = null;
     let map = null;
+    let attribEl = null;
     let marker = null;
 
     function writeInput(lat, lon) {
@@ -1084,19 +1085,55 @@
       const centerLon = Number(A.setting("map.center_lon", "44.3661"));
       const startLat = opts.lat != null ? Number(opts.lat) : centerLat;
       const startLon = opts.lon != null ? Number(opts.lon) : centerLon;
-      const bootStyle = (A.geopin && A.geopin.secondaryStyle)
-        ? A.geopin.secondaryStyle("osm")
-        : { version: 8, sources: {}, layers: [
-            { id: "bg", type: "background", paint: { "background-color": "#d5e0ea" } }
-          ] };
+      /* Boot on the quiet graphical bed and honour the default map view the
+         way the list and inspect maps do: the bundled street pack paints over
+         it, and a raster choice becomes the bed underneath. (Booting the
+         picker straight at OSM bypassed both — and third-party tile servers
+         answer some deployments with policy block cards instead of tiles.) */
       map = new window.maplibregl.Map({
         container: canvas,
-        style: bootStyle,
+        style: { version: 8, sources: {}, layers: [
+            { id: "bg", type: "background", paint: { "background-color": "#d5e0ea" } }
+          ] },
         center: [startLon, startLat],
         zoom: opts.lat != null ? 12 : Number(A.setting("map.zoom", "5")),
         attributionControl: false
       });
       map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
+      const repaintPack = () => {
+        if (!map || !A.loadVectormap || !A.applyVectormapLayers) return;
+        A.loadVectormap().then(inflated => {
+          if (map) A.applyVectormapLayers(map, inflated, { fit: false });
+        }).catch(() => { /* the pack is optional; the pick still answers */ });
+      };
+      (async () => {
+        try {
+          const mapCfg = A.mapConfig ? await A.mapConfig().catch(() => null) : null;
+          const defaultProvider = (A.mapDefault && A.mapDefault().provider) || "local";
+          const entry = ((mapCfg && mapCfg.providers) || []).find(p => p.id === defaultProvider) || null;
+          const boot = (A.geopin && A.geopin.secondaryStyle)
+            ? A.geopin.secondaryStyle(defaultProvider, mapCfg)
+            : null;
+          if (!map) return;
+          if (boot && boot.sources && Object.keys(boot.sources).length) {
+            map.setStyle(boot);
+            map.once("styledata", repaintPack);
+          } else {
+            repaintPack();
+          }
+          /* attribution travels with the provider by contract */
+          if (entry) {
+            const text = A.state.lang === "ar" ? entry.attribution_ar : entry.attribution_en;
+            if (text && map && canvas.parentElement) {
+              attribEl = document.createElement("div");
+              attribEl.className = "inspect-map-attrib small muted";
+              attribEl.innerHTML = `<a href="${esc(entry.attribution_url || "#")}" target="_blank"`
+                + ` rel="noopener noreferrer">${esc(text)}</a>`;
+              canvas.parentElement.insertBefore(attribEl, canvas.nextSibling);
+            }
+          }
+        } catch (e) { repaintPack(); }
+      })();
       map.on("load", () => {
         if (opts.lat != null && opts.lon != null) show(opts.lat, opts.lon);
         map.resize();
@@ -1110,7 +1147,10 @@
       el,
       show,
       userPoint() { return user; },
-      destroy() { if (map) { map.remove(); map = null; } }
+      destroy() {
+        if (map) { map.remove(); map = null; }
+        if (attribEl) { attribEl.remove(); attribEl = null; }
+      }
     };
   };
 

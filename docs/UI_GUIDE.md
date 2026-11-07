@@ -123,6 +123,79 @@ field, subtitle field, badge field, up to four fact lines and up to four KPI fig
 preview. Layout settings are stored per entity per browser, so the same data can be browsed as
 portraits by one person and as institutional profiles by another.
 
+### The record panel beside the list
+
+Selecting a record — a click on a row, a card or a dense row, or `↑`/`↓` from the data area —
+splits the screen in two, for every entity. By default the data view owns the
+whole stage; the moment a record is picked the stage becomes two balanced halves: the data on one
+side (the table keeps scrolling, sorting and filtering exactly as before, with the picked row
+marked), and the record panel on the other. Closing the panel (`Esc` or `✕`) hands the whole page
+back to the data.
+
+For people, institutions and places the panel carries exactly three tabs:
+
+* **Details** — the whole dossier without leaving the list: identity, status and completeness,
+  every filled field group, and then Positions, Events, Sources, Files and the change log, each
+  keeping its own actions (add a position, add an event, link a source, upload a file). Related
+  records are links that open their own pages.
+* **Relationships** — the record's connections *visualised*: an interactive ego-network with the
+  record at the centre and every connected record on a ring, edges labelled with the relationship
+  type and arrowed by direction. Hovering spotlights one branch, clicking a node opens that
+  record's page, the tools zoom and pan, and a legend names the record types. Below the drawing
+  every stored link is listed with its type, direction, dates and evidence, and `Add relationship`
+  opens the same dialog as the record page. The *Show on relationship map* link continues in the
+  full atlas (`#/map?focus=…`).
+* **Map** — where the record is, as coordinates: decimal degrees and DMS in the caption, a marker
+  on the offline base map (no tile server is contacted), copy-to-clipboard and recentre controls,
+  and navigation options into the full geographic workspace (`#/geo?sel=…`) and the atlas. A
+  record without coordinates says so explicitly, with the hint that fixes it (link a located
+  place, or add latitude and longitude).
+
+`‹ ›` in the panel header walk the selection through the current result set without losing the
+list, `✎` opens the edit form and `⤢` the record's own page. In RTL the split mirrors — data
+right, panel left — and on narrow screens the halves stack.
+
+### The three advanced panels — relationship, source, event
+
+Relationships, sources and events are not people-shaped, so their panels ask their own questions.
+Each set still opens on Details and closes on Map; the middle tabs are the analysis.
+
+* **Relationship** — *Details · Parties · Evidence · Map.*
+  *Details* keeps the fields, the principal source the link is filed under, Files and the log.
+  *Parties* places the two sides face to face — the arrow between them follows the stored
+  direction (`→` for directed, `⇄` for symmetric) — and underneath, the registry's own reading of
+  the pair: each party's neighbourhood size, a bar of the kinds of records around it, and the
+  connections the two parties *share*, as chips that open those records.
+  *Evidence* is the argument for the link: the support/contradiction/context counts, the
+  principal source, a contested banner when anything contradicts, and every claim card with its
+  bearing, page reference, reliability and claim-level verification. `Link a source` records a
+  new claim against the relationship.
+  *Map* plots **both parties** — each resolved to its own anchor (a person's birthplace, an
+  institution's seat, a place's coordinates, an event's venue) — with a dashed tie between them,
+  the great-circle distance in the caption, and every point listed on copy.
+
+* **Source** — *Details · Claims · Coverage · Map.*
+  *Claims* is the mirror of an evidence list: not "what supports this record?" but "what does
+  this source say, and about what?" Every claim is one row — its bearing as a ✓ / ✕ / ○ badge, a
+  link to the record it is about, the claim text, page or timestamp, and claim-level
+  verification. Contradictions are sorted first; chips filter the ledger by record type;
+  `Record a claim` fixes the source and asks which record the claim is about.
+  *Coverage* is the analysis of that ledger: claims and distinct records reached, how many
+  records name it their primary source, claims per record, then three charts — claims by record
+  type, how the claims bear (support/contradiction/context), and verification levels.
+  *Map* draws the source's **geographic footprint**: the anchors of up to twenty-two records its
+  claims are about.
+
+* **Event** — *Details · Participants · Chronology · Map.*
+  *Participants* reads the event's stored relationships as an attendance list: a bar of roles, and
+  every participant with its role, direction, dates and evidence count. `Add participant` opens
+  the relationship composer aimed at the event.
+  *Chronology* places the event in its neighbourhood: a start→end ribbon with the duration, a
+  hand-drawn axis of the ±5-year window with a dot per event and this event's year marked in
+  amber, the neighbouring events listed with their places, and any events linked to this one.
+  *Map* shows the event's venue and, as quieter dots, where its participants are anchored — who
+  came from where.
+
 ### Imagery
 
 `person`, `institution`, `place` and `event` carry `image_url` + `image_alt`. The form offers
@@ -409,6 +482,47 @@ page to the far edge with a band of nothing on the reading side, and the top bar
 to the left of the origin on a 420 px screen. The drawer is `display:none` until it opens, the top bar
 wraps its actions under the search, and `html { overflow-x: clip }` refuses any stray wide child.
 
+### The default map view (Settings → Map & geography)
+
+Every map in the application — the geographic workspace, the Map tab beside any record, the list
+maps and the map desk — draws its base map from one setting: **`map.provider`, the default map
+view**. The settings screen offers it as a grouped choice rather than a list of identifiers:
+
+* **Offline & graphical** — the bundled vector basemap and world street map (no network, no third
+  party). This is the default.
+* **Standard maps** — OpenStreetMap, Esri World Street Map, CARTO Light/Dark.
+* **Aerial imagery** — Esri World Imagery, plain or hybrid with labels.
+* **Terrain** — OpenTopoMap.
+
+The setting is the *instance* default; a browser may carry a *personal* choice on top (the same
+`map_provider` preference the map workspace stores when you switch base maps there), and the
+settings screen shows which one is in force. Whichever provider wins, any map that boots its style
+keeps its attribution and licence link visible underneath — the terms require it. The record
+panels and list maps prefer the offline bed and swap in a raster choice when one is default, so
+opening a record never waits on a tile server to show its pins.
+
+### Downloading maps for offline use (map workspace → Download)
+
+The **Download** button on the map workspace stores maps for good — the tiles a region needs, of
+every map type whose published terms allow it, pulled once into the application's own permanent
+store (`app/data/map_downloads.sqlite`; cartography only, never research records):
+
+* **Area** — the current map view, the working area, or the whole world as an overview.
+* **Zoom range** — capped by the `map.download_*` settings (ceiling, job size, politeness delay
+  between fetches).
+* **Map types** — one job per type, each pausing, resuming and failing on its own. Providers whose
+  terms forbid bulk retrieval (OpenStreetMap's tile usage policy, OpenTopoMap's) are listed but
+  refused *with that reason*; their map type is already stored permanently by the bundled world
+  packs, which need no third party at all.
+* **Jobs** — progress bars with pause/resume/cancel/delete, and the stored-tile total.
+
+Downloaded tiles answer *before* the browse cache under the very URLs the map already uses, so a
+working area downloaded once keeps its street map, its aerial imagery and its terrain offline
+forever. For the bundled world coverage itself, **Offline pack (.zip)** in the same panel carries
+every offline map type — the vector basemap (`basemap.sqlite`), the world street map
+(`world.vectormap.json`) and the world raster tiles (`world.tilepack`) — with a manifest, to keep
+on any machine.
+
 ## 13 · Verifying the interface
 
 ```bash
@@ -442,3 +556,33 @@ the admin screens (vocabularies, numbering, settings, change log, reindex/vacuum
 data-entry surface setting (page mode, dialog mode, Escape and the dirty guard, Save + New, editing
 over a dossier, the trial button, and the automatic breakpoint at 1440 px and 700 px) and the 880 px
 layout. It fails on any console error or uncaught exception, section by section.
+
+## 14 · Coordinates: entering and reading positions
+
+**A record's position is its own.** Picking or changing a place never writes
+the place's coordinates into the record, and entering a record's coordinates
+never touches the place. The two are separate fields of thought, and the
+interface keeps them that way.
+
+* **Entering a point** (place, person, institution and event forms — the
+  *Geographic* group): type latitude and longitude by hand, or click the map to
+  set the point, or drag the marker to adjust it. A full coordinate pair pasted
+  into either box (decimal or DMS, Latin or Arabic-Indic digits) is parsed and
+  split into both fields. Clearing both boxes clears the point. Precision,
+  acquisition method and uncertainty are recorded alongside; the method is
+  filled automatically ("map pick" / "typed coordinates").
+* **The linked-place note** on person, institution and event forms says it
+  plainly: linking a place does not assign its coordinates. If the record's own
+  position is not recorded, the map shows it — clearly marked — at the
+  associated place.
+* **Reading the map:** a solid marker is an independently recorded position; a
+  dimmed, dashed marker is an associated place shown for context (its tooltip
+  says "Position not recorded — shown at the associated place"). Records that
+  genuinely share a point fan out in a small spiral so each stays selectable.
+  The layer counts split into *precise* and *at associated place*.
+* **The record's Map tab** shows the complete geographical network around the
+  record: its own position, its organization, the events it took part in, its
+  associated places — and one bounded step further — with every marker
+  explaining *why* it is there (its provenance in the network) and linking to
+  the record it belongs to. Depth is bounded (2 by default) and duplicates are
+  folded; separate records are never merged.

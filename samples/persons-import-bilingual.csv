@@ -1,0 +1,4 @@
+Identification number / الرقم التعريفي,Name in Arabic / الاسم بالعربية,Name in English / الاسم بالإنجليزية,Date of birth / تاريخ الميلاد,Birth date precision / دقة تاريخ الميلاد,Place of birth (record) / مكان الميلاد (سجل),Primary source / المصدر الأساسي,Occupation / classification / المهنة / التصنيف
+PER-SAMPLE-0001,أحمد بن سالم النموذجي,Ahmad al-Namudhaji,c. 1950,approximate,PLC-SAMPLE-0002,SRC-SAMPLE-0001,historian
+PER-SAMPLE-0002,فاطمة بنت عمر النموذجية,Fatima al-Namudhajiyya,1953,year,PLC-SAMPLE-0002,SRC-SAMPLE-0001,researcher
+PER-SAMPLE-0003,يوسف بن حسن النموذجي,Yusuf al-Namudhaji,1950s,approximate,PLC-SAMPLE-0003,,writer

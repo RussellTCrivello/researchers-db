@@ -194,6 +194,14 @@ CREATE TABLE IF NOT EXISTS institution (
     city                   TEXT,
     place_id               INTEGER REFERENCES place(id) ON DELETE SET NULL,
     address                TEXT,
+    -- own position — recorded for the institution alone, never inherited
+    -- from the linked place
+    latitude               REAL CHECK (latitude  IS NULL OR (latitude  BETWEEN -90  AND 90)),
+    longitude              REAL CHECK (longitude IS NULL OR (longitude BETWEEN -180 AND 180)),
+    geo_precision          TEXT,
+    geocoding_method       TEXT,
+    geo_uncertainty_m      REAL,
+    geometry_source        TEXT,
     current_leadership     TEXT,
     founders_text          TEXT,
     objectives             TEXT,
@@ -217,6 +225,8 @@ CREATE TABLE IF NOT EXISTS institution (
 CREATE INDEX IF NOT EXISTS ix_inst_type ON institution(institution_type_id);
 CREATE INDEX IF NOT EXISTS ix_inst_country ON institution(country_id);
 CREATE INDEX IF NOT EXISTS ix_inst_status ON institution(record_status_id);
+CREATE INDEX IF NOT EXISTS ix_institution_geo ON institution(latitude, longitude);
+CREATE INDEX IF NOT EXISTS ix_institution_place ON institution(place_id);
 
 -- ---------------------------------------------------------------------------
 -- 4. Persons
@@ -252,6 +262,14 @@ CREATE TABLE IF NOT EXISTS person (
     institutional_relations  TEXT,
     website                  TEXT,
     social_accounts          TEXT,
+    -- own position — recorded for the person alone, never inherited from
+    -- a linked place (linking is association, not assignment)
+    latitude                 REAL CHECK (latitude  IS NULL OR (latitude  BETWEEN -90  AND 90)),
+    longitude                REAL CHECK (longitude IS NULL OR (longitude BETWEEN -180 AND 180)),
+    geo_precision            TEXT,
+    geocoding_method         TEXT,
+    geo_uncertainty_m        REAL,
+    geometry_source          TEXT,
     primary_source_id        INTEGER REFERENCES source(id) ON DELETE SET NULL,
     documentation_id         INTEGER REFERENCES lookup(id),
     authentication_id        INTEGER REFERENCES lookup(id),
@@ -269,6 +287,8 @@ CREATE INDEX IF NOT EXISTS ix_person_class ON person(classification_id);
 CREATE INDEX IF NOT EXISTS ix_person_nat ON person(nationality_id);
 CREATE INDEX IF NOT EXISTS ix_person_status ON person(record_status_id);
 CREATE INDEX IF NOT EXISTS ix_person_birth ON person(birth_date);
+CREATE INDEX IF NOT EXISTS ix_person_geo ON person(latitude, longitude);
+CREATE INDEX IF NOT EXISTS ix_person_birthplace ON person(birthplace_id);
 
 -- "Previous Positions" as a repeating child table (1 person -> N positions).
 CREATE TABLE IF NOT EXISTS person_position (
@@ -308,6 +328,13 @@ CREATE TABLE IF NOT EXISTS event (
     start_precision    TEXT,
     end_date           TEXT,
     place_id           INTEGER REFERENCES place(id) ON DELETE SET NULL,
+    -- own position — the venue point, independent of the person and the place
+    latitude           REAL CHECK (latitude  IS NULL OR (latitude  BETWEEN -90  AND 90)),
+    longitude          REAL CHECK (longitude IS NULL OR (longitude BETWEEN -180 AND 180)),
+    geo_precision      TEXT,
+    geocoding_method   TEXT,
+    geo_uncertainty_m  REAL,
+    geometry_source    TEXT,
     description        TEXT,
     significance       TEXT,
     primary_source_id  INTEGER REFERENCES source(id) ON DELETE SET NULL,
@@ -324,6 +351,7 @@ CREATE TABLE IF NOT EXISTS event (
 );
 CREATE INDEX IF NOT EXISTS ix_event_type ON event(event_type_id);
 CREATE INDEX IF NOT EXISTS ix_event_place ON event(place_id);
+CREATE INDEX IF NOT EXISTS ix_event_geo ON event(latitude, longitude);
 
 -- ---------------------------------------------------------------------------
 -- 6. Relationships (the graph between any two entities)
