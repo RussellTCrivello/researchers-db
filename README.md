@@ -21,8 +21,8 @@ the data itself.
 
 ```bash
 cd researchers-db
-python3 -m pip install -r requirements.txt
-python3 run.py                        # http://localhost:8000  (init + serve in one step)
+python -m pip install -r requirements.txt
+python run.py                        # http://localhost:8000  (init + serve in one step)
 ```
 
 Any platform, explicitly:
@@ -39,8 +39,8 @@ The interface opens in Arabic (RTL) and switches to English with one click.
 > **synthetic** — invented names and links created to exercise the interface, never a historical
 > claim. A first run seeds 103 demo records (24 persons, 12 institutions, 20 places, 33 relationships,
 > 8 sources, 6 events); the reference dataset used for volume and verification (§*Verification*)
-> holds **28 538 records** built with `python3 -m app.cli bulk --profile large`. Start an empty
-> registry with `SIRAJ_SEED_DEMO=0 python3 -m app.cli init`.
+> holds **28 538 records** built with `python -m app.cli bulk --profile large`. Start an empty
+> registry with `SIRAJ_SEED_DEMO=0 python -m app.cli init`.
 
 ---
 
@@ -163,22 +163,22 @@ change in that file plus one migration.
 ## Everyday tasks
 
 ```bash
-python3 -m app.cli stats                       # record counts
-python3 -m app.cli backup -o backups/nov.zip   # consistent snapshot
-python3 -m app.cli export person out.xlsx --lang ar
-python3 -m app.cli reindex                     # rebuild search index
-python3 -m app.cli user reviewer reviewer      # add an acting user
-python3 -m pytest -q                           # run the test suite (110 tests)
-python3 tests/verify_all.py                    # exercise all 101 API routes (407 checks)
-python3 tests/audit.py                         # the fundamental audit (162 checks)
-python3 -m app.cli check-integrity             # is the data structurally sound?
-python3 tests/ui_full.py                       # walk every UI control (200 checks)
-python3 tests/evidence_ui.py                   # evidence cards + relationship diagram (37 checks)
-python3 tests/atlas_ui.py                      # the relationship atlas (54 checks)
-python3 tests/crce_ui.py                       # the compass-rose standard, CRCE (93 checks)
-python3 tests/structures_ui.py                 # the six structures, in a browser (62 checks)
-python3 tests/desk_ui.py                       # the map desk, in a browser (87 checks)
-python3 samples/run_samples.py                 # import every sample file through the API
+python -m app.cli stats                       # record counts
+python -m app.cli backup -o backups/nov.zip   # consistent snapshot
+python -m app.cli export person out.xlsx --lang ar
+python -m app.cli reindex                     # rebuild search index
+python -m app.cli user reviewer reviewer      # add an acting user
+python -m pytest -q                           # run the test suite (110 tests)
+python tests/verify_all.py                    # exercise all 101 API routes (407 checks)
+python tests/audit.py                         # the fundamental audit (162 checks)
+python -m app.cli check-integrity             # is the data structurally sound?
+python tests/ui_full.py                       # walk every UI control (200 checks)
+python tests/evidence_ui.py                   # evidence cards + relationship diagram (37 checks)
+python tests/atlas_ui.py                      # the relationship atlas (54 checks)
+python tests/crce_ui.py                       # the compass-rose standard, CRCE (93 checks)
+python tests/structures_ui.py                 # the six structures, in a browser (62 checks)
+python tests/desk_ui.py                       # the map desk, in a browser (87 checks)
+python samples/run_samples.py                 # import every sample file through the API
 ```
 
 ## Documentation
