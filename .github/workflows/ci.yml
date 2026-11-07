@@ -27,7 +27,7 @@ jobs:
 
       - name: JavaScript syntax
         run: |
-          for f in $(git ls-files 'app/static/js/*.js' 'app/static/js/**/*.js'); do
+          for f in $(git ls-files 'app/static/js/*.js' 'app/static/js/**/*.js' 'app/military/ui/*.js'); do
             node --check "$f" || exit 1
           done
 
@@ -35,4 +35,4 @@ jobs:
         run: python samples/run_samples.py
 
       - name: Module imports
-        run: python -c "import app.server, app.server.launcher, app.geo.tiledownload"
+        run: python -c "import app.server, app.server.launcher, app.geo.tiledownload, app.military, app.military.cli"

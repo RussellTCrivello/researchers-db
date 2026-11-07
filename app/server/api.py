@@ -25,6 +25,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .. import db, graph, querylang, repo, reports, stats, transfer
 from .. import settings as settings_mod
+from ..military import router as military_router
 from ..schemas import ENTITIES, ENTITY_TYPES, derived_meta, entity_meta, fields_meta
 from .crce_api import router as crce_router
 from .deps import actor_of, conn_dep
@@ -68,6 +69,11 @@ app.add_middleware(
 app.include_router(map_router)
 app.include_router(crce_router)
 app.include_router(structures_router)
+# The Military Organization module (Brigade Information Management System) is
+# self-contained: its own SQLite database (military.db), its own router under
+# /api/military, and its own interface at /military/.  Registered here like the
+# other feature modules; SIRAJ routes and data are untouched.
+app.include_router(military_router)
 
 
 def content_disposition(filename: str) -> str:
@@ -1544,3 +1550,7 @@ def index():
 
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+# Military Organization interface (self-contained; see app/military/ui/)
+MILITARY_UI = BASE / "military" / "ui"
+app.mount("/military", StaticFiles(directory=MILITARY_UI, html=True), name="military-ui")
