@@ -107,6 +107,8 @@ def field_labels(entity: str, field: dict[str, Any]) -> dict[str, Any]:
     out = dict(field)
     out["label_en"] = field["label"]
     out["label_ar"] = FIELD_LABELS_AR.get((entity, field["name"]), field["label"])
+    if "default" in out and callable(out["default"]):
+        out["default"] = "auto"   # dynamic defaults serialise as "auto"
     return out
 
 
@@ -280,7 +282,7 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("target_id", "int", "Target Id", required=True),
             _f("note_text", "textarea", "Note Text", required=True),
             _f("author", "text", "Author", required=True),
-            _f("note_at", "date", "Note Date"),
+            _f("note_at", "date", "Note Date", default=now_iso),
         ],
     },
 }
@@ -363,8 +365,12 @@ def _validate_fields(entity: str, payload: dict[str, Any], creating: bool) -> di
 
 
 def _defaults(entity: str) -> dict[str, Any]:
-    return {f["name"]: f.get("default") for f in ENTITY_SPECS[entity]["fields"]
-            if "default" in f}
+    out: dict[str, Any] = {}
+    for f in ENTITY_SPECS[entity]["fields"]:
+        if "default" in f:
+            d = f["default"]
+            out[f["name"]] = d() if callable(d) else d
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -501,15 +507,16 @@ def _row_to_dict(entity: str, row: sqlite3.Row | None,
 
 def _subtree_personnel_map(conn: sqlite3.Connection) -> dict[int, int]:
     """Σ direct personnel per unit in ONE pass (parents precede descendants in
-    path order, and every ancestor id appears in the path)."""
+    path order, and every ancestor id appears in the path).  NULL direct
+    personnel (incomplete records) count as 0."""
     rows = conn.execute(
         "SELECT id, path, direct_personnel FROM military_unit ORDER BY path").fetchall()
     sums: dict[int, int] = {}
     for r in rows:
-        sums[r["id"]] = r["direct_personnel"]
+        sums[r["id"]] = r["direct_personnel"] or 0
     for r in rows:
         for ancestor in [p for p in r["path"].split("/") if p][:-1]:
-            sums[int(ancestor)] = sums.get(int(ancestor), 0) + r["direct_personnel"]
+            sums[int(ancestor)] = sums.get(int(ancestor), 0) + (r["direct_personnel"] or 0)
     return sums
 
 
@@ -681,6 +688,81 @@ def list_records(conn, entity: str, q: str | None = None, filters: dict[str, Any
 # ---------------------------------------------------------------------------
 # read models
 # ---------------------------------------------------------------------------
+def export_csv(conn, entity: str, q: str | None = None,
+               filters: dict[str, Any] | None = None,
+               sort: str = "id", direction: str = "asc",
+               limit: int = 10000) -> dict[str, Any]:
+    """CSV export of a list query (same filters/sort as list_records)."""
+    import csv
+    import io
+    spec = ENTITY_SPECS[entity]
+    data = list_records(conn, entity, q=q, filters=filters,
+                        sort=sort, direction=direction,
+                        limit=limit, offset=0)
+    columns = ["id", "docname"] + [f["name"] for f in spec["fields"]] \
+        + ["created_at", "created_by", "modified_at", "modified_by"]
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(columns)
+    for rec in data["records"]:
+        writer.writerow([rec.get(c, "") for c in columns])
+    return {"filename": f"{entity}s.csv", "csv": buf.getvalue(),
+            "rows": len(data["records"]), "total": data["total"]}
+
+
+def quality_report(conn) -> dict[str, Any]:
+    """Data-completeness profile per entity.
+
+    For every record: optional-field fill ratio (fields the user actually
+    completes — required and system fields excluded).  Records are bucketed
+    into a completeness histogram (``100%`` = fully complete, ``0-25%`` =
+    nearly bare), plus per-field fill statistics.  Used by the dashboard
+    quality widget and CLI check C.11 to prove the dataset exercises every
+    completeness scenario — complete, partial, and near-empty records.
+    """
+    buckets = ["0-25%", "25-50%", "50-75%", "75-99%", "100%"]
+
+    def bucket_of(ratio: float) -> str:
+        if ratio >= 1.0:
+            return "100%"
+        if ratio < 0.25:
+            return "0-25%"
+        if ratio < 0.50:
+            return "25-50%"
+        if ratio < 0.75:
+            return "50-75%"
+        return "75-99%"
+
+    out: dict[str, Any] = {}
+    for entity, spec in ENTITY_SPECS.items():
+        optional = [f["name"] for f in spec["fields"] if not f.get("required")]
+        total = conn.execute(
+            f"SELECT COUNT(*) AS n FROM {spec['table']}").fetchone()["n"]
+        field_fill = {name: 0 for name in optional}
+        hist = {b: 0 for b in buckets}
+        for rec in conn.execute(
+                f"SELECT {', '.join(['id'] + optional) if optional else 'id'} "
+                f"FROM {spec['table']}").fetchall() if total else []:
+            filled = 0
+            for name in optional:
+                v = rec[name]
+                if v is not None and v != "":
+                    filled += 1
+                    field_fill[name] += 1
+            ratio = filled / len(optional) if optional else 1.0
+            hist[bucket_of(ratio)] += 1
+        out[entity] = {
+            "total": total,
+            "optional_fields": len(optional),
+            "histogram": hist,
+            "fields": {
+                name: {"filled": n,
+                       "pct": round(100.0 * n / total, 1) if total else 0.0}
+                for name, n in field_fill.items()},
+        }
+    return {"buckets": buckets, "entities": out}
+
+
 def tree(conn, entity: str) -> list[dict[str, Any]]:
     spec = ENTITY_SPECS[entity]
     rows = conn.execute(

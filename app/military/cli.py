@@ -166,6 +166,27 @@ def verify() -> int:
             return what
         run("C.10 Sample dataset invariants", c10)
 
+        # C.11 — dataset variation: complete, partial and near-empty records
+        def c11() -> str:
+            rep = service.quality_report(conn)
+            ent = rep["entities"].get("unit", {})
+            hist = ent.get("histogram", {})
+            if not ent.get("total"):
+                return "no unit records — skipped"
+            near_empty = sum(hist.get(b, 0) for b in ("0-25%", "25-50%"))
+            partial = hist.get("50-75%", 0) + hist.get("75-99%", 0)
+            complete = hist.get("100%", 0)
+            bulk_loaded = conn.execute(
+                "SELECT value FROM mil_meta WHERE key = 'bulk_loaded'").fetchone()
+            if not bulk_loaded:
+                # curated sample is intentionally complete — report only
+                return f"sample-only dataset — histogram {hist}"
+            assert complete and partial and near_empty, \
+                f"completeness mix missing: {hist}"
+            return (f"completeness mix present: {complete} complete / "
+                    f"{partial} partial / {near_empty} near-empty")
+        run("C.11 Dataset completeness variation", c11)
+
     width = max(len(name) for name, _, _ in checks)
     print(f"Military Organization — Appendix C verification ({db.DB_PATH})")
     print("=" * (width + 24))

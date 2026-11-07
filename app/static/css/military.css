@@ -50,3 +50,60 @@ details:not([open]) > summary .mil-toggle { transform: rotate(-90deg); }
 .field.invalid textarea { border-color: var(--red, #a4302e); }
 .field .err { color: var(--red, #a4302e); font-size: 11.5px; min-height: 14px; }
 .field label .req { color: var(--red, #a4302e); }
+
+/* ---------- searchable ref dropdown (combobox) ---------- */
+.refcombo { position: relative; }
+.refcombo-input {
+  width: 100%; padding: 7px 10px; border: 1px solid var(--line, #d5dbe3);
+  border-radius: 8px; font: inherit; font-size: 13px;
+  background: var(--card, #fff); color: var(--text, #1b2733);
+}
+.refcombo-input:focus { outline: none; border-color: var(--accent, #26507d); }
+.refcombo-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+  max-height: 260px; overflow: auto; background: var(--card, #fff);
+  border: 1px solid var(--line, #d5dbe3); border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 25, 40, .14);
+}
+.refcombo-item {
+  padding: 7px 10px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.refcombo-item:hover, .refcombo-item.active { background: var(--chip, #f2f5f9); }
+.refcombo-empty { padding: 8px 10px; font-size: 12.5px; color: var(--muted, #6b7784); }
+
+/* ---------- live document-name preview ---------- */
+.name-preview {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  padding: 8px 10px; border-radius: 8px; background: var(--chip, #f2f5f9);
+}
+
+/* ---------- sortable list headers ---------- */
+table.data th.sortable { cursor: pointer; user-select: none; }
+table.data th.sortable::after { content: " ↕"; color: var(--muted, #9aa5b1); font-size: 11px; }
+table.data th.sortable[aria-sort="ascending"]::after { content: " ↑"; color: var(--accent, #26507d); }
+table.data th.sortable[aria-sort="descending"]::after { content: " ↓"; color: var(--accent, #26507d); }
+
+/* ---------- record dossier ---------- */
+.dossier-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px 18px; margin: 0;
+}
+.dfield dt { font-size: 11px; letter-spacing: .02em; color: var(--muted, #6b7784); }
+.dfield dd { margin: 2px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+
+/* ---------- data-quality bars ---------- */
+.qrow { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
+.qlabel { width: 120px; flex: none; font-size: 12px; }
+.qbar {
+  flex: 1; height: 12px; border-radius: 6px; overflow: hidden;
+  display: flex; background: var(--chip, #f2f5f9);
+}
+.qseg { height: 100%; }
+.qnum { width: 56px; flex: none; text-align: right; }
+.chip.q0, .qseg.q0 { background: var(--red-soft, #f6dedd); color: var(--red, #a4302e); }
+.chip.q1, .qseg.q1 { background: var(--amber-soft, #fbeed3); color: var(--amber, #b5751a); }
+.chip.q2, .qseg.q2 { background: #fde6cf; color: #a05a12; }
+.chip.q3, .qseg.q3 { background: #dfe9f6; color: #26507d; }
+.chip.q4, .qseg.q4 { background: var(--green-soft, #d9f0e5); color: var(--green, #1d7a52); }
+.chip.q0, .chip.q1, .chip.q2, .chip.q3, .chip.q4 { border: none; }

@@ -390,6 +390,8 @@ inside FastAPI's `detail`.
 | `GET /units/{id}/force-summary` | unit briefing: subtree roll-up, current deployment, siblings, missions, top armament, children | any |
 | `GET /armaments/{id}/holdings` | armament distribution across units | any |
 | `GET /{entity}`, `GET /{entity}/{id}` | list (`q`, filters, `sort`, `direction`, `limit`, `offset`) / read | any |
+| `GET /{entity}/export.csv` | CSV export of a list query (same `q`/filters/`sort`) | any |
+| `GET /quality` | data-completeness profile: per-entity fill histogram + per-field statistics | any |
 | `POST /{entity}` | create (201) | staff+ |
 | `PATCH /{entity}/{id}` | partial update | staff+ |
 | `DELETE /{entity}/{id}` | delete | admin |
@@ -423,10 +425,18 @@ groups:
   tree** explorers (expand/collapse, inline search with auto-expand, status
   badges, subtree personnel Σ, node links).
 * **Records** — searchable lists and generated forms for all twelve entities:
-  required markers, choice vocabularies, reference dropdowns (`docname ·
-  name`), per-field validation errors that preserve input, read-only system
-  fields, confirmation dialogs on destructive actions, and a **force summary**
-  page for units / **holdings** page for armament.
+  required markers, choice vocabularies, **searchable reference dropdowns**
+  (comboboxes with full option coverage and keyboard navigation; `docname ·
+  name` labels), a **live document-name preview** on new records (advisory,
+  assigned on save), per-field validation errors that preserve input,
+  read-only system fields, confirmation dialogs on destructive actions, a
+  **record dossier** per record (all fields, related-record panels with
+  see-all deep links, inline polymorphic notes), and a **force summary**
+  page for units / **holdings** page for armament. Lists are volume-ready:
+  server-side search, sortable columns, choice-facet filters, server-side
+  pagination ("load more"), deep-linkable filters
+  (`#/military/deployments?unit_id=5`), and **CSV export** of the current
+  query.
 * **Administration** — **naming series** (19 options with partitions, next
   previews, advisory preview tool, admin-only inline counter adjustment) and
   the **audit log**.
@@ -435,8 +445,10 @@ The dashboard carries the design record's structure: 5 KPI cards (active
 units, current deployments, open missions, training this year, active
 commanders), 3 status charts (units by status / echelon / region), 5 action
 lists (upcoming deployments, upcoming trainings, low-readiness units, unit
-readiness, recent activity) and the fictional-sample actions. The fictional
-data disclaimer is displayed on the workspace.
+readiness, recent activity) and the fictional-sample actions. A **data
+completeness** panel shows the optional-field fill distribution per entity
+(complete → near-empty buckets) so dataset variation is visible at a glance.
+The fictional data disclaimer is displayed on the workspace.
 
 **Roles** are demonstrated with a selector in the workspace sub-nav (stored as
 `siraj.mil.role` and sent as `X-Military-Role`); `viewer` is read-only in the
@@ -467,6 +479,15 @@ Loading is idempotent (already-loaded → skip); `force` resets through a full
 clear that **preserves the append-only audit trail**; document names never
 collide across resets (counters keep advancing).
 
+**Bulk dataset variation.** `python -m app.military.cli bulk` loads a large
+deterministic fictional dataset whose records vary deliberately in
+completeness — some **complete** (every optional field), some **partial**,
+some **near-empty** (required fields only) — so every UI and pipeline state
+(empty cells, missing links, absent dates) is exercised. Rule-relevant and
+structural fields always stay correct, so the dataset remains rule-clean at
+volume; `GET /api/military/quality` and CLI check C.11 measure and enforce
+the variation.
+
 ---
 
 ## 10. Verification — Appendix C checklist
@@ -485,7 +506,8 @@ against the live database and exits non-zero on any failure:
 | C.7 Lifecycle — executed mission end date | `Executed` rows carry end dates |
 | C.8 Lifecycle — appointment overlap | no overlapping (unit, role) windows |
 | C.9 Naming — generated document names | `docname` unique per table; 19 series options |
-| C.10 Sample dataset invariants | sample rule-clean when loaded (skipped otherwise) |
+| C.10 Dataset invariants | dataset rule-clean whenever data exists (skipped when empty) |
+| C.11 Dataset completeness variation | complete, partial AND near-empty records all present (enforced for bulk datasets) |
 
 The pytest suite (`tests/test_military.py`) covers the rule catalogue
 negatively and positively, the naming grammar and counter audit, role

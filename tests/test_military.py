@@ -619,7 +619,7 @@ def test_sample_cli_verify_passes_with_sample(tmp_db, capsys):
     from app.military import cli
     assert cli.verify() == 0
     out = capsys.readouterr().out
-    assert "10/10 checks passed" in out
+    assert "11/11 checks passed" in out
     assert "FAILED" not in out
 
 
@@ -919,3 +919,174 @@ class TestVolumeUI:
         for lang in ("en", "ar"):
             keys = _json.loads((loc / f"{lang}.json").read_text(encoding="utf-8"))
             assert "mil.list.loadMore" in keys
+
+
+# ---------------------------------------------------------------------------
+# Integrated-capability regressions (2026-11-07 second directive)
+# ---------------------------------------------------------------------------
+class TestLinkedFieldCombobox:
+    def test_ref_fields_render_searchable_combobox(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        # ref fields use the combobox, not a plain <select>
+        assert "function refCombo(" in src
+        assert "bindRefCombos(root, refs)" in src
+        assert "refCombo(f, v, refs)" in src
+        assert "refcombo-list" in src
+
+    def test_ref_options_fetch_every_page(self):
+        """Regression: refOptions was capped at 500 rows, silently dropping
+        linked records from dropdowns at volume."""
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "limit=500&offset=" in src
+
+    def test_combobox_options_cover_all_rows_at_volume(self, tmp_db):
+        from app.military import service
+        with service.transaction() as conn:
+            region = service.create(conn, "region", {"name": "Combo Region"},
+                                    actor="t")
+            for i in range(30):
+                service.create(conn, "division", {
+                    "name": f"Combo Div {i}", "region_id": region["id"]}, actor="t")
+            data = service.list_records(conn, "division", limit=500, offset=0)
+        assert data["total"] == 30 and len(data["records"]) == 30
+
+
+class TestNumberingControl:
+    def test_naming_preview_chip_in_new_form(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "milNameChip" in src
+        assert '"/naming/preview"' in src
+        assert "mil.naming.preview" in src
+
+    def test_preview_is_advisory_and_shape_stable(self, tmp_db):
+        from app.military import naming, service
+        with service.transaction() as conn:
+            res = naming.preview(conn, "unit", {"year": "2026"})
+        assert res["reserved"] is False
+        assert res["next"].startswith("MIL-UNIT-")
+        assert res["next_value"] >= 1
+
+
+class TestListViewTools:
+    def test_sort_filter_export_wiring(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "th.sortable" in src                 # column sorting
+        assert "milFacet" in src                    # choice-facet filters
+        assert "export.csv" in src                  # CSV export endpoint
+        assert "URLSearchParams" in src             # deep-link query state
+
+    def test_export_csv_service_roundtrip(self, tmp_db):
+        from app.military import service
+        with service.transaction() as conn:
+            for i in range(3):
+                service.create(conn, "classification",
+                               {"name": f"Export Class {i}"}, actor="t")
+            res = service.export_csv(conn, "classification")
+            one = service.export_csv(conn, "classification",
+                                     q="Export Class 1")
+        lines = res["csv"].strip().splitlines()
+        assert lines[0].startswith("id,docname,")
+        assert res["rows"] == 3
+        assert one["rows"] == 1
+
+    def test_api_export_and_quality_routes(self, client):
+        h = {"X-Military-Role": "staff"}
+        r = client.post("/api/military/classifications",
+                        json={"name": "Route Export Class"}, headers=h)
+        assert r.status_code == 201
+        csv_r = client.get("/api/military/classifications/export.csv", headers=h)
+        body = csv_r.json()
+        assert csv_r.status_code == 200 and body["ok"] is True
+        assert "Route Export Class" in body["csv"]
+        q = client.get("/api/military/quality", headers=h)
+        assert q.status_code == 200 and "entities" in q.json()
+        assert q.json()["buckets"][-1] == "100%"
+
+
+class TestRecordDossier:
+    def test_dossier_route_and_related_map(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        app = Path("app/static/js/app.js").read_text()
+        assert "milDossier" in app and "/show$" in app
+        assert "A.views.milDossier" in src
+        assert "RELATED" in src and '"deployments", "unit_id"' in src
+        assert "milNoteAdd" in src                  # inline polymorphic notes
+
+    def test_related_filters_resolve_via_api(self, client):
+        h = {"X-Military-Role": "staff"}
+        r = client.post("/api/military/units",
+                        json={"name": "Dossier Unit"}, headers=h)
+        uid = r.json()["record"]["id"]
+        d = client.post("/api/military/deployments",
+                        json={"name": "Dossier Op", "unit_id": uid,
+                              "start_date": "2026-01-01"}, headers=h)
+        assert d.status_code == 201
+        rel = client.get(f"/api/military/deployments?unit_id={uid}", headers=h)
+        assert rel.json()["total"] == 1
+
+
+class TestCompletenessVariation:
+    def test_bulk_dataset_spans_completeness_spectrum(self, tmp_db):
+        """The dataset must contain complete, partial AND near-empty records
+        (directive: never all-complete, never all-incomplete)."""
+        from app.military import bulk, service
+        with service.transaction() as conn:
+            bulk.load_bulk(conn, scale=300)
+            rep = service.quality_report(conn)
+        hist = rep["entities"]["unit"]["histogram"]
+        near_empty = hist["0-25%"] + hist["25-50%"]
+        partial = hist["50-75%"] + hist["75-99%"]
+        complete = hist["100%"]
+        assert complete > 0 and partial > 0 and near_empty > 0, hist
+
+    def test_quality_report_shape(self, tmp_db):
+        from app import db
+        from app.military import service
+        db.init_db(seed_demo=False)
+        rep = service.quality_report(db.connect())
+        assert rep["buckets"] == ["0-25%", "25-50%", "50-75%", "75-99%", "100%"]
+
+    def test_cli_c11_checks_variation(self, tmp_db):
+        import contextlib
+        import io
+
+        from app.military import bulk, cli, service
+        with service.transaction() as conn:
+            bulk.load_bulk(conn, scale=300)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = cli.verify()
+        out = buf.getvalue()
+        assert rc == 0
+        assert "C.11" in out and "completeness mix present" in out
+        assert "FAILED" not in out
+
+
+class TestIncompleteRecordRobustness:
+    def test_note_at_defaults_when_omitted(self, tmp_db):
+        from app.military import service
+        with service.transaction() as conn:
+            unit = _mk_unit(conn, "Noteless Unit")
+            rec = service.create(conn, "note", {
+                "entity_type": "unit", "target_id": unit["id"],
+                "note_text": "no date given", "author": "t"}, actor="t")
+        assert rec["note_at"]        # schema NOT NULL: defaulted, not crashed
+
+    def test_rollup_and_tree_survive_null_personnel(self, tmp_db):
+        from app.military import service
+        with service.transaction() as conn:
+            parent = _mk_unit(conn, "Null Parent", personnel=10)
+            child = _mk_unit(conn, "Null Child", parent_id=parent["id"])
+            # child created WITHOUT direct_personnel (NULL)
+        with service.transaction() as conn:
+            tree = service.tree(conn, "unit")
+        node = _find_node(tree, parent["id"])
+        assert node["subtree_personnel"] == 10
+        with service.transaction() as conn:
+            rec = service.get_record(conn, "unit", child["id"])
+        assert rec["subtree_personnel"] in (0, None) or rec["subtree_personnel"] == 0

@@ -5,9 +5,19 @@ real service layer so that every rule, index, counter and read model is
 exercised at volume.  EVERY generated name is invented and tagged
 ``(fictional)`` — nothing here depicts any real military organization.
 
-Used by ``python -m app.military.cli bulk [--scale N]`` to surface defects
-under load; also handy to fill a demonstration instance with meaningful
-volume.  Deterministic: the same scale always produces the same dataset.
+Record completeness varies deliberately (design goal: exercise every UI and
+pipeline state):
+
+* **full**    — every optional field filled
+* **partial** — some optional fields filled
+* **minimal** — only required/essential fields
+
+Rule-relevant and structural fields (tree links, chronology, current-pointer
+flags) are always set correctly regardless of profile, so the dataset stays
+rule-clean while optional metadata varies.  Deterministic: the same scale
+always produces the same dataset.
+
+Used by ``python -m app.military.cli bulk [--scale N]``.
 """
 from __future__ import annotations
 
@@ -24,6 +34,8 @@ _PLACES = ["Kessamar", "Derrowan", "Rennick", "Brena", "Aldervale", "Talvik",
            "Yverath", "Kolmari", "Dravnik", "Esterholt", "Ravensk", "Bielvik"]
 _ADJ = ["Northern", "Southern", "Eastern", "Western", "Upper", "Lower",
         "Highland", "Coastal", "Frontier", "Central", "River", "Border"]
+
+_KEEP = {"full": 1.0, "partial": 0.5, "minimal": 0.0}
 
 
 def _name(rng: random.Random, kind: str, idx: int) -> str:
@@ -43,64 +55,100 @@ def _end_after(rng: random.Random, start: str, max_days: int = 730) -> str:
     return e.isoformat()
 
 
+def _profile(rng: random.Random) -> str:
+    r = rng.random()
+    return "full" if r < 0.38 else ("partial" if r < 0.72 else "minimal")
+
+
+def _vary(rng: random.Random, optional: dict[str, Any],
+          counters: dict[str, int]) -> dict[str, Any]:
+    """Apply a completeness profile to the optional-field dict."""
+    profile = _profile(rng)
+    counters[profile] = counters.get(profile, 0) + 1
+    keep = _KEEP[profile]
+    return {k: v for k, v in optional.items()
+            if v is not None and rng.random() < keep}
+
+
 def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, Any]:
     """Load ~`scale` fictional records in dependency order (rule-clean)."""
     if scale < 200:
         scale = 200
     rng = random.Random(20261107)
     counts: dict[str, int] = {}
+    profiles: dict[str, int] = {}
 
-    def add(entity: str, **payload: Any) -> dict[str, Any]:
+    def add(entity: str, optional: dict[str, Any] | None = None,
+            **payload: Any) -> dict[str, Any]:
+        if optional is not None:
+            payload.update(_vary(rng, optional, profiles))
         rec = service.create(conn, entity, payload, actor)
         counts[entity] = counts.get(entity, 0) + 1
         return rec
 
     # ---- region tree (depth 4) ----------------------------------------
     regions: list[dict[str, Any]] = []
-    theaters = [add("region", name=f"{_name(rng, 'Theater', i)}",
-                    region_type="Theater",
-                    country="Republic of Aldervale (fictional)")
+    theaters = [add("region",
+                    {"region_type": "Theater",
+                     "country": "Republic of Aldervale (fictional)",
+                     "description": "Top-level fictional theatre command."},
+                    name=f"{_name(rng, 'Theater', i)}")
                 for i in range(max(3, scale // 600))]
     for i in range(max(8, scale // 120)):
         parent = rng.choice(theaters)
-        district = add("region", name=_name(rng, "District", i),
-                       region_type="Region", parent_id=parent["id"],
-                       country="Republic of Aldervale (fictional)")
+        district = add("region",
+                       {"region_type": "Region",
+                        "country": "Republic of Aldervale (fictional)",
+                        "description": "Fictional territorial district."},
+                       name=_name(rng, "District", i), parent_id=parent["id"])
         regions.append(district)
         for j in range(2):
-            sector = add("region", name=_name(rng, "Sector", i * 10 + j),
-                         region_type="Zone", parent_id=district["id"],
-                         country="Republic of Aldervale (fictional)")
+            sector = add("region",
+                         {"region_type": "Zone",
+                          "country": "Republic of Aldervale (fictional)",
+                          "description": "Fictional operational sector."},
+                         name=_name(rng, "Sector", i * 10 + j),
+                         parent_id=district["id"])
             regions.append(sector)
             if j == 0 and rng.random() < 0.5:
-                regions.append(add("region", name=_name(rng, "Area", i * 100 + j),
-                                   region_type="Area", parent_id=sector["id"],
-                                   country="Republic of Aldervale (fictional)"))
+                regions.append(add("region",
+                                   {"region_type": "Area",
+                                    "country": "Republic of Aldervale (fictional)",
+                                    "description": "Fictional sub-area."},
+                                   name=_name(rng, "Area", i * 100 + j),
+                                   parent_id=sector["id"]))
 
     # ---- divisions + classifications -----------------------------------
-    divisions = [add("division", name=_name(rng, "Division", i),
-                     region_id=rng.choice(regions)["id"],
-                     division_type=rng.choice(
+    divisions = [add("division",
+                     {"division_type": rng.choice(
                          ["Mechanized", "Armored", "Infantry", "Artillery",
                           "Support", "Airborne"]),
-                     formation_date=_date(rng, 1990, 2015),
-                     headquarters=_name(rng, "Camp", i))
+                      "formation_date": _date(rng, 1990, 2015),
+                      "headquarters": _name(rng, "Camp", i),
+                      "description": "Fictional divisional formation."},
+                     name=_name(rng, "Division", i),
+                     region_id=rng.choice(regions)["id"])
                  for i in range(max(10, scale // 350))]
-    classifications = [add("classification", name=f"{rng.choice(_ADJ)} {rng.choice(['Line', 'Support', 'Reserve', 'Training'])} Class-{i}{FICTIONAL_TAG}",
-                           category=rng.choice(["Combat", "Support", "Reserve", "Training"]),
-                           readiness_tier=rng.choice(["High", "Medium", "Low"]))
+    classifications = [add("classification",
+                           {"category": rng.choice(["Combat", "Support",
+                                                    "Reserve", "Training"]),
+                            "readiness_tier": rng.choice(["High", "Medium", "Low"]),
+                            "description": "Fictional readiness classification."},
+                           name=f"{rng.choice(_ADJ)} {rng.choice(['Line', 'Support', 'Reserve', 'Training'])} Class-{i}{FICTIONAL_TAG}")
                        for i in range(max(12, scale // 300))]
 
     # ---- commanders -----------------------------------------------------
     ranks = ["General", "Brigadier General", "Colonel", "Lieutenant Colonel",
              "Major", "Captain", "Lieutenant"]
     commanders = [add("commander",
-                      full_name=f"{rng.choice(ranks)} {rng.choice(_PLACES)} {i}{FICTIONAL_TAG}",
-                      rank_title=rng.choice(ranks),
-                      branch=rng.choice(["Army", "Air Force", "Navy", "Joint"]),
-                      commission_date=_date(rng, 1992, 2018),
-                      status=rng.choices(["Active", "Reserve", "Retired"],
-                                         weights=[7, 2, 1])[0])
+                      {"rank_title": rng.choice(ranks),
+                       "branch": rng.choice(["Army", "Air Force", "Navy", "Joint"]),
+                       "commission_date": _date(rng, 1992, 2018),
+                       "status": rng.choices(["Active", "Reserve", "Retired"],
+                                             weights=[7, 2, 1])[0],
+                       "biography": "FICTIONAL biography — invented career "
+                                    "record for demonstration purposes."},
+                      full_name=f"{rng.choice(ranks)} {rng.choice(_PLACES)} {i}{FICTIONAL_TAG}")
                   for i in range(max(60, scale // 32))]
 
     # ---- unit tree: brigade → battalion → company → platoon → squadron --
@@ -115,34 +163,42 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
         else:
             parent = rng.choice(can_parent)
             depth = parent["depth"] + 1
-        u = add("unit", name=_name(rng, echelons[depth], i),
-                code=f"{rng.choice(_ADJ)[:2].upper()}-{i}",
+        u = add("unit",
+                {"code": f"{rng.choice(_ADJ)[:2].upper()}-{i}",
+                 "classification_id": rng.choice(classifications)["id"],
+                 "division_id": rng.choice(divisions)["id"],
+                 "region_id": rng.choice(regions)["id"],
+                 "commander_id": rng.choice(commanders)["id"],
+                 "role": rng.choice(["Line Infantry", "Logistics", "Reconnaissance",
+                                     "Territorial Defence", "Training", "Support"]),
+                 "status": rng.choices(
+                     ["Active", "Training", "Standby", "Mobilized", "Attached",
+                      "Reserve", "Reorganizing", "Stand-down", "Disbanded"],
+                     weights=[5, 1, 1, 1, 1, 1, 1, 1, 1])[0],
+                 "direct_personnel": rng.randint(8, 140),
+                 "formation_date": _date(rng, 1995, 2020),
+                 "headquarters": _name(rng, "Outpost", i),
+                 "notes": "FICTIONAL unit record (bulk-generated)."},
+                name=_name(rng, echelons[depth], i),
                 echelon=echelons[depth],
-                parent_id=parent["id"] if parent else None,
-                classification_id=rng.choice(classifications)["id"],
-                division_id=rng.choice(divisions)["id"],
-                region_id=rng.choice(regions)["id"],
-                role=rng.choice(["Line Infantry", "Logistics", "Reconnaissance",
-                                 "Territorial Defence", "Training", "Support"]),
-                status=rng.choices(
-                    ["Active", "Training", "Standby", "Mobilized", "Attached",
-                     "Reserve", "Reorganizing", "Stand-down", "Disbanded"],
-                    weights=[5, 1, 1, 1, 1, 1, 1, 1, 1])[0],
-                direct_personnel=rng.randint(8, 140),
-                formation_date=_date(rng, 1995, 2020),
-                headquarters=_name(rng, "Outpost", i))
+                parent_id=parent["id"] if parent else None)
         u["depth"] = depth
         units.append(u)
         if depth < len(echelons) - 1:
             can_parent.append(u)
 
     # ---- armament + holdings -------------------------------------------
-    armaments = [add("armament", name=_name(rng, rng.choice(
-        ["Rifle", "Carrier", "Mortar", "Radio", "Launcher", "Vehicle", "Sensor"]), i),
-        category=rng.choice(["Weapons", "Vehicles", "Artillery", "Aircraft",
-                             "Communications", "Support"]),
-        origin_country="Republic of Aldervale (fictional)")
-        for i in range(max(24, scale // 90))]
+    armaments = [add("armament",
+                     {"category": rng.choice(["Weapons", "Vehicles", "Artillery",
+                                              "Aircraft", "Communications",
+                                              "Support"]),
+                      "specification": "FICTIONAL generic specification data.",
+                      "origin_country": "Republic of Aldervale (fictional)",
+                      "description": "FICTIONAL armament catalogue entry."},
+                     name=_name(rng, rng.choice(
+                         ["Rifle", "Carrier", "Mortar", "Radio", "Launcher",
+                          "Vehicle", "Sensor"]), i))
+                 for i in range(max(24, scale // 90))]
     held: set[tuple[int, int]] = set()
     for _i in range(max(200, int(scale * 0.24))):
         unit = rng.choice(units)
@@ -150,11 +206,13 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
         if (unit["id"], arm["id"]) in held:
             continue
         held.add((unit["id"], arm["id"]))
-        add("holding", unit_id=unit["id"], armament_id=arm["id"],
-            quantity=rng.randint(1, 300),
-            condition=rng.choices(["Serviceable", "Limited", "Unserviceable", "In Refit"],
-                                  weights=[7, 2, 1, 1])[0],
-            acquisition_year=rng.randint(2005, 2025))
+        add("holding",
+            {"condition": rng.choices(["Serviceable", "Limited",
+                                       "Unserviceable", "In Refit"],
+                                      weights=[7, 2, 1, 1])[0],
+             "acquisition_year": rng.randint(2005, 2025),
+             "notes": "FICTIONAL holdings entry."},
+            unit_id=unit["id"], armament_id=arm["id"], quantity=rng.randint(1, 300))
 
     # ---- deployments (≤1 current per unit) -----------------------------
     deployments: list[dict[str, Any]] = []
@@ -169,18 +227,21 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
         elif want_current:
             status = "Active"
             current_done.add(unit["id"])
-        payload = dict(
-            name=_name(rng, "Operation", i), unit_id=unit["id"],
-            deployment_type=rng.choice(["Operational", "Training", "Humanitarian",
-                                        "Peacekeeping", "Reserve"]),
-            start_date=_date(rng, 2015, 2026),
-            status=status,
-            is_current=want_current and status in ("Planned", "Active"),
-            location=_name(rng, "Zone", i),
-            area_of_operations=_name(rng, "Corridor", i))
+        start = _date(rng, 2015, 2026)
+        optional: dict[str, Any] = {
+            "deployment_type": rng.choice(["Operational", "Training",
+                                           "Humanitarian", "Peacekeeping",
+                                           "Reserve"]),
+            "location": _name(rng, "Zone", i),
+            "area_of_operations": _name(rng, "Corridor", i),
+            "notes": "FICTIONAL deployment record."}
+        payload = dict(name=_name(rng, "Operation", i),
+                       unit_id=unit["id"], start_date=start,
+                       status=status,
+                       is_current=want_current and status in ("Planned", "Active"))
         if status == "Completed":
-            payload["end_date"] = _end_after(rng, payload["start_date"])
-        deployments.append(add("deployment", **payload))
+            payload["end_date"] = _end_after(rng, start)   # rule: completed_needs_end
+        deployments.append(add("deployment", optional, **payload))
 
     # ---- missions (unit = deployment's unit or a subordinate of it) -----
     by_id = {u["id"]: u for u in units}
@@ -193,17 +254,21 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
         unit = rng.choice(subs) if subs else by_id[dep["unit_id"]]
         status = rng.choices(["Planned", "Ongoing", "Executed", "Cancelled"],
                              weights=[3, 2, 5, 1])[0]
-        payload = dict(
-            name=_name(rng, "Mission", i), unit_id=unit["id"],
-            mission_type=rng.choice(["Combat", "Reconnaissance", "Logistics",
-                                     "Training", "Humanitarian", "Peacekeeping"]),
-            deployment_id=dep["id"],
-            start_date=_date(rng, 2016, 2026),
-            status=status,
-            area=_name(rng, "Sector", i))
+        start = _date(rng, 2016, 2026)
+        optional: dict[str, Any] = {
+            "mission_type": rng.choice(["Combat", "Reconnaissance", "Logistics",
+                                        "Training", "Humanitarian",
+                                        "Peacekeeping"]),
+            "deployment_id": dep["id"],
+            "status": status,
+            "area": _name(rng, "Sector", i),
+            "description": "FICTIONAL mission description.",
+            "notes": "FICTIONAL mission record."}
+        payload = dict(name=_name(rng, "Mission", i),
+                       unit_id=unit["id"], start_date=start)
         if status == "Executed":
-            payload["end_date"] = _end_after(rng, payload["start_date"], 365)
-        add("mission", **payload)
+            payload["end_date"] = _end_after(rng, start, 365)  # executed_needs_end
+        add("mission", optional, **payload)
 
     # ---- training (participants within subtree capacity) ---------------
     from datetime import date as _date_cls
@@ -217,17 +282,18 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
         start = _date(rng, 2018, 2026)
         s = _date_cls.fromisoformat(start)
         e = s.fromordinal(s.toordinal() + rng.randint(0, 12))
-        add("training", exercise_name=_name(rng, "Exercise", i),
-            unit_id=unit["id"],
-            training_type=rng.choice(["Exercise", "Course", "Certification",
-                                      "Drill", "Joint Exercise"]),
+        add("training",
+            {"training_type": rng.choice(["Exercise", "Course", "Certification",
+                                          "Drill", "Joint Exercise"]),
+             "lead_trainer": _name(rng, "Instructor", i),
+             "assessment": rng.choice(["Excellent", "Satisfactory",
+                                       "Needs Improvement", "Unsatisfactory"]),
+             "location": _name(rng, "Range", i),
+             "notes": "FICTIONAL training record."},
+            exercise_name=_name(rng, "Exercise", i), unit_id=unit["id"],
             start_date=start, end_date=e.isoformat(),
             duration_days=(e - s).days + 1,
-            participant_count=rng.randint(0, cap),
-            lead_trainer=_name(rng, "Instructor", i),
-            assessment=rng.choice(["Excellent", "Satisfactory",
-                                   "Needs Improvement", "Unsatisfactory"]),
-            location=_name(rng, "Range", i))
+            participant_count=rng.randint(0, cap))
 
     # ---- command appointments (non-overlapping per unit+role) ---------
     roles = ["Commanding Officer", "Deputy Commander", "Chief of Staff",
@@ -240,15 +306,18 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
         unit = rng.choice(units)
         role = rng.choice(roles)
         start_year = rng.randint(2012, 2024)
-        payload = dict(
-            unit_id=unit["id"], commander_id=rng.choice(commanders)["id"],
-            role=role,
-            assigned_date=f"{start_year:04d}-{rng.randint(1, 12):02d}-01",
-            is_current=False)
+        payload: dict[str, Any] = {
+            "unit_id": unit["id"], "commander_id": rng.choice(commanders)["id"],
+            "role": role,
+            "assigned_date": f"{start_year:04d}-{rng.randint(1, 12):02d}-01",
+            "is_current": False}
         if rng.random() < 0.4:
-            payload["relieved_date"] = f"{min(start_year + rng.randint(1, 4), 2026):04d}-12-31"
+            payload["relieved_date"] = \
+                f"{min(start_year + rng.randint(1, 4), 2026):04d}-12-31"
         else:
             payload["is_current"] = rng.random() < 0.3
+        payload.update(_vary(rng, {"notes": "FICTIONAL appointment record."},
+                             profiles))
         try:
             add("assignment", **payload)
             made += 1
@@ -262,9 +331,11 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
                [("deployment", d["id"]) for d in rng.sample(deployments, min(80, len(deployments)))] +
                [("commander", c["id"]) for c in rng.sample(commanders, min(60, len(commanders)))])
     for i, (etype, tid) in enumerate(targets):
-        add("note", entity_type=etype, target_id=tid,
+        add("note",
+            {"note_at": _date(rng, 2020, 2026)},
+            entity_type=etype, target_id=tid,
             note_text=f"Bulk-generated FICTIONAL note {i}: routine demonstration record.",
-            author="bulk-loader", note_at=_date(rng, 2020, 2026))
+            author="bulk-loader")
 
     conn.execute("INSERT INTO mil_meta (key, value) VALUES ('bulk_loaded', ?) "
                  "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -272,4 +343,5 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
     return {"loaded": True, "fictional": True,
             "disclaimer": seed.FICTIONAL_DISCLAIMER,
             "scale": scale, "counts": counts,
+            "profiles": profiles,
             "total": sum(counts.values())}

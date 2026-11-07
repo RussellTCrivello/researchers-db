@@ -107,18 +107,110 @@
   }
 
   async function refOptions(entity) {
-    const data = await mreq("GET", "/" + entity + "s?limit=500");
-    return data.records || [];
+    /* fetch EVERY option row (paged) — a fixed cap silently drops linked
+       records from dropdowns at volume */
+    const out = [];
+    let offset = 0;
+    for (;;) {
+      const data = await mreq("GET", "/" + entity + "s?limit=500&offset=" + offset);
+      const rows = data.records || [];
+      out.push(...rows);
+      offset += rows.length;
+      if (!rows.length || rows.length < 500 || offset >= (data.total || 0)) break;
+    }
+    return out;
   }
   function refLabelOf(entity, rec) {
     if (!rec) return "";
     return `${rec.docname || "#" + rec.id} · ${rec.name || rec.full_name || rec.exercise_name || ""}`;
   }
 
+  /* searchable, selectable dropdown for linked (ref) fields — the plain
+     <select> cannot carry 1,000+ options at volume */
+  function refCombo(f, v, refs) {
+    const rows = refs[f.entity] || [];
+    const cur = rows.find(r => Number(v) === r.id);
+    return `<div class="refcombo" data-entity="${esc(f.entity)}">
+      <input type="hidden" name="${f.name}" value="${v == null || v === "" ? "" : Number(v)}">
+      <input type="text" class="refcombo-input" autocomplete="off" spellcheck="false"
+        placeholder="${esc(t("mil.combo.search"))}" role="combobox"
+        aria-expanded="false" value="${cur ? esc(refLabelOf(f.entity, cur)) : ""}">
+      <div class="refcombo-list" role="listbox" hidden></div>
+    </div>`;
+  }
+
+  function bindRefCombos(root, refs) {
+    root.querySelectorAll(".refcombo").forEach(box => {
+      const entity = box.dataset.entity;
+      const rows = refs[entity] || [];
+      const hidden = box.querySelector("input[type=hidden]");
+      const input = box.querySelector(".refcombo-input");
+      const list = box.querySelector(".refcombo-list");
+      const render = (q) => {
+        const needle = (q || "").trim().toLowerCase();
+        const matches = rows.filter(r => !needle ||
+          refLabelOf(entity, r).toLowerCase().includes(needle)).slice(0, 80);
+        list.innerHTML = matches.length
+          ? matches.map(r => `<div class="refcombo-item" role="option" data-id="${r.id}">${esc(refLabelOf(entity, r))}</div>`).join("")
+          : `<div class="refcombo-empty">${esc(t("mil.combo.noMatch"))}</div>`;
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+      };
+      const close = () => {
+        list.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+      };
+      input.addEventListener("focus", () => render(input.value));
+      input.addEventListener("input", () => {
+        hidden.value = "";            // typed text invalidates the selection
+        render(input.value);
+      });
+      list.addEventListener("mousedown", (ev) => {
+        const item = ev.target.closest(".refcombo-item");
+        if (!item) return;
+        ev.preventDefault();
+        const rec = rows.find(r => r.id === Number(item.dataset.id));
+        hidden.value = rec.id;
+        input.value = refLabelOf(entity, rec);
+        close();
+        hidden.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      input.addEventListener("blur", () => {
+        setTimeout(close, 120);
+        const rec = rows.find(r => r.id === Number(hidden.value));
+        input.value = rec ? refLabelOf(entity, rec) : "";
+      });
+      input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") { close(); input.blur(); return; }
+        if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+          ev.preventDefault();
+          if (list.hidden) { render(input.value); return; }
+          const items = [...list.querySelectorAll(".refcombo-item")];
+          if (!items.length) return;
+          let idx = items.findIndex(el => el.classList.contains("active"));
+          items.forEach(el => el.classList.remove("active"));
+          idx = ev.key === "ArrowDown"
+            ? Math.min(items.length - 1, idx + 1)
+            : Math.max(0, idx - 1);
+          items[idx].classList.add("active");
+          items[idx].scrollIntoView({ block: "nearest" });
+        }
+        if (ev.key === "Enter") {
+          const active = list.querySelector(".refcombo-item.active");
+          if (active) {
+            ev.preventDefault();
+            active.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          }
+        }
+      });
+    });
+  }
+
   /* ====================================================== view: workspace */
   A.views.military = async function (root) {
     A.crumbs([{ label: t("nav.military") }, { label: t("mil.title") }]);
-    const [m, d] = await Promise.all([meta(), mreq("GET", "/summary")]);
+    const [m, d, qual] = await Promise.all([
+      meta(), mreq("GET", "/summary"), mreq("GET", "/quality")]);
     const c = d.cards, ch = d.charts, lists = d.lists;
     const kpis = [
       ["mil.kpi.activeUnits", c.active_units, "status = Active"],
@@ -152,31 +244,50 @@
         <div class="card"><div class="card-head"><h3>${esc(t("mil.chart.regionDist"))}</h3></div>
           ${chart("bar", chartRows(ch.region_distribution))}</div>
       </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head"><h3>${esc(t("mil.quality.title"))}</h3></div>
+        <div class="small muted" style="margin-bottom:10px">${esc(t("mil.quality.subtitle"))}</div>
+        ${(qual.buckets || []).length ? Object.entries(qual.entities || {})
+          .filter(([, q]) => q.total > 0).map(([e, q]) => `
+          <div class="qrow">
+            <span class="qlabel">${esc(entLabel(e))}</span>
+            <span class="qbar">${qual.buckets.map((b, i) => {
+              const n = q.histogram[b] || 0;
+              return n ? `<span class="qseg q${i}" style="width:${(100 * n / q.total).toFixed(1)}%"
+                title="${esc(b)}: ${n}"></span>` : "";
+            }).join("")}</span>
+            <span class="qnum small muted">${fmtNum(q.total)}</span>
+          </div>`).join("") : `<div class="empty">${esc(t("list.noRecords"))}</div>`}
+        <div class="btn-row" style="margin-top:10px">
+          ${(qual.buckets || []).map((b, i) =>
+            `<span class="chip q${i}">${esc(b)}</span>`).join(" ")}
+        </div>
+      </div>
       <div class="grid c2">
         <div class="card"><div class="card-head"><h3>${esc(t("mil.list.upcomingDeployments"))}</h3>
           <a class="btn sm" href="#/military/deployments">${esc(t("common.view"))}</a></div>
           ${table([t("mil.col.name"), t("mil.col.unit"), t("mil.col.start"), t("common.status")],
             lists.upcoming_deployments, r => `
-            <tr><td><a href="#/military/deployments/${r.id}">${esc(r.name)}</a></td>
+            <tr><td><a href="#/military/deployments/${r.id}/show">${esc(r.name)}</a></td>
               <td>${esc(r.unit_name)}</td><td class="nowrap mono-cell">${esc(r.start_date)}</td>
               <td>${chip(r.status)}</td></tr>`)}</div>
         <div class="card"><div class="card-head"><h3>${esc(t("mil.list.upcomingTrainings"))}</h3>
           <a class="btn sm" href="#/military/trainings">${esc(t("common.view"))}</a></div>
           ${table([t("mil.col.exercise"), t("mil.col.unit"), t("mil.col.dates"), t("mil.col.participants")],
             lists.upcoming_trainings, r => `
-            <tr><td><a href="#/military/trainings/${r.id}">${esc(r.exercise_name)}</a></td>
+            <tr><td><a href="#/military/trainings/${r.id}/show">${esc(r.exercise_name)}</a></td>
               <td>${esc(r.unit_name)}</td><td class="nowrap mono-cell">${esc(r.start_date)} → ${esc(r.end_date)}</td>
               <td>${fmtNum(r.participant_count)}</td></tr>`)}</div>
         <div class="card"><div class="card-head"><h3>${esc(t("mil.list.lowReadiness"))}</h3>
           <a class="btn sm" href="#/military/units">${esc(t("common.view"))}</a></div>
           ${table([t("mil.col.unit"), t("common.status"), t("mil.col.readiness")],
             lists.low_readiness_units, r => `
-            <tr><td><a href="#/military/units/${r.id}">${esc(r.name)}</a></td>
+            <tr><td><a href="#/military/units/${r.id}/show">${esc(r.name)}</a></td>
               <td>${chip(r.status)}</td><td>${chip(r.readiness_tier || "—")}</td></tr>`)}</div>
         <div class="card"><div class="card-head"><h3>${esc(t("mil.list.unitReadiness"))}</h3></div>
           ${table([t("mil.col.unit"), t("common.status"), t("mil.col.personnel"), t("mil.col.classification")],
             lists.unit_readiness, r => `
-            <tr><td><a href="#/military/units/${r.id}">${esc(r.name)}</a></td>
+            <tr><td><a href="#/military/units/${r.id}/show">${esc(r.name)}</a></td>
               <td>${chip(r.status)}</td><td>${fmtNum(r.direct_personnel)}</td>
               <td>${esc(r.classification_name || "—")}</td></tr>`)}</div>
       </div>
@@ -215,7 +326,6 @@
     const spec = m.entities[entity];
     if (!spec) { location.hash = "#/military"; return; }
     A.crumbs([{ label: t("nav.military"), href: "#/military" }, { label: entLabel(entity) }]);
-    const data = await mreq("GET", "/" + entity + "s?limit=200");
     const names = spec.fields.map(f => f.name);
     const cols = ["name", "full_name", "exercise_name", "code", "entity_type"]
       .filter(n => names.includes(n)).slice(0, 1)
@@ -224,7 +334,7 @@
       .concat(["unit_id", "start_date", "quantity", "author"]
         .filter(n => names.includes(n)).slice(0, 2));
     const colSpecs = cols.map(n => spec.fields.find(f => f.name === n));
-    /* reference columns resolve labels from a pre-fetched id map (sync render) */
+    /* reference columns resolve labels from a fully paged id map */
     const refMap = {};
     await Promise.all(colSpecs.filter(f => f && f.type === "ref").map(async f => {
       if (!refMap[f.entity]) {
@@ -234,49 +344,132 @@
       }
     }));
 
+    const state = { q: "", sort: "id", direction: "asc", filters: {}, offset: 0 };
+    /* deep links: #/military/deployments?unit_id=5 opens pre-filtered */
+    const hashQuery = (location.hash.split("?")[1] || "");
+    new URLSearchParams(hashQuery).forEach((v, k) => {
+      if (k === "q") state.q = v;
+      else if (k === "sort") state.sort = v;
+      else if (k === "direction") state.direction = v;
+      else if (names.includes(k)) state.filters[k] = v;
+    });
+    const facets = spec.fields.filter(f => f.type === "choice");
     const rowHtml = r => `
       <tr data-search="${esc(JSON.stringify(r).toLowerCase())}">
         <td class="mono-cell">${esc(r.docname)}</td>
         ${colSpecs.map(f => `<td>${cell(r, f, refMap)}</td>`).join("")}
-        <td><a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a></td>
+        <td class="nowrap">
+          <a class="btn sm" href="#/military/${entity}s/${r.id}/show">${esc(t("common.view"))}</a>
+          <a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a>
+        </td>
       </tr>`;
-    let offset = data.records.length;
-    const total = data.total;
+    const query = () => {
+      const p = new URLSearchParams();
+      if (state.q) p.set("q", state.q);
+      if (state.sort !== "id" || state.direction !== "asc") {
+        p.set("sort", state.sort);
+        p.set("direction", state.direction);
+      }
+      Object.entries(state.filters).forEach(([k, v]) => { if (v) p.set(k, v); });
+      return p.toString();
+    };
+    const th = (label, key) =>
+      `<th class="sortable" data-sort="${esc(key)}" aria-sort="${
+        state.sort === key ? (state.direction === "asc" ? "ascending" : "descending") : "none"
+      }">${esc(label)}</th>`;
 
     root.innerHTML = milNav("e:" + entity) +
-      A.pageHead(entLabel(entity), t("mil.list.count", { n: fmtNum(total) }), `
+      A.pageHead(entLabel(entity), t("mil.list.count", { n: "—" }), `
         <a class="btn primary" href="#/military/${entity}s/new">${icon("plus")} ${esc(t("common.new"))}</a>`) +
       `<div class="card">
         <div class="btn-row" style="margin-bottom:12px">
-          <input id="milSearch" type="search" class="grow"
-            placeholder="${esc(t("mil.search.placeholder"))}" style="max-width:320px">
+          <input id="milSearch" type="search" class="grow" value="${esc(state.q)}"
+            placeholder="${esc(t("mil.search.placeholder"))}" style="max-width:280px">
+          ${facets.map(f => `<select class="ghost-select milFacet" data-field="${f.name}">
+            <option value="">${esc(fieldLabel(f))}: ${esc(t("mil.list.all"))}</option>
+            ${(f.options || []).map(o => `<option value="${esc(o)}"${state.filters[f.name] === o ? " selected" : ""}>${esc(o)}</option>`).join("")}
+          </select>`).join("")}
+          <button class="btn sm" id="milClearFilters">${esc(t("mil.list.clearFilters"))}</button>
+          <button class="btn sm" id="milExport">${icon("download")} ${esc(t("mil.list.export"))}</button>
         </div>
-        ${table([t("mil.form.docname")].concat(colSpecs.map(fieldLabel), [t("common.actions")]),
-          data.records, rowHtml)}
-        ${total > offset ? `<div class="btn-row" style="margin-top:12px">
-          <button id="milMore" class="btn">
-            ${esc(t("mil.list.loadMore", { n: fmtNum(Math.min(200, total - offset)) }))}
-          </button></div>` : ""}
+        <div class="table-wrap"><table class="data">
+          <thead><tr>${th(t("mil.form.docname"), "docname")}${
+            colSpecs.map(f => th(fieldLabel(f), f.name)).join("")
+          }<th>${esc(t("common.actions"))}</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="btn-row" style="margin-top:12px">
+          <button id="milMore" class="btn" hidden></button>
+        </div>
       </div>`;
     bindChrome(root);
-    const search = root.querySelector("#milSearch");
-    search.oninput = () => {
-      const q = search.value.trim().toLowerCase();
-      root.querySelectorAll("tbody tr[data-search]").forEach(tr => {
-        tr.style.display = !q || tr.dataset.search.includes(q) ? "" : "none";
-      });
+    const tbody = root.querySelector("tbody");
+    const moreBtn = root.querySelector("#milMore");
+
+    const loadPage = async (append) => {
+      const data = await mreq("GET", "/" + entity + "s?limit=200&offset="
+        + state.offset + (query() ? "&" + query() : ""));
+      if (!append) tbody.innerHTML = "";
+      if (!data.records.length && !append) {
+        tbody.innerHTML = `<tr><td colspan="${colSpecs.length + 2}" class="empty">${esc(t("list.noRecords"))}</td></tr>`;
+      } else {
+        tbody.insertAdjacentHTML("beforeend", data.records.map(rowHtml).join(""));
+      }
+      state.offset += data.records.length;
+      const sub = root.querySelector(".page-head .sub");
+      if (sub) sub.textContent = t("mil.list.count", { n: fmtNum(data.total) });
+      const rest = data.total - state.offset;
+      if (rest > 0) {
+        moreBtn.hidden = false;
+        moreBtn.textContent = t("mil.list.loadMore", { n: fmtNum(Math.min(200, rest)) });
+      } else {
+        moreBtn.hidden = true;
+      }
     };
-    /* server-side pagination: append the next page on demand (volume-safe) */
-    const more = root.querySelector("#milMore");
-    if (more) more.onclick = async () => {
-      more.disabled = true;
-      const page = await mreq("GET", "/" + entity + "s?limit=200&offset=" + offset);
-      root.querySelector("tbody").insertAdjacentHTML("beforeend", page.records.map(rowHtml).join(""));
-      offset += page.records.length;
-      if (offset >= total) { more.remove(); return; }
-      more.disabled = false;
-      more.textContent = t("mil.list.loadMore", { n: fmtNum(Math.min(200, total - offset)) });
+    const reset = () => { state.offset = 0; loadPage(false); };
+
+    let searchTimer;
+    root.querySelector("#milSearch").oninput = (ev) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.q = ev.target.value.trim();
+        reset();
+      }, 250);
     };
+    root.querySelectorAll(".milFacet").forEach(sel => {
+      sel.onchange = () => {
+        state.filters[sel.dataset.field] = sel.value;
+        reset();
+      };
+    });
+    root.querySelector("#milClearFilters").onclick = () => {
+      state.q = "";
+      state.filters = {};
+      root.querySelector("#milSearch").value = "";
+      root.querySelectorAll(".milFacet").forEach(sel => { sel.value = ""; });
+      reset();
+    };
+    root.querySelectorAll("th.sortable").forEach(el => {
+      el.onclick = () => {
+        const key = el.dataset.sort;
+        state.direction = (state.sort === key && state.direction === "asc") ? "desc" : "asc";
+        state.sort = key;
+        reset();
+      };
+    });
+    moreBtn.onclick = () => loadPage(true);
+    root.querySelector("#milExport").onclick = async () => {
+      const res = await mreq("GET", "/" + entity + "s/export.csv"
+        + (query() ? "?" + query() : ""));
+      const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = res.filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast(t("mil.list.export") + " ✓", "ok");
+    };
+    await loadPage(false);
   };
 
   function cell(rec, f, refMap) {
@@ -315,8 +508,7 @@
         control = `<select name="${f.name}"><option value=""></option>${f.options.map(o =>
           `<option value="${esc(o)}"${String(v) === o ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
       } else if (f.type === "ref") {
-        control = `<select name="${f.name}"><option value=""></option>${(refs[f.entity] || []).map(r =>
-          `<option value="${r.id}"${Number(v) === r.id ? " selected" : ""}>${esc(refLabelOf(f.entity, r))}</option>`).join("")}</select>`;
+        control = refCombo(f, v, refs);
       } else if (f.type === "textarea") {
         control = `<textarea name="${f.name}" rows="3">${esc(v || "")}</textarea>`;
       } else if (f.type === "bool") {
@@ -338,7 +530,12 @@
         record.docname || "", `
         <a class="btn" href="#/military/${entity}s">${icon("undo")} ${esc(t("common.back"))}</a>
         ${id ? `<button class="btn" id="milDelete">${icon("trash")} ${esc(t("common.delete"))}</button>` : ""}`) +
-      `<div class="card"><form id="milForm" class="form-grid">${fieldsHtml}</form>
+      `<div class="card">${id ? "" : `
+        <div class="name-preview" id="milNamePreview">
+          <span class="chip violet" id="milNameChip">${esc(t("mil.naming.preview"))} —</span>
+          <span class="small muted">${esc(t("mil.naming.previewHint"))}</span>
+        </div>`}
+        <form id="milForm" class="form-grid">${fieldsHtml}</form>
         ${id ? `<hr class="hr-soft"><div class="small muted">
           ${esc(t("mil.form.created"))}: ${esc(record.created_at || "—")} · ${esc(record.created_by || "—")} ·
           ${esc(t("mil.form.modified"))}: ${esc(record.modified_at || "—")} · ${esc(record.modified_by || "—")}
@@ -349,12 +546,45 @@
         </div>
       </div>`;
 
+    if (id) {
+      root.querySelector(".card .btn-row").insertAdjacentHTML("beforeend",
+        `<a class="btn" href="#/military/${entity}s/${id}/show">${icon("eye")} ${esc(t("common.view"))}</a>`);
+    }
     if (entity === "unit" && id) {
       root.querySelector(".card .btn-row").insertAdjacentHTML("beforeend",
         `<a class="btn" href="#/military/units/${id}/force">${icon("activity")} ${esc(t("mil.force.title"))}</a>`);
     }
     bindChrome(root);
     const form = root.querySelector("#milForm");
+    bindRefCombos(root, refs);
+
+    /* live advisory document-name preview (automated numbering control) */
+    if (!id) {
+      const chip = root.querySelector("#milNameChip");
+      let timer;
+      const refreshPreview = async () => {
+        const payload = { entity };
+        spec.fields.forEach(f => {
+          if (f.type === "choice") {
+            const el = form.elements[f.name];
+            if (el && el.value) payload[f.name] = el.value;
+          }
+        });
+        try {
+          const res = await mreq("POST", "/naming/preview", payload);
+          chip.textContent = t("mil.naming.preview") + ": " + res.next;
+        } catch (e) { /* advisory only — never block the form */ }
+      };
+      form.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(refreshPreview, 400);
+      });
+      form.addEventListener("change", () => {
+        clearTimeout(timer);
+        timer = setTimeout(refreshPreview, 150);
+      });
+      refreshPreview();
+    }
 
     const clearErrors = () => form.querySelectorAll(".field").forEach(el => {
       el.classList.remove("invalid");
@@ -405,6 +635,123 @@
         await mreq("DELETE", "/" + entity + "s/" + id);
         toast(t("common.deleted"), "ok");
         location.hash = "#/military/" + entity + "s";
+      } catch (err) { toast(err.message, "err"); }
+    };
+  };
+
+  /* ====================================================== view: dossier */
+  const FICTIONAL_SUFFIX = " (fictional note)";
+  const RELATED = {
+    unit: [["deployments", "unit_id"], ["missions", "unit_id"],
+           ["holdings", "unit_id"], ["trainings", "unit_id"],
+           ["assignments", "unit_id"], ["units", "parent_id"]],
+    region: [["regions", "parent_id"], ["units", "region_id"]],
+    division: [["units", "division_id"]],
+    classification: [["units", "classification_id"]],
+    commander: [["assignments", "commander_id"]],
+    deployment: [["missions", "deployment_id"]],
+    armament: [["holdings", "armament_id"]],
+    training: [], holding: [], assignment: [], note: []
+  };
+
+  A.views.milDossier = async function (root, params) {
+    const entity = params.entity;
+    const id = Number(params.id);
+    const m = await meta();
+    const spec = m.entities[entity];
+    if (!spec) { location.hash = "#/military"; return; }
+    const rec = (await mreq("GET", "/" + entity + "s/" + id)).record;
+    A.crumbs([{ label: t("nav.military"), href: "#/military" },
+      { label: entLabel(entity), href: "#/military/" + entity + "s" },
+      { label: rec.docname || "#" + id }]);
+
+    const refMap = {};
+    await Promise.all(spec.fields.filter(f => f.type === "ref").map(async f => {
+      if (!refMap[f.entity]) {
+        const rows = await refOptions(f.entity);
+        refMap[f.entity] = {};
+        rows.forEach(r => { refMap[f.entity][r.id] = r; });
+      }
+    }));
+
+    const relData = await Promise.all((RELATED[entity] || []).map(async ([slug, fk]) => {
+      const data = await mreq("GET", "/" + slug + "?limit=10&sort=id&direction=desc&"
+        + fk + "=" + id);
+      return { slug, fk, rows: data.records || [], total: data.total || 0 };
+    }));
+    const notes = await mreq("GET",
+      "/notes?limit=50&sort=id&direction=desc&entity_type=" + entity + "&target_id=" + id);
+
+    const labelOf = (slug) => entLabel(slug.replace(/s$/, ""));
+    const relRow = (slug, r) => `
+      <tr>
+        <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
+        <td>${esc(r.name || r.full_name || r.exercise_name || r.note_text || "—")}</td>
+        <td>${r.status ? chip(r.status) : (r.start_date ? esc(r.start_date) : "—")}</td>
+        <td class="nowrap">
+          <a class="btn sm" href="#/military/${slug.replace(/s$/, "")}s/${r.id}/show">${esc(t("common.view"))}</a>
+        </td>
+      </tr>`;
+
+    root.innerHTML = milNav("e:" + entity) +
+      A.pageHead(rec.docname || "#" + id, entLabel(entity), `
+        <a class="btn" href="#/military/${entity}s">${icon("undo")} ${esc(t("common.back"))}</a>
+        <a class="btn primary" href="#/military/${entity}s/${id}">${icon("edit") || ""} ${esc(t("common.edit"))}</a>`) +
+      `<div class="card">
+        <div class="card-head"><h2>${esc(t("mil.dossier.fields"))}</h2></div>
+        <dl class="dossier-grid">
+          ${spec.fields.map(f => `
+            <div class="dfield"><dt>${esc(fieldLabel(f))}</dt>
+              <dd>${cell(rec, f, refMap)}</dd></div>`).join("")}
+          <div class="dfield"><dt>${esc(t("mil.form.created"))}</dt>
+            <dd>${esc(rec.created_at || "—")} · ${esc(rec.created_by || "—")}</dd></div>
+          <div class="dfield"><dt>${esc(t("mil.form.modified"))}</dt>
+            <dd>${esc(rec.modified_at || "—")} · ${esc(rec.modified_by || "—")}</dd></div>
+        </dl>
+      </div>
+      ${relData.filter(d => d.rows.length || d.total).map(d => `
+      <div class="card">
+        <div class="card-head"><h2>${esc(labelOf(d.slug))}</h2>
+          <span class="badge slate">${fmtNum(d.total)}</span>
+          ${d.total > d.rows.length ? `<a class="btn sm" style="margin-left:auto"
+            href="#/military/${d.slug}?${esc(d.fk)}=${id}">${esc(t("mil.dossier.seeAll"))}</a>` : ""}</div>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>${esc(t("mil.form.docname"))}</th><th>${esc(t("mil.dossier.name"))}</th>
+            <th>${esc(t("mil.dossier.status"))}</th><th>${esc(t("common.actions"))}</th></tr></thead>
+          <tbody>${d.rows.map(r => relRow(d.slug, r)).join("")}</tbody>
+        </table></div>
+      </div>`).join("")}
+      <div class="card" id="milNotesCard">
+        <div class="card-head"><h2>${esc(t("mil.dossier.notes"))}</h2>
+          <span class="badge slate">${fmtNum(notes.total || (notes.records || []).length)}</span></div>
+        ${role() === "viewer" ? "" : `
+        <div class="btn-row" style="margin-bottom:12px">
+          <input id="milNoteText" class="grow" placeholder="${esc(t("mil.dossier.notePlaceholder"))}">
+          <button class="btn primary" id="milNoteAdd">${icon("plus")} ${esc(t("mil.dossier.addNote"))}</button>
+        </div>`}
+        ${(notes.records || []).length ? `
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>${esc(t("mil.form.docname"))}</th><th>${esc(t("mil.dossier.noteText"))}</th>
+            <th>${esc(t("mil.form.author"))}</th><th>${esc(t("mil.form.date"))}</th></tr></thead>
+          <tbody>${(notes.records || []).map(n => `
+            <tr><td class="mono-cell">${esc(n.docname || "")}</td>
+              <td>${esc(n.note_text || "")}</td>
+              <td>${esc(n.author || "—")}</td>
+              <td>${esc(n.note_at || "—")}</td></tr>`).join("")}</tbody>
+        </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
+      </div>`;
+    bindChrome(root);
+    const addBtn = root.querySelector("#milNoteAdd");
+    if (addBtn) addBtn.onclick = async () => {
+      const text = root.querySelector("#milNoteText").value.trim();
+      if (!text) return;
+      try {
+        await mreq("POST", "/notes", {
+          entity_type: entity, target_id: id,
+          note_text: text + FICTIONAL_SUFFIX, author: "app-user"
+        });
+        toast(t("common.saved"), "ok");
+        A.rerender();
       } catch (err) { toast(err.message, "err"); }
     };
   };
@@ -481,19 +828,19 @@
         <div class="kpi"><div class="k-label">${esc(t("mil.force.currentDeployment"))}</div>
           <div class="k-value" style="font-size:15px;line-height:1.4">${
             d.current_deployment
-              ? `<a href="#/military/deployments/${d.current_deployment.id}">${esc(d.current_deployment.name)}</a>`
+              ? `<a href="#/military/deployments/${d.current_deployment.id}/show">${esc(d.current_deployment.name)}</a>`
               : "—"}</div>
           <div class="k-foot">${d.current_deployment ? chip(d.current_deployment.status) : ""}</div></div>
       </div>
       <div class="grid c2">
         <div class="card"><div class="card-head"><h3>${esc(t("mil.force.children"))}</h3></div>
           ${table([t("mil.col.unit"), t("mil.form.docname"), t("common.status"), t("mil.col.personnel")],
-            d.children, r => `<tr><td><a href="#/military/units/${r.id}">${esc(r.name)}</a></td>
+            d.children, r => `<tr><td><a href="#/military/units/${r.id}/show">${esc(r.name)}</a></td>
               <td class="mono-cell">${esc(r.docname)}</td><td>${chip(r.status)}</td>
               <td>${fmtNum(r.direct_personnel)}</td></tr>`)}</div>
         <div class="card"><div class="card-head"><h3>${esc(t("mil.force.siblings"))}</h3></div>
           ${table([t("mil.col.unit"), t("common.status")], d.siblings, r =>
-            `<tr><td><a href="#/military/units/${r.id}">${esc(r.name)}</a></td>
+            `<tr><td><a href="#/military/units/${r.id}/show">${esc(r.name)}</a></td>
              <td>${chip(r.status)}</td></tr>`)}</div>
         <div class="card"><div class="card-head"><h3>${esc(t("mil.force.missions"))}</h3></div>
           ${table([t("mil.col.name"), t("common.status")], d.missions, r =>

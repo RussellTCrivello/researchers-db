@@ -18,6 +18,7 @@
     { re: /^\/military$/, view: "military" },
     { re: /^\/military\/(units|regions)\/tree$/, view: "milTree", keys: ["kind"] },
     { re: /^\/military\/units\/(\d+)\/force$/, view: "milForce", keys: ["id"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)\/show$/, view: "milDossier", keys: ["entity", "id"] },
     { re: /^\/military\/armaments\/(\d+)\/holdings$/, view: "milHoldings", keys: ["id"] },
     { re: /^\/military\/naming$/, view: "milNaming" },
     { re: /^\/military\/audit$/, view: "milAudit" },

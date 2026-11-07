@@ -234,6 +234,28 @@ def clear_sample(request: Request, conn=Depends(_conn)) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# data quality + CSV export (specific paths, before the generic CRUD routes)
+# ---------------------------------------------------------------------------
+@router.get("/quality")
+def quality(conn=Depends(_conn)) -> dict[str, Any]:
+    return {"ok": True, **_call(service.quality_report, conn)}
+
+
+@router.get("/{entity}/export.csv")
+def export_csv(entity: str, request: Request,
+               q: str | None = None, sort: str = "id", direction: str = "asc",
+               conn=Depends(_conn)) -> dict[str, Any]:
+    entity = _check_entity(entity)
+    spec = ENTITY_SPECS[entity]
+    field_names = {f["name"] for f in spec["fields"]}
+    filters = {k: v for k, v in request.query_params.items()
+               if k in field_names and v != ""}
+    result = _call(service.export_csv, conn, entity, q=q, filters=filters,
+                   sort=sort, direction=direction)
+    return {"ok": True, **result}
+
+
+# ---------------------------------------------------------------------------
 # generic CRUD over the twelve entities (registered last on purpose)
 # ---------------------------------------------------------------------------
 @router.get("/{entity}")
