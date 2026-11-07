@@ -1092,6 +1092,13 @@ def _apply_precise_location(conn, spec: EntitySpec, data: dict, values: dict,
         if not values.get("geometry_source"):
             values["geometry_source"] = ("map pick" if point["method"] == "map_pick"
                                          else "typed coordinates")
+    # Both ends or nothing — the same rule the place branch enforces. Typed
+    # field values go through it too, so no coordinate write can leave half a
+    # pair behind (a write that touches neither axis leaves legacy rows alone).
+    if point or "latitude" in values or "longitude" in values:
+        lat = values["latitude"] if "latitude" in values else (before or {}).get("latitude")
+        lon = values["longitude"] if "longitude" in values else (before or {}).get("longitude")
+        _coordinate_pair(lat, lon)
     # Linking a place is an association: the place is not required to carry
     # coordinates, and its coordinates are never copied onto this record.
     fk = _LOCATION_FK.get(spec.key)

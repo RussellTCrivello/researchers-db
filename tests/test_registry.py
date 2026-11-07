@@ -1841,3 +1841,58 @@ def test_map_field_filters_narrow_the_layer_that_owns_the_field(client):
     }).json()
     assert grouped["total_records"] == (
         base["place"]["total"] + base["institution"]["total"] + base["event"]["total"])
+
+
+# ---------------------------------------------------------------------------
+# Regression: defects found by the 2026-11-07 integration audit
+# ---------------------------------------------------------------------------
+
+def test_import_update_mode_updates_and_accepts_exported_refs(client):
+    """Mode "update" updates matched rows — it never silently creates, and the
+    resolved "Label [CODE]" reference format that export itself produces must
+    import back cleanly.
+
+    The audit found mode="update" (the settings enum's middle option) falling
+    through to the create branch because the matcher only knew "upsert" and an
+    unreachable "update_only": rows either failed required checks or duplicated
+    records. The resolved export format was also refused by the FK resolver,
+    so an exported file could not be imported back.
+    """
+    import app.db as dbmod
+    from app import transfer
+    from app.repo import ENTITIES as R_ENTITIES
+
+    conn_db = dbmod.connect()
+    try:
+        place = None
+        for r in conn_db.execute("SELECT id, code, name_en FROM place WHERE deleted_at IS NULL LIMIT 1"):
+            place = dict(r)
+        assert place
+        title = "Round Trip Event"
+        conn_db.execute(
+            "INSERT INTO event (code, title_en, title_ar, record_status_id, created_at, created_by)"
+            " VALUES ('EVT-9001', ?, ?, (SELECT id FROM lookup WHERE domain='record_status' AND code='draft'),"
+            " '2026-01-01', 't')", (title, "حدث"))
+        conn_db.commit()
+
+        rows = [{"title_en": title, "Start date": "2001",
+                 "Place": f"{place['name_en']} [{place['code']}]",
+                 "Latitude": "12.5", "Longitude": "22.5"}]
+        mapping = {"title_en": "title_en", "Start date": "start_date",
+                   "Place": "place_id", "Latitude": "latitude", "Longitude": "longitude"}
+        rep = transfer.process_rows(conn_db, R_ENTITIES["event"], rows, mapping,
+                                    mode="update", actor="audit", dry_run=False,
+                                    match_on=["title_en"], reason="regression")
+        assert rep["failed"] == 0, rep["errors"]
+        assert rep["created"] == 0, "update mode must never create"
+        assert rep["updated"] == 1
+        got = conn_db.execute(
+            "SELECT latitude, longitude, place_id FROM event WHERE title_en=?",
+            (title,)).fetchone()
+        assert (got["latitude"], got["longitude"]) == (12.5, 22.5)
+        assert got["place_id"] == place["id"], "resolved 'Label [CODE]' must map back"
+    finally:
+        if conn_db is not None:
+            conn_db.execute("DELETE FROM event WHERE code='EVT-9001'")
+            conn_db.commit()
+            conn_db.close()

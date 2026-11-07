@@ -474,21 +474,31 @@ def _located_relationships(conn: sqlite3.Connection, etype: str, rec_id: int) ->
 NETWORK_DEPTH_DEFAULT = 2
 NETWORK_DEPTH_MAX = 3
 NETWORK_LIMIT_DEFAULT = 120
+NETWORK_EDGE_CAP = 200
 
 
-def _relationship_edges(conn: sqlite3.Connection, etype: str, rec_id: int) -> list[tuple[str, int, dict]]:
+def _relationship_edges(conn: sqlite3.Connection, etype: str, rec_id: int,
+                        cap: int | None = 200) -> tuple[list[tuple[str, int, dict]], bool]:
     """Every record this one is linked to by a relationship row (both sides).
 
     Event participants live here too: the participants module rewrites the
-    participant link types as ordinary relationships.
+    participant link types as ordinary relationships. `cap` bounds *indirect*
+    expansion only — pass None for the selected record itself, whose direct
+    relationships are essential and must never be silently dropped. The second
+    return value reports whether the cap actually cut edges away.
     """
-    rows = conn.execute(
-        "SELECT r.id, r.code, r.entity1_type, r.entity1_id, r.entity2_type, r.entity2_id, "
-        "l.label_en, l.label_ar FROM relationship r "
-        "LEFT JOIN lookup l ON l.id = r.relationship_type_id "
-        "WHERE r.deleted_at IS NULL AND ((r.entity1_type=? AND r.entity1_id=?) "
-        "OR (r.entity2_type=? AND r.entity2_id=?)) LIMIT 80",
-        (etype, rec_id, etype, rec_id)).fetchall()
+    sql = ("SELECT r.id, r.code, r.entity1_type, r.entity1_id, r.entity2_type, r.entity2_id, "
+           "l.label_en, l.label_ar FROM relationship r "
+           "LEFT JOIN lookup l ON l.id = r.relationship_type_id "
+           "WHERE r.deleted_at IS NULL AND ((r.entity1_type=? AND r.entity1_id=?) "
+           "OR (r.entity2_type=? AND r.entity2_id=?))")
+    args: list = [etype, rec_id, etype, rec_id]
+    if cap is not None:
+        sql += " LIMIT ?"
+        args.append(cap + 1)
+    rows = conn.execute(sql, args).fetchall()
+    overflow = cap is not None and len(rows) > cap
+    rows = rows[:cap] if cap is not None else rows
     out: list[tuple[str, int, dict]] = []
     for r in rows:
         if r["entity1_type"] == etype and r["entity1_id"] == rec_id:
@@ -502,22 +512,38 @@ def _relationship_edges(conn: sqlite3.Connection, etype: str, rec_id: int) -> li
             "label_en": r["label_en"] or "related record",
             "label_ar": r["label_ar"] or "سجل ذو صلة",
         }))
-    return out
+    return out, overflow
 
 
-def _fk_edges(conn: sqlite3.Connection, etype: str, rec_id: int) -> list[tuple[str, int, dict]]:
+def _fk_edges(conn: sqlite3.Connection, etype: str, rec_id: int,
+              cap: int | None = 200) -> tuple[list[tuple[str, int, dict]], bool]:
     """Association links recorded as foreign keys, forward and reverse.
 
     These are the registry's own semantics (birthplace, affiliated organization,
     event place, place hierarchy) — never anything invented from names or
-    coinciding coordinates.
+    coinciding coordinates. As with relationships, `cap` bounds indirect
+    expansion only (None = never drop, for the selected record), and the
+    second return value reports whether a cap cut edges away.
     """
     out: list[tuple[str, int, dict]] = []
+    overflow = False
 
     def one(target: str, tid, field: str, en: str, ar: str) -> None:
         if tid not in (None, ""):
             out.append((target, int(tid),
                         {"kind": "fk", "field": field, "label_en": en, "label_ar": ar}))
+
+    def many(target: str, field: str, en: str, ar: str) -> None:
+        nonlocal overflow
+        rows = conn.execute(
+            f"SELECT id FROM {ENTITIES[target].table} WHERE {field}=? "
+            f"AND deleted_at IS NULL LIMIT ?",
+            (rec_id, (cap + 1) if cap is not None else -1)).fetchall()
+        if cap is not None and len(rows) > cap:
+            overflow = True
+            rows = rows[:cap]
+        for sub in rows:
+            one(target, sub["id"], field, en, ar)
 
     if etype == "person":
         row = conn.execute(
@@ -531,11 +557,8 @@ def _fk_edges(conn: sqlite3.Connection, etype: str, rec_id: int) -> list[tuple[s
         row = conn.execute("SELECT place_id FROM institution WHERE id=?", (rec_id,)).fetchone()
         if row:
             one("place", row["place_id"], "place_id", "location", "الموقع")
-        for sub in conn.execute(
-                "SELECT id FROM person WHERE affiliated_institution_id=? "
-                "AND deleted_at IS NULL LIMIT 60", (rec_id,)):
-            one("person", sub["id"], "affiliated_institution_id",
-                "affiliated person", "شخص منتسب")
+        many("person", "affiliated_institution_id",
+             "affiliated person", "شخص منتسب")
     elif etype == "event":
         row = conn.execute("SELECT place_id FROM event WHERE id=?", (rec_id,)).fetchone()
         if row:
@@ -545,28 +568,18 @@ def _fk_edges(conn: sqlite3.Connection, etype: str, rec_id: int) -> list[tuple[s
         if row:
             one("place", row["parent_place_id"], "parent_place_id",
                 "parent place", "المكان الأعلى")
-        for sub in conn.execute(
-                "SELECT id FROM place WHERE parent_place_id=? AND deleted_at IS NULL "
-                "LIMIT 60", (rec_id,)):
-            one("place", sub["id"], "parent_place_id", "sub-place", "مكان تابع")
-        for sub in conn.execute(
-                "SELECT id FROM person WHERE birthplace_id=? AND deleted_at IS NULL "
-                "LIMIT 60", (rec_id,)):
-            one("person", sub["id"], "birthplace_id", "person born here", "شخص مولود هنا")
-        for sub in conn.execute(
-                "SELECT id FROM institution WHERE place_id=? AND deleted_at IS NULL "
-                "LIMIT 60", (rec_id,)):
-            one("institution", sub["id"], "place_id",
-                "organization located here", "مؤسسة موجودة هنا")
-        for sub in conn.execute(
-                "SELECT id FROM event WHERE place_id=? AND deleted_at IS NULL "
-                "LIMIT 60", (rec_id,)):
-            one("event", sub["id"], "place_id", "event held here", "حدث عُقد هنا")
-    return out
+        many("place", "parent_place_id", "sub-place", "مكان تابع")
+        many("person", "birthplace_id", "person born here", "شخص مولود هنا")
+        many("institution", "place_id", "organization located here", "مؤسسة موجودة هنا")
+        many("event", "place_id", "event held here", "حدث عُقد هنا")
+    return out, overflow
 
 
-def _net_edges(conn: sqlite3.Connection, etype: str, rec_id: int) -> list[tuple[str, int, dict]]:
-    return _fk_edges(conn, etype, rec_id) + _relationship_edges(conn, etype, rec_id)
+def _net_edges(conn: sqlite3.Connection, etype: str, rec_id: int,
+               cap: int | None = 200) -> tuple[list[tuple[str, int, dict]], bool]:
+    fk, fk_over = _fk_edges(conn, etype, rec_id, cap)
+    rel, rel_over = _relationship_edges(conn, etype, rec_id, cap)
+    return fk + rel, fk_over or rel_over
 
 
 def network(conn: sqlite3.Connection, etype: str, rec_id: int,
@@ -653,12 +666,18 @@ def network(conn: sqlite3.Connection, etype: str, rec_id: int,
         frontier.append((etype, int(rec_id)))
         visited.add((etype, int(rec_id)))
 
+    edges_truncated = False
     for d in range(1, depth + 1):
         if not frontier or len(points) >= limit:
             break
         nxt: list[tuple[str, int]] = []
         for t, i in frontier:
-            for t2, i2, via in _net_edges(conn, t, i):
+            # depth 1 carries the selected record's OWN links — essential direct
+            # relationships, never capped; deeper hops may cap, and say so.
+            edges, over = _net_edges(conn, t, i,
+                                     cap=None if d == 1 else NETWORK_EDGE_CAP)
+            edges_truncated = edges_truncated or over
+            for t2, i2, via in edges:
                 if t2 not in JOINS or (t2, i2) in visited:
                     continue
                 visited.add((t2, i2))
@@ -678,6 +697,7 @@ def network(conn: sqlite3.Connection, etype: str, rec_id: int,
         "depth": depth, "limit": limit,
         "points": points[:limit], "count": min(len(points), limit),
         "truncated": len(points) > limit,
+        "edges_truncated": edges_truncated,
         "unlocated": unlocated[:limit], "unlocated_count": len(unlocated),
     }
 

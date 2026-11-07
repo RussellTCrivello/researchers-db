@@ -440,3 +440,78 @@ def test_j_map_consistency(conn, corpus, client):
     assert all(p["position"] in ("precise", "associated") for p in r["points"])
     r = client.get(f"/api/map/network?entity=person&id={pb['id']}&depth=1").json()
     assert r["ok"] is True and r["points"], "network endpoint must answer"
+
+
+# ---------------------------------------------------------------------------
+# Regression: defects found by the 2026-11-07 integration audit
+# ---------------------------------------------------------------------------
+
+def test_direct_relationships_are_never_capped(conn):
+    """A hub's direct relationships must ALL appear at depth 1.
+
+    The audit found the depth-1 edge loaders applying their 80/60-row LIMITs
+    to the selected record's own direct links: a 250-link hub silently showed
+    80. Depth 1 is now uncapped; deeper hops disclose overflow through the
+    ``edges_truncated`` flag instead of dropping rows quietly.
+    """
+    make = lambda key, **vals: repo.create_record(conn, ENTITIES[key], vals, actor="t")  # noqa: E731
+    rtype = conn.execute(
+        "SELECT id FROM lookup WHERE domain='relationship_type' AND is_active=1 LIMIT 1"
+    ).fetchone()["id"]
+    hub = make("person", name_en="Audit Hub", name_ar="audit-hub")
+    spokes = []
+    for i in range(90):
+        org = make("institution", name_en=f"Audit Hub Spoke {i}", name_ar=f"spoke-{i}",
+                   latitude=10 + i * 0.01, longitude=20 + i * 0.01)
+        make("relationship", entity1_type="person", entity1_id=hub["id"],
+             entity2_type="institution", entity2_id=org["id"],
+             relationship_type_id=rtype)
+        spokes.append(org["id"])
+    net = mapdata.network(conn, "person", hub["id"], depth=1)
+    shown = {p["id"] for p in net["points"] if p["entity_type"] == "institution"}
+    assert set(spokes) <= shown, (
+        f"direct links dropped: {len(spokes) - len(shown)} of {len(spokes)} missing")
+    assert net.get("edges_truncated") is False, "depth-1 links can never be truncated"
+    # a deeper walk may cap, but it must say so instead of staying silent
+    net2 = mapdata.network(conn, "person", hub["id"], depth=2)
+    assert set(spokes) <= {p["id"] for p in net2["points"] if p["entity_type"] == "institution"}
+    assert "edges_truncated" in net2
+
+
+def test_coordinate_writes_refuse_half_pairs(conn, client):
+    """A coordinate is a pair or it is nothing — on every entity, every write.
+
+    The audit found typed half pairs (latitude without longitude) sailing past
+    validation on person/institution/event while the place branch refused them.
+    One rule now governs all four, and a legacy half pair never blocks edits
+    that do not touch coordinates.
+    """
+    from app.repo import ValidationError
+    for key, name in (("person", "Half Pair Person"),
+                      ("institution", "Half Pair Org"),
+                      ("event", "Half Pair Event")):
+        vals = {"name_en": name, "name_ar": "half", "latitude": 10.0}
+        if key == "event":
+            vals = {"title_en": name, "title_ar": "half", "latitude": 10.0}
+        with pytest.raises(ValidationError):
+            repo.create_record(conn, ENTITIES[key], vals, actor="t")
+    # HTTP agrees
+    r = client.post("/api/person", json={"name_en": "Half API", "name_ar": "ha",
+                                         "longitude": 5.0})
+    assert r.status_code == 422
+    # the pair is written and cleared together
+    p = repo.create_record(conn, ENTITIES["person"],
+                           {"name_en": "Pair Person", "name_ar": "pp",
+                            "latitude": 10.0, "longitude": 20.0}, actor="t")
+    with pytest.raises(ValidationError):
+        repo.update_record(conn, ENTITIES["person"], p["id"], {"latitude": None}, actor="t")
+    done = repo.update_record(conn, ENTITIES["person"], p["id"],
+                              {"latitude": None, "longitude": None}, actor="t")
+    assert done["latitude"] is None and done["longitude"] is None
+    # a legacy half pair stays editable for everything else
+    conn.execute("UPDATE person SET latitude=?, longitude=NULL WHERE id=?",
+                 (12.5, p["id"]))
+    conn.commit()
+    fixed = repo.update_record(conn, ENTITIES["person"], p["id"],
+                               {"name_en": "Pair Person Renamed"}, actor="t")
+    assert fixed["name_en"] == "Pair Person Renamed"

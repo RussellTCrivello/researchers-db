@@ -352,6 +352,11 @@ def _resolve_value(conn, spec: EntitySpec, field, value, resolvers, errors: list
             return int(raw)
         idx = resolvers["ref"].get(field.ref or "", {})
         found = idx.get(norm_key(raw))
+        if found is None and raw.endswith("]") and "[" in raw:
+            # The resolved export format is "Label [CODE]" (see export_bytes);
+            # accept that composite back so an exported file imports cleanly.
+            bracketed = raw[raw.rfind("[") + 1:-1].strip()
+            found = idx.get(norm_key(bracketed))
         if found is None:
             errors.append({"row": row_no, "field": field.key,
                            "message": f"Unknown reference '{raw}' for {field.label_en} "
@@ -444,7 +449,7 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
                                    "message": f"Duplicate identification number '{code}' inside the file"})
             seen_codes[norm_key(code)] = i
             existing = conn.execute(f"SELECT * FROM {spec.table} WHERE code=?", (code,)).fetchone()
-        elif mode in ("upsert", "update_only") and match_on != ["code"]:
+        elif mode in ("upsert", "update_only", "update") and match_on != ["code"]:
             clause = " AND ".join(f"{m}=?" for m in match_on if m in values)
             params = [values[m] for m in match_on if m in values]
             if clause:
@@ -455,7 +460,7 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
             row_errors.append({"row": i, "field": "code",
                                "message": f"Record {code} already exists (mode = create). "
                                           f"Use upsert to update it."})
-        if mode == "update_only" and not existing:
+        if mode in ("update_only", "update") and not existing:
             row_errors.append({"row": i, "field": "code",
                                "message": f"Record {code or '(no code)'} not found — skipped in update_only mode"})
 

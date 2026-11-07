@@ -225,6 +225,8 @@ CREATE TABLE IF NOT EXISTS institution (
 CREATE INDEX IF NOT EXISTS ix_inst_type ON institution(institution_type_id);
 CREATE INDEX IF NOT EXISTS ix_inst_country ON institution(country_id);
 CREATE INDEX IF NOT EXISTS ix_inst_status ON institution(record_status_id);
+CREATE INDEX IF NOT EXISTS ix_institution_geo ON institution(latitude, longitude);
+CREATE INDEX IF NOT EXISTS ix_institution_place ON institution(place_id);
 
 -- ---------------------------------------------------------------------------
 -- 4. Persons
@@ -285,6 +287,8 @@ CREATE INDEX IF NOT EXISTS ix_person_class ON person(classification_id);
 CREATE INDEX IF NOT EXISTS ix_person_nat ON person(nationality_id);
 CREATE INDEX IF NOT EXISTS ix_person_status ON person(record_status_id);
 CREATE INDEX IF NOT EXISTS ix_person_birth ON person(birth_date);
+CREATE INDEX IF NOT EXISTS ix_person_geo ON person(latitude, longitude);
+CREATE INDEX IF NOT EXISTS ix_person_birthplace ON person(birthplace_id);
 
 -- "Previous Positions" as a repeating child table (1 person -> N positions).
 CREATE TABLE IF NOT EXISTS person_position (
@@ -347,6 +351,7 @@ CREATE TABLE IF NOT EXISTS event (
 );
 CREATE INDEX IF NOT EXISTS ix_event_type ON event(event_type_id);
 CREATE INDEX IF NOT EXISTS ix_event_place ON event(place_id);
+CREATE INDEX IF NOT EXISTS ix_event_geo ON event(latitude, longitude);
 
 -- ---------------------------------------------------------------------------
 -- 6. Relationships (the graph between any two entities)
