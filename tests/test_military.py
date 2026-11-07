@@ -1090,3 +1090,96 @@ class TestIncompleteRecordRobustness:
         with service.transaction() as conn:
             rec = service.get_record(conn, "unit", child["id"])
         assert rec["subtree_personnel"] in (0, None) or rec["subtree_personnel"] == 0
+
+
+class TestFreshDatasetRebuild:
+    """Fresh-dataset rebuild: registry demo variation + military reload."""
+
+    def _seed_registry_demo(self):
+        from app import db
+        from app import seed as reg_seed
+        db.init_db(seed_demo=False)
+        conn = db.connect()
+        try:
+            reg_seed.seed_demo(conn)
+        finally:
+            conn.close()
+
+    def test_vary_demo_produces_complete_partial_minimal(self, tmp_db):
+        from app import db
+        from app import seed as reg_seed
+        self._seed_registry_demo()
+        conn = db.connect()
+        stats = reg_seed.vary_demo(conn)
+        conn.close()
+        for table in ("person", "place"):
+            s = stats[table]
+            assert s["full"] > 0 and s["partial"] > 0 and s["minimal"] > 0, s
+            assert s["groups_cleared"] > 0
+
+    def test_vary_demo_is_idempotent(self, tmp_db):
+        from app import db
+        from app import seed as reg_seed
+        self._seed_registry_demo()
+        conn = db.connect()
+        first = reg_seed.vary_demo(conn)
+        second = reg_seed.vary_demo(conn)
+        # column state must not change on the second pass
+        cols = {}
+        for table in ("person", "place", "event"):
+            cols[table] = [dict(r) for r in conn.execute(
+                f"SELECT * FROM {table} ORDER BY id").fetchall()]
+        conn.close()
+        assert first == second
+        conn = db.connect()
+        reg_seed.vary_demo(conn)
+        for table in ("person", "place", "event"):
+            again = [dict(r) for r in conn.execute(
+                f"SELECT * FROM {table} ORDER BY id").fetchall()]
+            assert again == cols[table]
+        conn.close()
+
+    def test_vary_demo_refuses_non_demo_rows(self, tmp_db):
+        """Real user data is NEVER modified — the pass must refuse."""
+        from app import db
+        from app import seed as reg_seed
+        self._seed_registry_demo()
+        conn = db.connect()
+        conn.execute("UPDATE person SET created_by = 'researcher' WHERE id = 1")
+        conn.commit()
+        try:
+            reg_seed.vary_demo(conn)
+            raised = False
+        except RuntimeError as exc:
+            raised = True
+            assert "never modified" in str(exc)
+        conn.close()
+        assert raised
+
+    def test_reload_rebuilds_full_test_dataset(self, tmp_db, capsys):
+        from app.military import cli
+        self._seed_registry_demo()
+        assert cli.reload(scale=200) == 0
+        out = capsys.readouterr().out
+        assert "registry demo variation" in out
+        assert "military sample loaded" in out
+        assert "military bulk loaded" in out
+        assert cli.verify() == 0
+        out = capsys.readouterr().out
+        assert "11/11 checks passed" in out
+        assert "FAILED" not in out
+
+    def test_registry_demo_rows_keep_identity_under_variation(self, tmp_db):
+        from app import db
+        from app import seed as reg_seed
+        self._seed_registry_demo()
+        conn = db.connect()
+        reg_seed.vary_demo(conn)
+        # identity columns survive: names/codes always present
+        missing = conn.execute(
+            "SELECT COUNT(*) FROM person WHERE name_ar IS NULL AND "
+            "name_en IS NULL AND name_original IS NULL").fetchone()[0]
+        codes = conn.execute(
+            "SELECT COUNT(*) FROM person WHERE code IS NULL").fetchone()[0]
+        conn.close()
+        assert missing == 0 and codes == 0

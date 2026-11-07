@@ -538,7 +538,18 @@ transactions).
   deterministic fictional dataset (~7,000 records at the default scale) that
   exercises every rule, counter and read model under volume;
   `python -m app.military.cli clear` resets military records while preserving
-  the append-only audit trail.
+  the append-only audit trail; **`python -m app.military.cli reload [--scale
+  N]` rebuilds the full test dataset in one command** — registry demo
+  completeness variation (complete / partial / near-empty records across
+  person, place, institution, event, source) plus the fictional sample and the
+  varied bulk set. All loaders are deterministic and idempotent; the registry
+  variation pass (`app/seed.py::vary_demo`) refuses to run on any database
+  containing non-demo rows, so real user data is never modified.
+* **Fresh-database rebuild.** To start from an empty database: stop the
+  server, move `app/data/registry.db` aside (archive, never delete — user
+  data is never discarded), then `app.db.init_db(seed_demo=True)` followed by
+  `python -m app.military.cli reload`. Document names never collide across
+  rebuilds of the same database (counters keep advancing).
 * The UI is plain shell assets (`views/military.js`, `css/military.css`): no
   CDN, no extra dependencies — like the rest of the application it runs
   fully offline. Entity lists paginate server-side ("load more", 200-row

@@ -7,6 +7,7 @@ Usage (from the repository root)::
     python -m app.military.cli sample --force
     python -m app.military.cli bulk       # load a LARGE fictional dataset (stress)
     python -m app.military.cli bulk --scale 2000
+    python -m app.military.cli reload     # full test dataset rebuild (demo variation + sample + bulk)
     python -m app.military.cli clear      # remove all military records
 
 Exit code 0 = every check passed; 1 = at least one check failed.
@@ -226,6 +227,36 @@ def bulk(scale: int = 7000) -> int:
     return 0
 
 
+def reload(scale: int = 7000) -> int:
+    """Rebuild the full test dataset in place: registry demo variation +
+    fictional sample + varied bulk (complete / partial / near-empty).
+
+    Idempotent and deterministic.  Never touches real user data (the
+    registry variation pass refuses on non-demo rows).
+    """
+    from .. import seed as reg_seed
+    from . import bulk as bulk_mod
+    ensure()
+    reg_conn = db.connect()
+    try:
+        stats = reg_seed.vary_demo(reg_conn)
+    finally:
+        reg_conn.close()
+    if stats:
+        print("registry demo variation:")
+        for table, counts in stats.items():
+            print(f"  {table:12s} full={counts['full']} partial={counts['partial']} "
+                  f"minimal={counts['minimal']} groups_cleared={counts['groups_cleared']}")
+    with service.transaction() as conn:
+        seed.clear_sample(conn)
+        sample = seed.load_sample(conn)
+        result = bulk_mod.load_bulk(conn, scale=scale)
+    print(f"military sample loaded: {sample['counts']}")
+    print(f"military bulk loaded: {result['total']} records (profiles: {result['profiles']})")
+    print(seed.FICTIONAL_DISCLAIMER)
+    return 0
+
+
 def clear() -> int:
     ensure()
     with service.transaction() as conn:
@@ -247,6 +278,12 @@ def main(argv: list[str] | None = None) -> int:
             if a == "--scale" and i + 1 < len(argv):
                 scale = int(argv[i + 1])
         return bulk(scale=scale)
+    if cmd == "reload":
+        scale = 7000
+        for i, a in enumerate(argv):
+            if a == "--scale" and i + 1 < len(argv):
+                scale = int(argv[i + 1])
+        return reload(scale=scale)
     if cmd == "clear":
         return clear()
     print(__doc__)
