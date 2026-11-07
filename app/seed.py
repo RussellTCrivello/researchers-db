@@ -920,3 +920,132 @@ def seed_demo(conn: sqlite3.Connection) -> None:
     total = db.rebuild_index(conn)
     conn.commit()
     print(f"[siraj] demo dataset created · {total} search documents indexed")
+
+
+# ---------------------------------------------------------------------------
+# demo completeness variation (testing aid — demo rows only, deterministic)
+# ---------------------------------------------------------------------------
+# Field groups cleared together (semantic pairs stay paired: coordinates with
+# their provenance, dates with their precision).  Identity, codes, names and
+# system columns are NEVER touched — variation means missing optional
+# metadata, not missing identity.
+_VARY_GROUPS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "person": (
+        ("image_url", "image_alt"),
+        ("birth_date", "birth_precision"),
+        ("death_date", "death_precision"),
+        ("nationality_id",),
+        ("birthplace_id",),
+        ("birthplace_text",),
+        ("classification_id",),
+        ("current_position",),
+        ("declared_affiliation",),
+        ("affiliated_institution_id",),
+        ("affiliated_country_id",),
+        ("affiliation_start", "affiliation_end"),
+        ("institutional_relations",),
+        ("website",),
+        ("social_accounts",),
+        ("cv_url",),
+        ("public_activity",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "place": (
+        ("image_url", "image_alt"),
+        ("region",),
+        ("city",),
+        ("district",),
+        ("parent_place_id",),
+        ("geo_description",),
+        ("research_significance",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "institution": (
+        ("image_url", "image_alt"),
+        ("abbreviation",),
+        ("founded_date", "founded_precision"),
+        ("closed_date",),
+        ("city",),
+        ("place_id",),
+        ("address",),
+        ("current_leadership",),
+        ("founders_text",),
+        ("objectives",),
+        ("org_structure",),
+        ("website",),
+        ("official_accounts",),
+        ("research_significance",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "event": (
+        ("image_url", "image_alt"),
+        ("start_date", "start_precision"),
+        ("end_date",),
+        ("place_id",),
+        ("description",),
+        ("significance",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "source": (
+        ("publisher",),
+        ("url",),
+        ("publication_date", "publication_precision"),
+        ("access_date",),
+        ("supported_information",),
+        ("verification_notes",),
+        ("language",),
+        ("isbn_issn",),
+        ("archive_reference",),
+        ("researcher_notes",),
+    ),
+}
+
+_VARY_PROFILES = (("full", 1.0, 0.38), ("partial", 0.5, 0.72), ("minimal", 0.1, 1.0))
+
+
+def vary_demo(conn: sqlite3.Connection, seed: str = "20261107") -> dict[str, dict[str, int]]:
+    """Deterministic completeness variation over DEMO data (testing aid).
+
+    Produces complete, partial and near-empty records across the registry
+    entities so interfaces and reports are exercised against every state.
+    Idempotent: decisions derive purely from (seed, table, id).  Refuses to
+    run unless every row in each target table is demo-created (``created_by =
+    'system'``) — real user data is never touched.
+    """
+    import random as _random
+
+    stats: dict[str, dict[str, int]] = {}
+    for table, groups in _VARY_GROUPS.items():
+        total = conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
+        foreign = conn.execute(
+            f"SELECT COUNT(*) AS n FROM {table} WHERE created_by IS NOT 'system'"
+        ).fetchone()["n"]
+        if total and foreign:
+            raise RuntimeError(
+                f"vary_demo refused: {table} contains {foreign} non-demo row(s) "
+                f"— real user data is never modified")
+        counts = {"full": 0, "partial": 0, "minimal": 0, "groups_cleared": 0}
+        for row in conn.execute(f"SELECT id FROM {table}").fetchall():
+            rng = _random.Random(f"{seed}:{table}:{row['id']}")
+            r = rng.random()
+            profile, keep, _ = next(p for p in _VARY_PROFILES
+                                    if r < p[2]) if r < 1.0 else _VARY_PROFILES[-1]
+            counts[profile] += 1
+            if profile == "full":
+                continue
+            for group in groups:
+                if rng.random() > keep:
+                    sets = ", ".join(f"{col} = NULL" for col in group)
+                    conn.execute(f"UPDATE {table} SET {sets} WHERE id = ?", (row["id"],))
+                    counts["groups_cleared"] += 1
+        stats[table] = counts
+    conn.commit()
+    return stats

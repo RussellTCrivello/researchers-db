@@ -53,7 +53,11 @@ def test_health(client):
 
 def test_meta_has_entities_and_vocabularies(client):
     meta = client.get("/api/meta").json()
-    assert len(meta["entities"]) == 6
+    # the unified catalogue serves registry + military entities from one meta;
+    # the registry six must all be there (military additions are pinned in
+    # tests/test_military.py::TestUnifiedMeta)
+    keys = {e["key"] for e in meta["entities"]}
+    assert {"person", "place", "institution", "relationship", "source", "event"} <= keys
     assert len(meta["lookup_domains"]) >= 20
     assert meta["lookups"]["record_status"]
     for e in ("person", "place", "institution", "relationship", "source", "event"):

@@ -15,6 +15,17 @@
     { re: /^\/map$/, view: "map" },
     { re: /^\/geo$/, view: "geomap" },
     { re: /^\/desk$/, view: "desk" },
+    { re: /^\/military$/, view: "military" },
+    { re: /^\/military\/(forces|operations|training|command)$/, view: "milDomain", keys: ["domain"] },
+    { re: /^\/military\/(units|regions)\/tree$/, view: "milTree", keys: ["kind"] },
+    { re: /^\/military\/units\/(\d+)\/force$/, view: "milForce", keys: ["id"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)\/show$/, view: "milDossier", keys: ["entity", "id"] },
+    { re: /^\/military\/armaments\/(\d+)\/holdings$/, view: "milHoldings", keys: ["id"] },
+    { re: /^\/military\/naming$/, view: "milNaming" },
+    { re: /^\/military\/audit$/, view: "milAudit" },
+    { re: /^\/military\/([\w-]+)\/new$/, view: "milForm", keys: ["entity"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)$/, view: "milForm", keys: ["entity", "id"] },
+    { re: /^\/military\/([\w-]+)$/, view: "milList", keys: ["entity"] },
     { re: /^\/import$/, view: "import" },
     { re: /^\/export$/, view: "export" },
     { re: /^\/changelog$/, view: "changelog" },
@@ -22,6 +33,11 @@
     { re: /^\/numbering$/, view: "numbering" },
     { re: /^\/settings$/, view: "settings" },
     { re: /^\/maintenance$/, view: "maintenance" },
+    /* military entities share the unified list engine but keep their own
+       forms and dossiers: alias the generic /entity/ routes first */
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/new$/, view: "milForm", keys: ["entity"] },
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/(\d+)\/edit$/, view: "milForm", keys: ["entity", "id"] },
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/(\d+)$/, view: "milDossier", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)\/edit$/, view: "recordEdit", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)$/, view: "record", keys: ["entity", "id"] },
@@ -108,7 +124,9 @@
       if (route.view !== "geomap" && App.geoDispose) App.geoDispose();
       const fn = App.views[route.view];
       const ent = route.params && route.params.entity;
-      if (ent && !(App.state.meta.entities || []).some(e => e.key === ent)) {
+      /* the registry owns /entity/<key> routes; /military/* has its own meta */
+      if (ent && !route.path.startsWith("/military") &&
+          !(App.state.meta.entities || []).some(e => e.key === ent)) {
         view.innerHTML = `<div class="card"><h2>${esc(t("common.error"))}</h2>
           <div class="notice">${esc(ent)} — ${esc(t("ui.unknownEntity"))}</div>
           <div class="btn-row" style="margin-top:12px">

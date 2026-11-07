@@ -18,6 +18,7 @@ try {
 <link rel="stylesheet" href="/static/css/views.css">
 <link rel="stylesheet" href="/static/css/viz.css">
 <link rel="stylesheet" href="/static/css/desk.css">
+<link rel="stylesheet" href="/static/css/military.css">
 <link rel="stylesheet" href="/static/css/maplib.css">
 <!-- MapLibre GL JS, served from the application itself: the map must work
      with no CDN, no tile server and no network at all -->
@@ -62,6 +63,9 @@ try {
       </a>
       <a class="nav-item" data-route="structures" href="#/structures">
         <span class="ico" data-icon="layers"></span><span data-i18n="nav.structures">Structures</span>
+      </a>
+      <a class="nav-item" data-route="military" href="#/military">
+        <span class="ico" data-icon="shield"></span><span data-i18n="nav.military">Brigade Command</span>
       </a>
       <a class="nav-item" data-route="reports" href="#/reports">
         <span class="ico" data-icon="chart"></span><span data-i18n="nav.reports">Reports</span>
@@ -162,6 +166,7 @@ try {
 <script src="/static/js/views/geomap.js"></script>
 <script src="/static/js/views/desk.js"></script>
 <script src="/static/js/views/admin.js"></script>
+<script src="/static/js/views/military.js"></script>
 <!-- shell: bootstrap + hash router (must load last) -->
 <script src="/static/js/app.js"></script>
 </body>

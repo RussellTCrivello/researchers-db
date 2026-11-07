@@ -240,6 +240,10 @@ class EntitySpec:
     index_builder: Callable | None = None
     description_en: str = ""
     description_ar: str = ""
+    # -- engine capabilities ---------------------------------------------
+    soft_delete: bool = True            # table has deleted_at; registry deletes
+    freshness_col: str = "updated_at"   # column the KPI "recently updated" tile reads
+    full_text_index: bool = True        # rows live in search_doc (FTS)
 
     # -- derived helpers ---------------------------------------------------
     def field(self, key: str) -> Field | None:
@@ -304,19 +308,31 @@ REF_TITLE_SQL = {
     "event": "COALESCE(NULLIF(title_en,''), NULLIF(title_ar,''), code)",
 }
 
+# Entities whose key differs from their table name (the unified military schema
+# keeps its historical table names).  resolve_ref consults this before falling
+# back to the key itself as a table name.
+REF_TABLES: dict[str, str] = {
+    "unit": "military_unit",
+    "deployment": "operational_deployment",
+    "assignment": "command_assignment",
+    "holding": "unit_armament",
+}
+
 
 def resolve_ref(conn, ref: str, ref_id: int | None) -> dict | None:
     if not ref_id:
         return None
-    table = ENTITIES[ref].table if ref in ENTITIES else ref
+    table = ENTITIES[ref].table if ref in ENTITIES else REF_TABLES.get(ref, ref)
     row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (ref_id,)).fetchone()
     if not row:
         return {"id": ref_id, "code": None, "name_en": None, "name_ar": None, "label": f"#{ref_id}"}
     d = dict(row)
-    name_en = d.get("name_en") or d.get("title_en") or d.get("title")
-    name_ar = d.get("name_ar") or d.get("title_ar")
-    return {"id": ref_id, "code": d.get("code"), "name_en": name_en, "name_ar": name_ar,
-            "label": name_en or name_ar or d.get("code") or f"#{ref_id}"}
+    name_en = (d.get("name_en") or d.get("title_en") or d.get("title")
+               or d.get("name") or d.get("full_name") or d.get("exercise_name"))
+    name_ar = d.get("name_ar") or d.get("title_ar") or name_en
+    return {"id": ref_id, "code": d.get("code") or d.get("docname"),
+            "name_en": name_en, "name_ar": name_ar,
+            "label": name_en or name_ar or d.get("code") or d.get("docname") or f"#{ref_id}"}
 
 
 def resolve_all_labels(conn, spec: EntitySpec, row: dict,

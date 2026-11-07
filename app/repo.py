@@ -249,10 +249,13 @@ def build_where(spec: EntitySpec, payload: dict,
     params: list[Any] = []
     warnings: list[str] = []
 
-    if payload.get("only_deleted"):
-        where.append("t.deleted_at IS NOT NULL")
-    elif not payload.get("include_deleted"):
-        where.append("t.deleted_at IS NULL")
+    # Soft-delete flags only exist on registry tables; entities without the
+    # capability (soft_delete=False) must not filter on a column they lack.
+    if getattr(spec, "soft_delete", True):
+        if payload.get("only_deleted"):
+            where.append("t.deleted_at IS NOT NULL")
+        elif not payload.get("include_deleted"):
+            where.append("t.deleted_at IS NULL")
 
     if payload.get("status_ids"):
         ids = [int(i) for i in payload["status_ids"] if str(i).lstrip("-").isdigit()]
@@ -418,15 +421,25 @@ def build_where(spec: EntitySpec, payload: dict,
     logic = " OR " if str(payload.get("logic", "and")).lower() == "or" else " AND "
     clause = (logic.join(f"({w})" for w in where)) if where else "1=1"
 
-    # free text search via the FTS index (Arabic-normalised)
+    # free text search via the FTS index (Arabic-normalised); entities that do
+    # not live in search_doc (full_text_index=False) fall back to a LIKE scan of
+    # their own text fields, so quick search works on every table alike
     q = (payload.get("q") or "").strip()
-    if q:
+    if q and getattr(spec, "full_text_index", True):
         match = db.fts_query(q)
         if match:
             clause += (" AND " if clause != "1=1" else "") + (
                 f"t.id IN (SELECT entity_id FROM search_doc "
                 f"WHERE search_doc MATCH ? AND entity_type='{spec.key}')")
             params.append(match)
+    elif q:
+        likes = [f"norm(t.{f.key}) LIKE ?" for f in spec.fields
+                 if (f.type in ("text", "textarea") and not f.system)
+                 or f.key == "code"]
+        if likes:
+            group = "(" + " OR ".join(likes) + ")"
+            clause = group if clause == "1=1" else clause + " AND " + group
+            params += [f"%{db.normalize(q)}%"] * len(likes)
     return clause, params, warnings
 
 
@@ -502,8 +515,9 @@ def kpi_summary(conn: sqlite3.Connection, spec: EntitySpec, payload: dict) -> di
         agg_cols += ['AVG("d_completeness") AS avg_completeness',
                      'SUM(CASE WHEN "d_completeness" < 50 THEN 1 ELSE 0 END) AS low_completeness']
     sum_sql = "".join(f', SUM("d_{k}") AS "s_{k}"' for k in sums)
-    agg_cols.append("SUM(CASE WHEN julianday('now') - julianday(updated_at) <= 30 "
-                    "THEN 1 ELSE 0 END) AS recent")
+    agg_cols.append(f"SUM(CASE WHEN julianday('now') - julianday("
+                    f"{getattr(spec, 'freshness_col', 'updated_at')}) <= 30 "
+                    f"THEN 1 ELSE 0 END) AS recent")
     row = conn.execute(
         f'SELECT {", ".join(agg_cols)}{sum_sql} '
         f'FROM (SELECT *{_derived_select(spec)} FROM {spec.table} t WHERE {where}) q',

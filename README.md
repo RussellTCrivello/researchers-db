@@ -67,6 +67,7 @@ The interface opens in Arabic (RTL) and switches to English with one click.
 | **Administration** | vocabularies (21 domains / 271 values, add-in-place), numbering, users & roles, languages, backups, re-index, vacuum, global change log |
 | **Configuration system** | every setting declared once in a typed registry (27 keys, 8 groups) with bilingual labels, bounds and the code path that honours it; a screen generated from it, `GET/PUT /api/settings` + `/api/settings/schema` + `POST /api/settings/reset`; **validated** (a bad value is refused with a reason, never silently scrubbed), **all-or-nothing**, **audited** per key, **scoped** (instance policy vs. one browser), **reversible**; plus policy gates that actually refuse — publishing without a source, deleting without a reason, imports/exports over a ceiling |
 | **Geographic workspace** | a real map over the registry, `#/geo`: **eight base maps in four families** — offline vector, standard street maps, **aerial imagery** (plain and hybrid) and terrain — each with the attribution its licence requires; markers are records at their stored coordinates (750 places + geolocated persons, institutions and events), **a click on a point always answers**: its dossier opens by itself, a point hiding other records lists them all, and a printed base-map city shows the registry records within 25 km of it, list ↔ map ↔ inspector kept in sync, click empty ground for a **temporary** point that never writes, groups that open their records, live filtering with a matching count, layer toggles that change the *view* only, measurement, DMS ↔ decimal entry with range validation, geocoding search and coordinate navigation, five CRSs, antimeridian-safe queries, relationship and place-hierarchy overlays drawn from the stored rows, **offline base map** (2.54 MB Natural Earth pack, no network) with OSM/CARTO providers one click away and their attribution shown, plus a three-zone analytical mode whose panels collapse independently |
+| **Military Organization (BIMS)** | a first-class **Brigade Command workspace inside the shell** (`#/military`, see [`docs/MILITARY_ORG.md`](docs/MILITARY_ORG.md)): twelve entities from regions and a military-unit force tree to deployments, missions, armament holdings, training and command appointments; a server-enforced business-rule catalogue (tree integrity, date chronology, one current deployment per unit with synchronised pointers, appointment overlap, training capacity against **computed** subtree personnel, restricted deletes); an automatic naming-series engine (19 catalogued series with year/category partitions and audited counter control); an append-only audit trail; role enforcement (viewer/staff/admin); a **fictional** sample dataset and an Appendix C CLI verifier — sharing the application's navigation, locales (EN/AR), themes and design language, over the same `registry.db` via an additive, idempotent migration that never touches registry rows; its UI adds searchable linked-field dropdowns, record dossiers with related-record panels, sortable/filterable lists with CSV export, live document-name previews and a data-completeness dashboard over a deliberately varied dataset — and every military table is browsed through the **same list engine** as People/Places/Organizations (table/cards/gallery/list views, the deep filter builder, column and card-layout control, saved views, bulk actions, multi-format XLSX/CSV/TSV/JSON export) via one unified query/export/meta contract with the military rule engine on the write path |
 | **Bilingual UI** | complete AR/EN bundles with RTL/LTR, light/dark themes, responsive layout, print stylesheets; adding a language = one JSON file + one DB row |
 | **Audit trail** | field-level change log with transaction id, actor, reason, source, reviewer, old/new values, per record and globally |
 | **Infrastructure** | schema + versioned migrations, connection-level SQL helpers, reindexing, **backups that include every uploaded file**, JSON full dump, optional bearer-token API auth (`SIRAJ_API_TOKEN`), `/api/metrics`, CLI, pytest suite, Playwright UI smoke test |
@@ -129,6 +130,15 @@ researchers-db/
 │  │  ├─ __init__.py        re-exports the ASGI app (`app.server:app`)
 │  │  ├─ api.py             FastAPI routes, lifespan, static + media streaming
 │  │  └─ launcher.py        UTF-8 console/env setup, data-dir resolution, serve()
+│  ├─ military/             Military Organization (BIMS) — self-contained module
+│  │  ├─ dbm.py             unified registry.db wiring (migration 015_military_org.sql)
+│  │  ├─ vocab.py           controlled vocabularies + state-transition tables
+│  │  ├─ naming.py          naming-series engine (19 options, partitions, counters)
+│  │  ├─ rules.py           business rule catalogue (tree, dates, pointers, caps)
+│  │  ├─ service.py         transactional CRUD, sync, audit, bilingual labels
+│  │  ├─ api.py             /api/military router (roles enforced server-side)
+│  │  ├─ seed.py            fictional sample dataset (labelled fictional)
+│  │  └─ cli.py             python -m app.military.cli verify (Appendix C)
 │  ├─ cli.py                init / serve / migrate / backup / stats / export / user
 │  ├─ data/                 registry.db, uploads/, staging/  (git-ignored)
 │  └─ static/
@@ -138,7 +148,7 @@ researchers-db/
 │        ├─ components/     forms.js   (combobox, inline-create, shared inputs)
 │        ├─ views/          list · record · dashboard · reports · admin
 │        └─ locales/        index.json (language manifest) + en.json + ar.json
-├─ docs/                    DESIGN_REVIEW · DATA_MODEL · IMPORT_EXPORT · API · OPERATIONS · UI_GUIDE · I18N · GRAPH · ATLAS · CRCE · SETTINGS · VERIFICATION · AUDIT · PHASE5 · PHASE6
+├─ docs/                    DESIGN_REVIEW · DATA_MODEL · IMPORT_EXPORT · API · OPERATIONS · UI_GUIDE · I18N · GRAPH · ATLAS · CRCE · SETTINGS · VERIFICATION · AUDIT · PHASE5 · PHASE6 · MILITARY_ORG
 ├─ samples/                 import examples + run_samples.py
 ├─ tests/                   pytest suite (110) · verify_all.py (407 API, 101 routes) · audit.py (162
 │                           integrity & behaviour) · ui_smoke.py (51) · ui_full.py (200)
@@ -196,6 +206,7 @@ python samples/run_samples.py                 # import every sample file through
 [`docs/GRAPH.md`](docs/GRAPH.md) | the relationship graph: typed vs. structural links, the two map endpoints, the in-app explorer and the generated figures |
 [`docs/CRCE.md`](docs/CRCE.md) | **the compass-rose coordinate encoding**: the standard as data, the four reserved marks, the dossier field order, the inheritance model, the honest reference point, the three relationship states, what the standard refuses to cover, and every surface it appears on |
 [`docs/VERIFICATION.md`](docs/VERIFICATION.md) | **the evidence**: what each harness proves, the nine defects verification found and fixed, and how to reproduce |
+[`docs/MILITARY_ORG.md`](docs/MILITARY_ORG.md) | **the Military Organization (BIMS)**: the twelve entities and their data dictionary, the server-enforced rule catalogue, the naming-series grammar and catalogue, the API, the Brigade Command interface, the fictional sample dataset, the Appendix C verifier and the glossary |
 [`docs/SETTINGS.md`](docs/SETTINGS.md) | **the configuration manual**: the four layers (deployment / instance / personal / per-request) and which wins, every key with its type, default, bounds, consumer and precedence, all four ways to read or write one (screen, API, SQL, CLI), validation reasons, reset and audit, backup/restore of a configuration, how to add a key in five minutes, security notes and a troubleshooting table |
 [`docs/PHASE6.md`](docs/PHASE6.md) | the data-entry surface setting: page or pop-up window, instance default vs. personal override, the dialog behaviour contract, and the three defects building it exposed |
 
