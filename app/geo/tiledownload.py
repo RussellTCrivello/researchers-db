@@ -334,6 +334,10 @@ def _run_job(job_id: int) -> None:
                 if not url:
                     raise LookupError("the provider has no tile template")
                 data, ctype = browse_cache.fetch_upstream(url)
+                if browse_cache.is_error_tile(data):
+                    # A policy/error card is not a tile: count it as failed and
+                    # keep it out of the permanent store.
+                    raise ValueError("the provider returned a policy/error card instead of a tile")
                 put_tile(conn, job["provider"], job["src"], z, x, y, data, ctype)
                 consecutive = 0
                 fresh = get_job(job_id)
