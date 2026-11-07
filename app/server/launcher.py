@@ -23,6 +23,7 @@ run before/independently of the FastAPI import.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -59,11 +60,28 @@ def default_data_dir() -> Path:
     env = os.environ.get("SIRAJ_DATA_DIR")
     if env:
         return Path(env).expanduser().resolve()
-    return (ROOT / "app" / "data").resolve()
+    # ROOT is the `app` package; the project folder is its parent.
+    return (ROOT.parent / "app" / "data").resolve()
 
 
 def apply_data_dir() -> Path:
     path = default_data_dir()
+    # Pre-fix launches wrote `app/app/data` (ROOT was taken for the project
+    # root). Bring the registry home once — the folder is only moved when the
+    # corrected location has no registry yet, and if another running instance
+    # holds the files we simply keep using the old place. Nothing is deleted.
+    legacy = (ROOT / "app" / "data").resolve()
+    if path != legacy and (legacy / "registry.db").exists() \
+            and not (path / "registry.db").exists():
+        target_free = not path.exists() or not any(path.iterdir())
+        if target_free:
+            try:
+                if path.exists():
+                    path.rmdir()
+                path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(legacy), str(path))
+            except OSError:
+                path = legacy
     path.mkdir(parents=True, exist_ok=True)
     os.environ.setdefault("SIRAJ_DATA_DIR", str(path))
     return path

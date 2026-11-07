@@ -1896,3 +1896,43 @@ def test_import_update_mode_updates_and_accepts_exported_refs(client):
             conn_db.execute("DELETE FROM event WHERE code='EVT-9001'")
             conn_db.commit()
             conn_db.close()
+
+
+def test_data_dir_lives_at_app_data_and_relocates_the_legacy_folder(monkeypatch, tmp_path):
+    """The launcher's default data dir is <project>/app/data.
+
+    An off-by-one wrote <project>/app/app/data instead (the doubled path the
+    launcher banner showed on user machines). The registry must land at the
+    documented location, and a registry already sitting in the legacy folder
+    must be moved there — never deleted, never duplicated silently.
+    """
+    import os
+
+    from app.server import launcher
+
+    project = tmp_path / "proj"
+    pkg = project / "app"
+    legacy = pkg / "app" / "data"
+    legacy.mkdir(parents=True)
+    (legacy / "registry.db").write_bytes(b"legacy-bytes")
+
+    saved = os.environ.pop("SIRAJ_DATA_DIR", None)
+    try:
+        monkeypatch.setattr(launcher, "ROOT", pkg)
+        path = launcher.apply_data_dir()
+        assert path == (project / "app" / "data").resolve()
+        assert (path / "registry.db").read_bytes() == b"legacy-bytes", "registry must travel with the move"
+        assert not legacy.exists(), "the legacy folder must be gone after the move"
+
+        # an existing registry at the right place always wins over a stray legacy one
+        (path / "registry.db").write_bytes(b"newer")
+        legacy.mkdir(parents=True)
+        (legacy / "registry.db").write_bytes(b"stale")
+        path2 = launcher.apply_data_dir()
+        assert path2 == path
+        assert (path / "registry.db").read_bytes() == b"newer"
+    finally:
+        if saved is not None:
+            os.environ["SIRAJ_DATA_DIR"] = saved
+        else:
+            os.environ.pop("SIRAJ_DATA_DIR", None)
