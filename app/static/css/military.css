@@ -107,3 +107,16 @@ table.data th.sortable[aria-sort="descending"]::after { content: " ↓"; color: 
 .chip.q3, .qseg.q3 { background: #dfe9f6; color: #26507d; }
 .chip.q4, .qseg.q4 { background: var(--green-soft, #d9f0e5); color: var(--green, #1d7a52); }
 .chip.q0, .chip.q1, .chip.q2, .chip.q3, .chip.q4 { border: none; }
+
+/* ---------- two-tier domain navigation ---------- */
+.mil-nav-sub {
+  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line, #d5dbe3);
+}
+
+/* ---------- list view modes + import ---------- */
+.vmodes { display: inline-flex; gap: 4px; }
+.import-panel {
+  margin: 10px 0 14px; padding: 12px; border-radius: 8px;
+  background: var(--chip, #f2f5f9); border: 1px dashed var(--line, #d5dbe3);
+}
+.card.inner { box-shadow: none; border: 1px solid var(--line, #d5dbe3); }

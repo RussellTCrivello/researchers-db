@@ -67,25 +67,58 @@
     A.state.lang === "ar" ? (f.label_ar || f.label || f.name) : (f.label_en || f.label || f.name);
 
   /* ------------------------------------------------------- shared chrome - */
+  /* the four command domains — the primary organisation of the workspace */
+  const DOMAINS = {
+    forces: ["unit", "region", "division", "classification", "armament", "holding"],
+    operations: ["deployment", "mission"],
+    training: ["training"],
+    command: ["commander", "assignment", "note"]
+  };
+  const DOMAIN_OF = {};
+  Object.keys(DOMAINS).forEach(d => DOMAINS[d].forEach(e => { DOMAIN_OF[e] = d; }));
+  const DOMAIN_LABEL = {
+    forces: "mil.domain.forces", operations: "mil.domain.operations",
+    training: "mil.domain.training", command: "mil.domain.command"
+  };
+  const DOMAIN_PRIMARY = {
+    forces: "unit", operations: "deployment", training: "training", command: "commander"
+  };
+  const DOMAIN_SUMMARY_LIST = {
+    forces: ["mil.list.lowReadiness", "low_readiness_units"],
+    operations: ["mil.list.upcomingDeployments", "upcoming_deployments"],
+    training: ["mil.list.upcomingTrainings", "upcoming_trainings"],
+    command: ["mil.list.recentActivity", "recent_activity"]
+  };
+
   function milNav(active) {
+    const domainOfActive = active.startsWith("e:") ? DOMAIN_OF[active.slice(2)]
+      : active.startsWith("tree:") ? "forces"
+      : active.startsWith("domain:") ? active.slice(7) : null;
     const item = (href, label, key) =>
       `<a class="mil-nav-item${active === key ? " on" : ""}" href="${href}">${esc(label)}</a>`;
-    return `<div class="mil-nav">
-      <div class="mil-nav-group">${esc(t("mil.tab.command"))}</div>
-      ${item("#/military", t("mil.nav.workspace"), "workspace")}
-      ${item("#/military/units/tree", t("mil.nav.unitsTree"), "units")}
-      ${item("#/military/regions/tree", t("mil.nav.regionsTree"), "regions")}
-      <div class="mil-nav-group">${esc(t("mil.tab.records"))}</div>
-      ${ENTITIES.map(k => item("#/military/" + k + "s", entLabel(k), "e:" + k)).join("")}
-      <div class="mil-nav-group">${esc(t("mil.tab.admin"))}</div>
-      ${item("#/military/naming", t("mil.nav.naming"), "naming")}
-      ${item("#/military/audit", t("mil.nav.audit"), "audit")}
-      <span class="flex"></span>
+    const tier1 =
+      item("#/military", t("mil.nav.workspace"), "workspace") +
+      Object.keys(DOMAINS).map(d =>
+        item("#/military/" + d, t(DOMAIN_LABEL[d]), "domain:" + d)).join("") +
+      item("#/military/naming", t("mil.nav.naming"), "naming") +
+      item("#/military/audit", t("mil.nav.audit"), "audit");
+    let tier2 = "";
+    if (domainOfActive) {
+      const extras = domainOfActive === "forces"
+        ? item("#/military/units/tree", t("mil.nav.unitsTree"), "tree:units") +
+          item("#/military/regions/tree", t("mil.nav.regionsTree"), "tree:regions")
+        : "";
+      tier2 = `<div class="mil-nav mil-nav-sub">
+        ${item("#/military/" + domainOfActive, t("mil.domain.hub"), "domain:" + domainOfActive)}
+        ${DOMAINS[domainOfActive].map(k => item("#/military/" + k + "s", entLabel(k), "e:" + k)).join("")}
+        ${extras}
+      </div>`;
+    }
+    return `<div class="mil-nav">${tier1}<span class="flex"></span>
       <select class="ghost-select" id="milRole" title="${esc(t("mil.role.label"))}">
         ${["admin", "staff", "viewer"].map(r =>
           `<option value="${r}"${r === role() ? " selected" : ""}>${esc(t("mil.role." + r))}</option>`).join("")}
-      </select>
-    </div>`;
+      </select></div>${tier2}`;
   }
 
   function bindChrome(root) {
@@ -319,6 +352,75 @@
     };
   };
 
+  /* ===================================================== view: domain hub */
+  A.views.milDomain = async function (root, params) {
+    const domain = params.domain;
+    if (!DOMAINS[domain]) { location.hash = "#/military"; return; }
+    A.crumbs([{ label: t("nav.military"), href: "#/military" },
+      { label: t(DOMAIN_LABEL[domain]) }]);
+    const [qual, summary] = await Promise.all([
+      mreq("GET", "/quality"), mreq("GET", "/summary")]);
+    const entities = DOMAINS[domain];
+    const totals = entities.map(e => ({
+      key: e, total: ((qual.entities || {})[e] || {}).total || 0
+    }));
+    const primary = DOMAIN_PRIMARY[domain];
+    const [listTitleKey, listKey] = DOMAIN_SUMMARY_LIST[domain];
+    const rows = (summary.lists || {})[listKey] || [];
+    const listRow = r => `
+      <tr>
+        <td class="mono-cell">${esc(r.docname || "")}</td>
+        <td>${esc(r.name || r.exercise_name || r.title || "—")}</td>
+        <td>${esc(r.unit_name || r.start_date || "")}</td>
+        <td>${r.status ? chip(r.status) : "—"}</td>
+        <td class="nowrap">${r.id ? `<a class="btn sm" href="#/military/${{
+            upcoming_deployments: "deployments", upcoming_trainings: "trainings",
+            low_readiness_units: "units", recent_activity: "units",
+            unit_readiness: "units"
+          }[listKey] || "units"}/${r.id}/show">${esc(t("common.view"))}</a>` : ""}</td>
+      </tr>`;
+
+    root.innerHTML = milNav("domain:" + domain) +
+      A.pageHead(t(DOMAIN_LABEL[domain]), t("mil.domain.subtitle"), `
+        <a class="btn primary" href="#/military/${primary}s/new">${icon("plus")} ${esc(t("common.new"))} — ${esc(entLabel(primary))}</a>`) +
+      `<div class="grid auto" style="margin-bottom:18px">
+        ${totals.map((tn, i) => `
+          <div class="kpi" style="--kpi-color:${A.PALETTE[i % A.PALETTE.length]}">
+            <div class="k-label">${esc(entLabel(tn.key))}</div>
+            <div class="k-value">${fmtNum(tn.total)}</div>
+            <div class="k-foot"><a class="muted" href="#/military/${tn.key}s">${esc(t("mil.domain.manage"))}</a></div>
+          </div>`).join("")}
+      </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head"><h3>${esc(t("mil.domain.manageAll"))}</h3></div>
+        <div class="grid c3">
+          ${entities.map(e => `
+            <div class="card inner">
+              <div class="card-head"><h4>${esc(entLabel(e))}</h4>
+                <span class="badge slate">${fmtNum(((qual.entities || {})[e] || {}).total || 0)}</span></div>
+              <div class="btn-row">
+                <a class="btn sm" href="#/military/${e}s">${esc(t("mil.domain.manage"))}</a>
+                <a class="btn sm" href="#/military/${e}s/new">${icon("plus")} ${esc(t("common.new"))}</a>
+                ${e === "unit" ? `<a class="btn sm" href="#/military/units/tree">${esc(t("mil.nav.unitsTree"))}</a>` : ""}
+                ${e === "region" ? `<a class="btn sm" href="#/military/regions/tree">${esc(t("mil.nav.regionsTree"))}</a>` : ""}
+              </div>
+            </div>`).join("")}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>${esc(t(listTitleKey))}</h3>
+          <span class="badge slate">${fmtNum(rows.length)}</span></div>
+        ${rows.length ? `
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>${esc(t("mil.form.docname"))}</th><th>${esc(t("mil.dossier.name"))}</th>
+            <th>${esc(t("mil.col.unit"))}</th><th>${esc(t("common.status"))}</th>
+            <th>${esc(t("common.actions"))}</th></tr></thead>
+          <tbody>${rows.map(listRow).join("")}</tbody>
+        </table></div>` : `<div class="empty">${esc(t("list.noRecords"))}</div>`}
+      </div>`;
+    bindChrome(root);
+  };
+
   /* ========================================================= view: list */
   A.views.milList = async function (root, params) {
     const entity = params.entity;
@@ -344,7 +446,8 @@
       }
     }));
 
-    const state = { q: "", sort: "id", direction: "asc", filters: {}, offset: 0 };
+    const state = { q: "", sort: "id", direction: "asc", filters: {}, offset: 0,
+      rows: [], mode: localStorage.getItem("siraj.mil.vm." + entity) || "table" };
     /* deep links: #/military/deployments?unit_id=5 opens pre-filtered */
     const hashQuery = (location.hash.split("?")[1] || "");
     new URLSearchParams(hashQuery).forEach((v, k) => {
@@ -363,6 +466,17 @@
           <a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a>
         </td>
       </tr>`;
+    const cardHtml = r => `
+      <div class="card inner">
+        <div class="card-head"><h4>${esc(r.name || r.full_name || r.exercise_name || r.docname || "#" + r.id)}</h4>
+          ${r.status ? chip(r.status) : ""}</div>
+        <div class="small muted mono-cell">${esc(r.docname || "")}</div>
+        <div class="small">${colSpecs.map(f => `${esc(fieldLabel(f))}: ${cell(r, f, refMap)}`).join(" · ")}</div>
+        <div class="btn-row" style="margin-top:8px">
+          <a class="btn sm" href="#/military/${entity}s/${r.id}/show">${esc(t("common.view"))}</a>
+          <a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a>
+        </div>
+      </div>`;
     const query = () => {
       const p = new URLSearchParams();
       if (state.q) p.set("q", state.q);
@@ -377,6 +491,7 @@
       `<th class="sortable" data-sort="${esc(key)}" aria-sort="${
         state.sort === key ? (state.direction === "asc" ? "ascending" : "descending") : "none"
       }">${esc(label)}</th>`;
+    const isTree = entity === "unit" || entity === "region";
 
     root.innerHTML = milNav("e:" + entity) +
       A.pageHead(entLabel(entity), t("mil.list.count", { n: "—" }), `
@@ -384,38 +499,67 @@
       `<div class="card">
         <div class="btn-row" style="margin-bottom:12px">
           <input id="milSearch" type="search" class="grow" value="${esc(state.q)}"
-            placeholder="${esc(t("mil.search.placeholder"))}" style="max-width:280px">
+            placeholder="${esc(t("mil.search.placeholder"))}" style="max-width:240px">
           ${facets.map(f => `<select class="ghost-select milFacet" data-field="${f.name}">
             <option value="">${esc(fieldLabel(f))}: ${esc(t("mil.list.all"))}</option>
             ${(f.options || []).map(o => `<option value="${esc(o)}"${state.filters[f.name] === o ? " selected" : ""}>${esc(o)}</option>`).join("")}
           </select>`).join("")}
           <button class="btn sm" id="milClearFilters">${esc(t("mil.list.clearFilters"))}</button>
+          <span class="vmodes">
+            <button class="btn sm${state.mode === "table" ? " primary" : ""}" id="milVmTable">${esc(t("mil.view.table"))}</button>
+            <button class="btn sm${state.mode === "cards" ? " primary" : ""}" id="milVmCards">${esc(t("mil.view.cards"))}</button>
+          </span>
+          ${isTree ? `<a class="btn sm" href="#/military/${entity}s/tree">${esc(t("mil.view.tree"))}</a>` : ""}
+          <button class="btn sm" id="milImport">${icon("plus")} ${esc(t("mil.import.button"))}</button>
           <button class="btn sm" id="milExport">${icon("download")} ${esc(t("mil.list.export"))}</button>
         </div>
-        <div class="table-wrap"><table class="data">
+        <div id="milImportPanel" class="import-panel" hidden>
+          <div class="btn-row" style="margin-bottom:8px">
+            <input type="file" id="milImportFile" accept=".csv,text/csv">
+            <select class="ghost-select" id="milImportMode">
+              <option value="create">${esc(t("mil.import.modeCreate"))}</option>
+              <option value="upsert">${esc(t("mil.import.modeUpsert"))}</option>
+            </select>
+            <button class="btn primary" id="milImportRun">${esc(t("mil.import.run"))}</button>
+            <span class="small muted">${esc(t("mil.import.hint"))}</span>
+          </div>
+          <div id="milImportReport"></div>
+        </div>
+        <div id="milTableWrap" class="table-wrap"><table class="data">
           <thead><tr>${th(t("mil.form.docname"), "docname")}${
             colSpecs.map(f => th(fieldLabel(f), f.name)).join("")
           }<th>${esc(t("common.actions"))}</th></tr></thead>
           <tbody></tbody>
         </table></div>
+        <div id="milCardGrid" class="grid c3" hidden></div>
         <div class="btn-row" style="margin-top:12px">
           <button id="milMore" class="btn" hidden></button>
         </div>
       </div>`;
     bindChrome(root);
-    const tbody = root.querySelector("tbody");
-    const moreBtn = root.querySelector("#milMore");
 
+    const renderAll = () => {
+      const tbody = root.querySelector("tbody");
+      const grid = root.querySelector("#milCardGrid");
+      const wrap = root.querySelector("#milTableWrap");
+      if (!state.rows.length) {
+        tbody.innerHTML = `<tr><td colspan="${colSpecs.length + 2}" class="empty">${esc(t("list.noRecords"))}</td></tr>`;
+        grid.innerHTML = `<div class="empty">${esc(t("list.noRecords"))}</div>`;
+      } else {
+        tbody.innerHTML = state.rows.map(rowHtml).join("");
+        grid.innerHTML = state.rows.map(cardHtml).join("");
+      }
+      wrap.hidden = state.mode !== "table";
+      grid.hidden = state.mode !== "cards";
+    };
+    const moreBtn = root.querySelector("#milMore");
     const loadPage = async (append) => {
       const data = await mreq("GET", "/" + entity + "s?limit=200&offset="
         + state.offset + (query() ? "&" + query() : ""));
-      if (!append) tbody.innerHTML = "";
-      if (!data.records.length && !append) {
-        tbody.innerHTML = `<tr><td colspan="${colSpecs.length + 2}" class="empty">${esc(t("list.noRecords"))}</td></tr>`;
-      } else {
-        tbody.insertAdjacentHTML("beforeend", data.records.map(rowHtml).join(""));
-      }
+      if (!append) state.rows = [];
+      state.rows.push(...data.records);
       state.offset += data.records.length;
+      renderAll();
       const sub = root.querySelector(".page-head .sub");
       if (sub) sub.textContent = t("mil.list.count", { n: fmtNum(data.total) });
       const rest = data.total - state.offset;
@@ -427,6 +571,13 @@
       }
     };
     const reset = () => { state.offset = 0; loadPage(false); };
+    const setMode = (mode) => {
+      state.mode = mode;
+      localStorage.setItem("siraj.mil.vm." + entity, mode);
+      root.querySelector("#milVmTable").classList.toggle("primary", mode === "table");
+      root.querySelector("#milVmCards").classList.toggle("primary", mode === "cards");
+      renderAll();
+    };
 
     let searchTimer;
     root.querySelector("#milSearch").oninput = (ev) => {
@@ -458,6 +609,8 @@
       };
     });
     moreBtn.onclick = () => loadPage(true);
+    root.querySelector("#milVmTable").onclick = () => setMode("table");
+    root.querySelector("#milVmCards").onclick = () => setMode("cards");
     root.querySelector("#milExport").onclick = async () => {
       const res = await mreq("GET", "/" + entity + "s/export.csv"
         + (query() ? "?" + query() : ""));
@@ -468,6 +621,34 @@
       a.click();
       URL.revokeObjectURL(a.href);
       toast(t("mil.list.export") + " ✓", "ok");
+    };
+
+    /* CSV import through the full rule engine (staff+; per-row report) */
+    const panel = root.querySelector("#milImportPanel");
+    root.querySelector("#milImport").onclick = () => { panel.hidden = !panel.hidden; };
+    root.querySelector("#milImportRun").onclick = async () => {
+      if (role() === "viewer") { toast(t("mil.role.viewerBlocked"), "err"); return; }
+      const file = root.querySelector("#milImportFile").files[0];
+      if (!file) { toast(t("mil.import.pickFile"), "err"); return; }
+      const text = await file.text();
+      const mode = root.querySelector("#milImportMode").value;
+      try {
+        const res = await mreq("POST", "/" + entity + "s/import.csv", { csv: text, mode });
+        const s = res.summary;
+        const errs = res.results.filter(r => r.status === "error");
+        root.querySelector("#milImportReport").innerHTML = `
+          <div class="notice">${esc(t("mil.import.summary",
+            { created: s.created, updated: s.updated, errors: s.errors }))}</div>
+          ${errs.length ? `<div class="table-wrap"><table class="data">
+            <thead><tr><th>${esc(t("mil.import.line"))}</th>
+              <th>${esc(t("mil.dossier.status"))}</th>
+              <th>${esc(t("mil.import.message"))}</th></tr></thead>
+            <tbody>${errs.map(r => `<tr><td>${r.line}</td>
+              <td>${chip("error")}</td><td>${esc(r.message)}</td></tr>`).join("")}</tbody>
+          </table></div>` : ""}`;
+        toast(t("mil.import.done"), s.errors ? "err" : "ok");
+        reset();
+      } catch (err) { toast(err.message, "err"); }
     };
     await loadPage(false);
   };
@@ -679,6 +860,7 @@
         + fk + "=" + id);
       return { slug, fk, rows: data.records || [], total: data.total || 0 };
     }));
+    const relLimit = 10;
     const notes = await mreq("GET",
       "/notes?limit=50&sort=id&direction=desc&entity_type=" + entity + "&target_id=" + id);
 
@@ -712,13 +894,16 @@
       ${relData.filter(d => d.rows.length || d.total).map(d => `
       <div class="card">
         <div class="card-head"><h2>${esc(labelOf(d.slug))}</h2>
-          <span class="badge slate">${fmtNum(d.total)}</span>
-          ${d.total > d.rows.length ? `<a class="btn sm" style="margin-left:auto"
-            href="#/military/${d.slug}?${esc(d.fk)}=${id}">${esc(t("mil.dossier.seeAll"))}</a>` : ""}</div>
+          <span class="badge slate" data-relcount="${esc(d.slug)}">${fmtNum(d.total)}</span>
+          ${d.total > d.rows.length ? `
+            <button class="btn sm" data-relmore="${esc(d.slug)}"
+              data-relfk="${esc(d.fk)}" data-relid="${id}">${esc(t("mil.dossier.showMore"))}</button>
+            <a class="btn sm" style="margin-left:6px"
+              href="#/military/${d.slug}?${esc(d.fk)}=${id}">${esc(t("mil.dossier.seeAll"))}</a>` : ""}</div>
         <div class="table-wrap"><table class="data">
           <thead><tr><th>${esc(t("mil.form.docname"))}</th><th>${esc(t("mil.dossier.name"))}</th>
             <th>${esc(t("mil.dossier.status"))}</th><th>${esc(t("common.actions"))}</th></tr></thead>
-          <tbody>${d.rows.map(r => relRow(d.slug, r)).join("")}</tbody>
+          <tbody data-relbody="${esc(d.slug)}">${d.rows.map(r => relRow(d.slug, r)).join("")}</tbody>
         </table></div>
       </div>`).join("")}
       <div class="card" id="milNotesCard">
@@ -741,6 +926,22 @@
         </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
       </div>`;
     bindChrome(root);
+    /* show more — append the next page of a related panel */
+    root.querySelectorAll("[data-relmore]").forEach(btn => {
+      btn.onclick = async () => {
+        const slug = btn.dataset.relmore;
+        const fk = btn.dataset.relfk;
+        const tbody = root.querySelector(`tbody[data-relbody="${slug}"]`);
+        const loaded = tbody.querySelectorAll("tr").length;
+        btn.disabled = true;
+        const data = await mreq("GET", "/" + slug + "?limit=" + relLimit
+          + "&offset=" + loaded + "&sort=id&direction=desc&" + fk + "=" + btn.dataset.relid);
+        tbody.insertAdjacentHTML("beforeend",
+          (data.records || []).map(r => relRow(slug, r)).join(""));
+        btn.disabled = false;
+        if (tbody.querySelectorAll("tr").length >= (data.total || 0)) btn.remove();
+      };
+    });
     const addBtn = root.querySelector("#milNoteAdd");
     if (addBtn) addBtn.onclick = async () => {
       const text = root.querySelector("#milNoteText").value.trim();
@@ -781,7 +982,7 @@
       </details></li>`;
     };
 
-    root.innerHTML = milNav(kind) +
+    root.innerHTML = milNav("tree:" + kind) +
       A.pageHead(kind === "units" ? t("mil.nav.unitsTree") : t("mil.nav.regionsTree"),
         t("mil.tree.subtitle"), `
         <a class="btn primary" href="#/military/${entity}s/new">${icon("plus")} ${esc(t("common.new"))}</a>`) +
@@ -817,7 +1018,7 @@
     A.crumbs([{ label: t("nav.military"), href: "#/military" },
       { label: t("mil.nav.unitsTree"), href: "#/military/units/tree" },
       { label: d.unit.name }]);
-    root.innerHTML = milNav("units") +
+    root.innerHTML = milNav("tree:units") +
       A.pageHead(t("mil.force.title"), d.unit.name + " · " + d.unit.docname, `
         <a class="btn" href="#/military/units/${id}">${icon("edit")} ${esc(t("common.edit"))}</a>
         <a class="btn" href="#/military/units/tree">${icon("undo")} ${esc(t("common.back"))}</a>`) +
@@ -878,7 +1079,8 @@
   A.views.milNaming = async function (root) {
     await meta();
     A.crumbs([{ label: t("nav.military"), href: "#/military" }, { label: t("mil.naming.title") }]);
-    const data = await mreq("GET", "/naming/status");
+    const [data, history] = await Promise.all([
+      mreq("GET", "/naming/status"), mreq("GET", "/naming/history?limit=50")]);
     const byEntity = {};
     data.series.forEach(s => { (byEntity[s.entity] = byEntity[s.entity] || []).push(s); });
 
@@ -907,6 +1109,22 @@
                   <button class="btn sm" data-adjust="${s.id}">${esc(t("mil.action.adjust"))}</button>
                 </span>` : ""}</td>
             </tr>`).join("")}`).join("")}
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="card-head"><h3>${esc(t("mil.naming.history"))}</h3>
+          <span class="badge slate">${fmtNum((history.records || []).length)}</span></div>
+        ${(history.records || []).length ? `
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>${esc(t("mil.naming.series"))}</th>
+            <th>${esc(t("mil.naming.partition"))}</th>
+            <th>${esc(t("mil.naming.oldValue"))}</th><th>${esc(t("mil.naming.newValue"))}</th>
+            <th>${esc(t("mil.form.author"))}</th><th>${esc(t("mil.form.date"))}</th></tr></thead>
+          <tbody>${(history.records || []).map(h => `
+            <tr><td class="mono-cell">${esc(h.label)}</td>
+              <td class="mono-cell">${esc(h.partition || "(default)")}</td>
+              <td>${fmtNum(h.old_value)}</td><td>${fmtNum(h.new_value)}</td>
+              <td>${esc(h.actor)}</td><td class="mono-cell small">${esc(h.at)}</td></tr>`).join("")}</tbody>
+        </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
       </div>`;
     bindChrome(root);
     root.querySelector("#milPreview").onclick = async () => {

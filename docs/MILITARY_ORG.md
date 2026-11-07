@@ -391,7 +391,9 @@ inside FastAPI's `detail`.
 | `GET /armaments/{id}/holdings` | armament distribution across units | any |
 | `GET /{entity}`, `GET /{entity}/{id}` | list (`q`, filters, `sort`, `direction`, `limit`, `offset`) / read | any |
 | `GET /{entity}/export.csv` | CSV export of a list query (same `q`/filters/`sort`) | any |
+| `POST /{entity}/import.csv` | CSV import through the full rule engine (create/upsert; per-row report) | staff |
 | `GET /quality` | data-completeness profile: per-entity fill histogram + per-field statistics | any |
+| `GET /naming/history` | counter adjustment history (numbering control) | any |
 | `POST /{entity}` | create (201) | staff+ |
 | `PATCH /{entity}/{id}` | partial update | staff+ |
 | `DELETE /{entity}/{id}` | delete | admin |
@@ -418,28 +420,39 @@ page headers, cards, tables, badges, charts (`A.chart`), dialogs, theme
 like the rest of the bundle). Entity and field labels are bilingual through
 the API (`label_en`/`label_ar`), following the registry's schema convention.
 
-Inside the workspace a chip-bar sub-navigation keeps the design record's three
-groups:
+Inside the workspace the interface is organised as a **two-tier navigation
+around the four command domains** (top tier: domain tabs; second tier: the
+domain's data tables and tools):
 
-* **Command** — the workspace dashboard, the **force tree** and the **region
-  tree** explorers (expand/collapse, inline search with auto-expand, status
-  badges, subtree personnel Σ, node links).
-* **Records** — searchable lists and generated forms for all twelve entities:
-  required markers, choice vocabularies, **searchable reference dropdowns**
-  (comboboxes with full option coverage and keyboard navigation; `docname ·
-  name` labels), a **live document-name preview** on new records (advisory,
-  assigned on save), per-field validation errors that preserve input,
-  read-only system fields, confirmation dialogs on destructive actions, a
-  **record dossier** per record (all fields, related-record panels with
-  see-all deep links, inline polymorphic notes), and a **force summary**
-  page for units / **holdings** page for armament. Lists are volume-ready:
-  server-side search, sortable columns, choice-facet filters, server-side
-  pagination ("load more"), deep-linkable filters
-  (`#/military/deployments?unit_id=5`), and **CSV export** of the current
-  query.
-* **Administration** — **naming series** (19 options with partitions, next
-  previews, advisory preview tool, admin-only inline counter adjustment) and
-  the **audit log**.
+* **Forces** — units, regions, divisions, classifications, armament,
+  holdings; the **force tree** and **region tree** explorers (expand/collapse,
+  inline search with auto-expand, status badges, subtree personnel Σ) and the
+  **force summary** briefing.
+* **Deployment** — deployments and missions.
+* **Training** — trainings.
+* **Command** — commanders, command appointments and notes.
+
+Each domain has a **command hub** (`#/military/forces` etc.): KPI cards per
+data table, a management grid (Manage / New / tree shortcuts per table), and
+the domain's action list. Every data table page is a complete management
+surface: create, read, update (generated forms with required markers, choice
+vocabularies, **searchable reference dropdowns** with full option coverage and
+keyboard navigation, a **live document-name preview** on new records),
+delete with confirmation, **CSV import** (rows run through the full rule
+engine with a per-row report; create-only or create-or-update modes) and
+**CSV export** of the current query. Lists are volume-ready: server-side
+search, sortable columns, choice-facet filters, **Table / Cards view modes**
+(persisted per entity) plus a **Tree view** for hierarchy entities,
+server-side pagination ("load more"), "show more" on dossier related panels,
+and deep-linkable filters (`#/military/deployments?unit_id=5`). Every record
+has a **dossier** (all fields, related-record panels, inline polymorphic
+notes).
+
+**Administration** — **naming series** with full numbering control (19
+options with partitions, next previews, the advisory preview tool,
+admin-only audited counter adjustment and a **counter history** log) and the
+**audit log**. Roles are demonstrated with a selector in the sub-nav
+(`X-Military-Role`); every write is re-checked server-side.
 
 The dashboard carries the design record's structure: 5 KPI cards (active
 units, current deployments, open missions, training this year, active

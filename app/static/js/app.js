@@ -16,6 +16,7 @@
     { re: /^\/geo$/, view: "geomap" },
     { re: /^\/desk$/, view: "desk" },
     { re: /^\/military$/, view: "military" },
+    { re: /^\/military\/(forces|operations|training|command)$/, view: "milDomain", keys: ["domain"] },
     { re: /^\/military\/(units|regions)\/tree$/, view: "milTree", keys: ["kind"] },
     { re: /^\/military\/units\/(\d+)\/force$/, view: "milForce", keys: ["id"] },
     { re: /^\/military\/([\w-]+)\/(\d+)\/show$/, view: "milDossier", keys: ["entity", "id"] },

@@ -166,6 +166,18 @@ def naming_status(conn=Depends(_conn)) -> dict[str, Any]:
     return {"ok": True, "series": _call(naming.status, conn)}
 
 
+@router.get("/naming/history")
+def naming_history(limit: int = Query(50, ge=1, le=200),
+                   conn=Depends(_conn)) -> dict[str, Any]:
+    """Counter adjustment history (full numbering control, read-only)."""
+    rows = conn.execute(
+        "SELECT l.id, l.option_id, o.label, l.partition, l.old_value, "
+        "l.new_value, l.actor, l.at FROM naming_adjustment_log l "
+        "JOIN naming_series_option o ON o.id = l.option_id "
+        "ORDER BY l.id DESC LIMIT ?", (limit,)).fetchall()
+    return {"ok": True, "records": [dict(r) for r in rows]}
+
+
 @router.post("/naming/preview")
 def naming_preview(payload: dict[str, Any] = Body(...),
                    conn=Depends(_conn)) -> dict[str, Any]:
@@ -252,6 +264,19 @@ def export_csv(entity: str, request: Request,
                if k in field_names and v != ""}
     result = _call(service.export_csv, conn, entity, q=q, filters=filters,
                    sort=sort, direction=direction)
+    return {"ok": True, **result}
+
+
+@router.post("/{entity}/import.csv")
+def import_csv_route(request: Request, entity: str,
+                     payload: dict[str, Any] = Body(...),
+                     conn=Depends(_conn)) -> dict[str, Any]:
+    _require_role(request, "staff")
+    entity = _check_entity(entity)
+    result = _call(service.import_csv, conn, entity,
+                   str(payload.get("csv") or ""),
+                   str(payload.get("mode") or "create"),
+                   _actor_of(request))
     return {"ok": True, **result}
 
 

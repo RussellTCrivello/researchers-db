@@ -529,6 +529,15 @@ def get_record(conn, entity: str, record_id: int) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 # CRUD
 # ---------------------------------------------------------------------------
+def _constraint_error(exc: sqlite3.IntegrityError) -> ServiceError:
+    """Translate DB constraint failures into clean client errors (never 500)."""
+    msg = str(exc)
+    if "UNIQUE" in msg:
+        return ServiceError(409, "duplicate",
+                            "a record with the same unique value already exists")
+    return ServiceError(422, "constraint", msg)
+
+
 def create(conn, entity: str, payload: dict[str, Any], actor: str) -> dict[str, Any]:
     spec = ENTITY_SPECS[entity]
     fields = _validate_fields(entity, payload, creating=True)
@@ -548,10 +557,13 @@ def create(conn, entity: str, payload: dict[str, Any], actor: str) -> dict[str, 
     columns = ["docname", *merged.keys(), "created_at", "created_by"]
     values = [docname, *merged.values(), now, actor]
     placeholders = ", ".join("?" for _ in columns)
-    cur = conn.execute(
-        f"INSERT INTO {spec['table']} ({', '.join(columns)}) VALUES ({placeholders})",
-        values,
-    )
+    try:
+        cur = conn.execute(
+            f"INSERT INTO {spec['table']} ({', '.join(columns)}) VALUES ({placeholders})",
+            values,
+        )
+    except sqlite3.IntegrityError as exc:
+        raise _constraint_error(exc) from exc
     record_id = cur.lastrowid
 
     if spec.get("tree"):
@@ -590,11 +602,14 @@ def update(conn, entity: str, record_id: int, payload: dict[str, Any],
 
     if fields:
         sets = ", ".join(f"{k} = ?" for k in fields)
-        conn.execute(
-            f"UPDATE {spec['table']} SET {sets}, modified_at = ?, modified_by = ? "
-            f"WHERE id = ?",
-            [*fields.values(), now_iso(), actor, record_id],
-        )
+        try:
+            conn.execute(
+                f"UPDATE {spec['table']} SET {sets}, modified_at = ?, modified_by = ? "
+                f"WHERE id = ?",
+                [*fields.values(), now_iso(), actor, record_id],
+            )
+        except sqlite3.IntegrityError as exc:
+            raise _constraint_error(exc) from exc
     if spec.get("tree") and "parent_id" in fields:
         _rebuild_subtree_paths(conn, spec["table"], record_id, merged.get("parent_id"))
     _after_write(conn, entity, record_id, merged, actor, is_new=False)
@@ -708,6 +723,77 @@ def export_csv(conn, entity: str, q: str | None = None,
         writer.writerow([rec.get(c, "") for c in columns])
     return {"filename": f"{entity}s.csv", "csv": buf.getvalue(),
             "rows": len(data["records"]), "total": data["total"]}
+
+
+def import_csv(conn, entity: str, csv_text: str, mode: str = "create",
+               actor: str = "import") -> dict[str, Any]:
+    """Import CSV rows through the FULL rule engine.
+
+    Headers are field names (plus ``id``/``docname`` for upsert matching).
+    Every row is written via create/update — validation, rules, naming
+    counters and the audit trail all apply.  Per-row results report
+    created / updated / error with the exact failure.
+    """
+    import csv as _csv
+    import io as _io
+    spec = ENTITY_SPECS[entity]
+    if mode not in ("create", "upsert"):
+        raise ServiceError(422, "invalid_mode",
+                           "mode must be 'create' or 'upsert'", "mode")
+    reader = _csv.DictReader(_io.StringIO(csv_text.lstrip("\ufeff")))
+    if not reader.fieldnames:
+        raise ServiceError(422, "empty_csv", "CSV has no header row")
+    known = {f["name"] for f in spec["fields"]} | {"docname", "id"}
+    unknown = [h for h in reader.fieldnames if h not in known]
+    if unknown:
+        raise ServiceError(422, "unknown_columns",
+                           f"unknown columns: {', '.join(unknown)}", unknown[0])
+    results: list[dict[str, Any]] = []
+    summary = {"created": 0, "updated": 0, "errors": 0}
+    for line, raw in enumerate(reader, start=2):
+        if not any((v or "").strip() for v in raw.values()):
+            continue                                     # blank line
+        payload: dict[str, Any] = {}
+        match_id: int | None = None
+        docname_val = (raw.get("docname") or "").strip()
+        id_val = (raw.get("id") or "").strip()
+        if id_val:
+            try:
+                match_id = int(id_val)
+            except ValueError:
+                match_id = None
+        if docname_val and mode == "upsert":
+            row = conn.execute(
+                f"SELECT id FROM {spec['table']} WHERE docname = ?",
+                (docname_val,)).fetchone()
+            if row:
+                match_id = row["id"]
+        for name, value in raw.items():
+            if name in ("docname", "id"):
+                continue
+            value = (value or "").strip()
+            payload[name] = value if value != "" else None
+        try:
+            if mode == "upsert" and match_id is not None:
+                rec = update(conn, entity, match_id, payload, actor)
+                summary["updated"] += 1
+                results.append({"line": line, "status": "updated",
+                                "id": match_id, "docname": rec.get("docname")})
+            else:
+                rec = create(conn, entity, payload, actor)
+                summary["created"] += 1
+                results.append({"line": line, "status": "created",
+                                "id": rec["id"], "docname": rec.get("docname")})
+        except (ServiceError, RuleViolation, sqlite3.IntegrityError) as exc:
+            summary["errors"] += 1
+            if isinstance(exc, sqlite3.IntegrityError):
+                exc = _constraint_error(exc)
+            results.append({"line": line, "status": "error",
+                            "code": getattr(exc, "code", "error"),
+                            "message": getattr(exc, "message", str(exc))})
+    return {"summary": summary,
+            "processed": sum(summary.values()),
+            "results": results[:1000]}
 
 
 def quality_report(conn) -> dict[str, Any]:

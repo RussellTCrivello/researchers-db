@@ -1183,3 +1183,185 @@ class TestFreshDatasetRebuild:
             "SELECT COUNT(*) FROM person WHERE code IS NULL").fetchone()[0]
         conn.close()
         assert missing == 0 and codes == 0
+
+
+# ---------------------------------------------------------------------------
+# Command-domain interfaces (2026-11-07 third directive)
+# ---------------------------------------------------------------------------
+class TestCommandDomainOrganisation:
+    def test_domain_hubs_and_two_tier_nav(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        app = Path("app/static/js/app.js").read_text()
+        assert "A.views.milDomain" in src
+        assert "milDomain" in app and "forces|operations|training|command" in app
+        for d in ("forces", "operations", "training", "command"):
+            assert f"{d}: [" in src            # domain entity mapping
+        assert "mil-nav-sub" in src            # contextual second tier
+        assert "domain:" in src
+
+    def test_every_domain_entity_maps_to_a_hub(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        import re
+        dom = re.search(r"const DOMAINS = \{(.*?)\};", src, re.S).group(1)
+        listed = set(re.findall(r'"(\w+)"', dom))
+        from app.military.service import ENTITY_SPECS
+        assert listed == set(ENTITY_SPECS)     # all 12 entities organized
+
+
+class TestViewModes:
+    def test_table_cards_toggle_wired(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "milVmTable" in src and "milVmCards" in src
+        assert "siraj.mil.vm." in src          # mode persisted per entity
+        assert "cardHtml" in src
+
+    def test_tree_mode_link_for_hierarchy_entities(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert 'entity === "unit" || entity === "region"' in src
+        assert "mil.view.tree" in src
+
+
+class TestImportExport:
+    def test_import_csv_creates_rows(self, client):
+        h = {"X-Military-Role": "staff"}
+        csv_text = ("name,category\n"
+                    "Import Rifle Alpha,Weapons\n"
+                    "Import Rifle Beta,\n")
+        r = client.post("/api/military/armaments/import.csv",
+                        json={"csv": csv_text, "mode": "create"}, headers=h)
+        body = r.json()
+        assert r.status_code == 200 and body["ok"] is True
+        assert body["summary"]["created"] == 2 and body["summary"]["errors"] == 0
+
+    def test_import_csv_upsert_by_docname(self, client):
+        h = {"X-Military-Role": "staff"}
+        created = client.post("/api/military/armaments",
+                              json={"name": "Upsert Target"}, headers=h).json()["record"]
+        csv_text = f"docname,name\n{created['docname']},Upsert Target Renamed\n"
+        r = client.post("/api/military/armaments/import.csv",
+                        json={"csv": csv_text, "mode": "upsert"}, headers=h)
+        body = r.json()
+        assert body["summary"]["updated"] == 1 and body["summary"]["created"] == 0
+        got = client.get(f"/api/military/armaments/{created['id']}", headers=h).json()
+        assert got["record"]["name"] == "Upsert Target Renamed"
+
+    def test_import_csv_reports_rule_violations_per_row(self, client):
+        h = {"X-Military-Role": "staff"}
+        u = client.post("/api/military/units",
+                        json={"name": "Import Rule Unit"}, headers=h).json()["record"]
+        first = client.post("/api/military/deployments", json={
+            "name": "Import Op One", "unit_id": u["id"],
+            "start_date": "2026-01-01", "status": "Active", "is_current": 1},
+            headers=h)
+        assert first.status_code == 201
+        csv_text = ("name,unit_id,start_date,status,is_current\n"
+                    f"Import Op Two,{u['id']},2026-02-01,Active,1\n")
+        r = client.post("/api/military/deployments/import.csv",
+                        json={"csv": csv_text, "mode": "create"}, headers=h)
+        body = r.json()
+        assert body["summary"]["errors"] == 1
+        err = [x for x in body["results"] if x["status"] == "error"][0]
+        assert err["line"] == 2 and err["code"]
+
+    def test_import_rejects_unknown_columns_and_needs_staff(self, client):
+        h = {"X-Military-Role": "staff"}
+        bad = client.post("/api/military/armaments/import.csv",
+                          json={"csv": "name,bogus_column\nX,Y\n"}, headers=h)
+        assert bad.status_code == 422
+        viewer = client.post("/api/military/armaments/import.csv",
+                             json={"csv": "name\nZ\n"},
+                             headers={"X-Military-Role": "viewer"})
+        assert viewer.status_code == 403
+
+    def test_export_round_trip_after_import(self, client):
+        h = {"X-Military-Role": "staff"}
+        client.post("/api/military/classifications/import.csv",
+                    json={"csv": "name\nRound Trip Class\n"}, headers=h)
+        exp = client.get("/api/military/classifications/export.csv", headers=h).json()
+        assert "Round Trip Class" in exp["csv"]
+
+
+class TestNumberingHistory:
+    def test_naming_history_endpoint(self, client):
+        h = {"X-Military-Role": "admin"}
+        status = client.get("/api/military/naming/status", headers=h).json()
+        series = status["series"][0]
+        client.put("/api/military/naming/counter",
+                   json={"option_id": series["id"], "partition": "",
+                         "new_value": 41, "label": series["label"]}, headers=h)
+        r = client.get("/api/military/naming/history", headers=h)
+        assert r.status_code == 200
+        recs = r.json()["records"]
+        assert recs and recs[0]["new_value"] == 41
+        assert recs[0]["label"] and recs[0]["actor"]
+
+    def test_naming_history_panel_in_ui(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "/naming/history" in src
+        assert "mil.naming.history" in src
+
+
+class TestShowMoreAndImportWiring:
+    def test_dossier_show_more_wired(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "data-relmore" in src and "mil.dossier.showMore" in src
+
+    def test_import_ui_wired_on_every_list(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "milImportPanel" in src and "import.csv" in src
+        assert "milImportMode" in src and "mil.import.modeUpsert" in src
+
+
+class TestConstraintErrorsClean:
+    """Regression (found by live smoke): DB constraint failures must surface
+    as clean 4xx errors — never a 500, never an aborted import."""
+
+    def test_duplicate_unique_value_is_409_not_500(self, client):
+        h = {"X-Military-Role": "staff"}
+        first = client.post("/api/military/classifications",
+                            json={"name": "Dupe Guard Class"}, headers=h)
+        assert first.status_code == 201
+        again = client.post("/api/military/classifications",
+                            json={"name": "Dupe Guard Class"}, headers=h)
+        assert again.status_code == 409
+        err = again.json()["detail"]["error"]
+        assert err["code"] == "duplicate"
+
+    def test_import_survives_duplicate_rows(self, client):
+        h = {"X-Military-Role": "staff"}
+        csv_text = ("name\n"
+                    "Import Dupe A\n"
+                    "Import Dupe A\n"
+                    "Import Dupe B\n")
+        r = client.post("/api/military/classifications/import.csv",
+                        json={"csv": csv_text, "mode": "create"}, headers=h)
+        body = r.json()
+        assert r.status_code == 200
+        assert body["summary"]["created"] == 2 and body["summary"]["errors"] == 1
+        err = [x for x in body["results"] if x["status"] == "error"][0]
+        assert err["line"] == 3 and err["code"] == "duplicate"
+
+    def test_bad_foreign_key_is_422_not_500(self, client):
+        h = {"X-Military-Role": "staff"}
+        r = client.post("/api/military/divisions",
+                        json={"name": "FK Guard Division", "region_id": 999999},
+                        headers=h)
+        assert r.status_code == 422
+        assert r.json()["detail"]["error"]["code"] in ("constraint", "tree_missing_parent")
+
+    def test_update_duplicate_is_clean_error(self, client):
+        h = {"X-Military-Role": "staff"}
+        a = client.post("/api/military/classifications",
+                        json={"name": "Upd Dupe A"}, headers=h).json()["record"]
+        client.post("/api/military/classifications",
+                    json={"name": "Upd Dupe B"}, headers=h)
+        r = client.patch(f"/api/military/classifications/{a['id']}",
+                         json={"name": "Upd Dupe B"}, headers=h)
+        assert r.status_code == 409
