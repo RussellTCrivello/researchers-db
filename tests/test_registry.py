@@ -1898,41 +1898,68 @@ def test_import_update_mode_updates_and_accepts_exported_refs(client):
             conn_db.close()
 
 
-def test_data_dir_lives_at_app_data_and_relocates_the_legacy_folder(monkeypatch, tmp_path):
-    """The launcher's default data dir is <project>/app/data.
+def test_registry_adoption_moves_the_legacy_folder_even_into_an_occupied_target(tmp_path):
+    """db.adopt_legacy_data_dir is the single relocation path.
 
-    An off-by-one wrote <project>/app/app/data instead (the doubled path the
-    launcher banner showed on user machines). The registry must land at the
-    documented location, and a registry already sitting in the legacy folder
-    must be moved there — never deleted, never duplicated silently.
+    Regression: the first relocation attempt refused to move when the target
+    already contained an `uploads` folder (created at import time), silently
+    stranding the real registry at app/app/data while a fresh demo database was
+    created beside it. Items move one by one; existing items are never
+    overwritten; nothing is ever deleted.
     """
-    import os
+    from app import db
 
-    from app.server import launcher
+    data_dir = tmp_path / "app" / "data"
+    legacy = tmp_path / "app" / "app" / "data"
+    # the poisoned case: target already occupied by the import-time uploads dir
+    (data_dir / "uploads").mkdir(parents=True)
+    (legacy / "uploads").mkdir(parents=True)
+    (legacy / "registry.db").write_bytes(b"the-real-registry")
+    (legacy / "uploads" / "photo.jpg").write_bytes(b"media")
+    (legacy / "registry.db-wal").write_bytes(b"journal")
 
-    project = tmp_path / "proj"
-    pkg = project / "app"
-    legacy = pkg / "app" / "data"
-    legacy.mkdir(parents=True)
-    (legacy / "registry.db").write_bytes(b"legacy-bytes")
+    status = db.adopt_legacy_data_dir(data_dir, legacy)
+    assert status == "moved"
+    assert (data_dir / "registry.db").read_bytes() == b"the-real-registry"
+    assert (data_dir / "registry.db-wal").read_bytes() == b"journal"
+    assert (data_dir / "uploads" / "photo.jpg").read_bytes() == b"media"
+    assert not (legacy / "registry.db").exists(), "the legacy copy must travel, not duplicate"
 
-    saved = os.environ.pop("SIRAJ_DATA_DIR", None)
-    try:
-        monkeypatch.setattr(launcher, "ROOT", pkg)
-        path = launcher.apply_data_dir()
-        assert path == (project / "app" / "data").resolve()
-        assert (path / "registry.db").read_bytes() == b"legacy-bytes", "registry must travel with the move"
-        assert not legacy.exists(), "the legacy folder must be gone after the move"
 
-        # an existing registry at the right place always wins over a stray legacy one
-        (path / "registry.db").write_bytes(b"newer")
-        legacy.mkdir(parents=True)
-        (legacy / "registry.db").write_bytes(b"stale")
-        path2 = launcher.apply_data_dir()
-        assert path2 == path
-        assert (path / "registry.db").read_bytes() == b"newer"
-    finally:
-        if saved is not None:
-            os.environ["SIRAJ_DATA_DIR"] = saved
-        else:
-            os.environ.pop("SIRAJ_DATA_DIR", None)
+def test_registry_adoption_never_overwrites_and_reports_two_registries(tmp_path):
+    from app import db
+
+    data_dir = tmp_path / "data"
+    legacy = tmp_path / "legacy"
+    data_dir.mkdir()
+    legacy.mkdir()
+    (data_dir / "registry.db").write_bytes(b"current")
+    (legacy / "registry.db").write_bytes(b"stranded")
+    (legacy / "extra.txt").write_bytes(b"loose")
+
+    status = db.adopt_legacy_data_dir(data_dir, legacy)
+    assert status == "both", "two registries must be reported, not silently merged"
+    assert (data_dir / "registry.db").read_bytes() == b"current", "existing registry must win"
+    assert (legacy / "registry.db").read_bytes() == b"stranded", "nothing may be deleted"
+    assert not (data_dir / "extra.txt").exists(), "two registries = move nothing, warn and wait for a human"
+
+
+def test_registry_adoption_survives_a_locked_file_without_losing_data(tmp_path, monkeypatch, capsys):
+    import shutil as _shutil
+
+    from app import db
+
+    data_dir = tmp_path / "data"
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "registry.db").write_bytes(b"locked-data")
+
+    real_move = _shutil.move
+    monkeypatch.setattr(_shutil, "move",
+                        lambda *a, **k: (_ for _ in ()).throw(PermissionError("in use")))
+    status = db.adopt_legacy_data_dir(data_dir, legacy)
+    monkeypatch.setattr(_shutil, "move", real_move)
+
+    assert status == "none"
+    assert (legacy / "registry.db").read_bytes() == b"locked-data", "a failed move must not delete"
+    assert "WARNING" in capsys.readouterr().out
