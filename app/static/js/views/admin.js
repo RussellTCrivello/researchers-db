@@ -11,7 +11,9 @@
   A.views.import = async function (root) {
     A.crumbs([{ label: t("nav.import") }]);
     const entities = A.state.meta.entities || [];
-    let st = { step: 1, entity: entities[0].key, format: "xlsx", lang: A.state.lang,
+    /* deep link support: #/import?entity=unit preselects the target table */
+    const pre = new URLSearchParams(location.hash.split("?")[1] || "").get("entity");
+    let st = { step: 1, entity: (entities.find(e => e.key === pre) || entities[0]).key, format: "xlsx", lang: A.state.lang,
       upload: null, mapping: {}, mode: "create", status: "in_review", report: null };
 
     root.innerHTML = A.pageHead(t("imp.title"), t("imp.subtitle"), "")
@@ -1067,6 +1069,14 @@
             </dl>
             <div class="notice" style="margin-top:12px">${A.t("ui.backupsUseSqliteSOnlineBackupApiSoThey")}</div>
           </div>
+        </div>
+        <div class="card" style="margin-top:16px;border-color:var(--danger,#b3402e)">
+          <div class="card-head"><h3>${esc(t("adm.clearData"))}</h3>
+            <span class="badge">${esc(t("adm.clearDataBadge"))}</span></div>
+          <div class="small muted">${esc(t("adm.clearDataHint"))}</div>
+          <div class="btn-row" style="margin-top:12px">
+            <button class="btn danger" id="doClearData">${icon("trash")} ${esc(t("adm.clearData"))}</button>
+          </div>
         </div>`;
     hydrateIcons(root);
     root.querySelector("#doBackup").onclick = () => A.download("/api/maintenance/backup");
@@ -1092,6 +1102,20 @@
       if (!yes) return;
       const res = await api.post("/api/maintenance/purge-working-files", { older_than_hours: 24 });
       toast(t("adm.purgeDone", { files: res.files_removed, mb: (res.bytes_freed / 1048576).toFixed(1) }), "ok");
+    };
+    /* clear all data — archive-aside first, static/reference data preserved */
+    root.querySelector("#doClearData").onclick = async () => {
+      const yes = await A.confirmDialog({
+        title: t("adm.clearData"), message: t("adm.clearDataConfirm"),
+        confirmLabel: t("adm.clearData"), danger: true,
+        requirePhrase: "CLEAR ALL DATA"
+      });
+      if (!yes) return;
+      try {
+        const res = await api.post("/api/maintenance/clear-data", { confirm: "CLEAR ALL DATA" });
+        toast(t("adm.clearDataDone", { rows: res.cleared_rows, archive: res.archive }), "ok");
+        if (A.rerender) A.rerender();
+      } catch (err) { toast(err.message, "err"); }
     };
   };
 })();

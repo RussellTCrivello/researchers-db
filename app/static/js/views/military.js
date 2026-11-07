@@ -166,86 +166,6 @@
     return `${rec.docname || "#" + rec.id} · ${rec.name || rec.full_name || rec.exercise_name || ""}`;
   }
 
-  /* searchable, selectable dropdown for linked (ref) fields — the plain
-     <select> cannot carry 1,000+ options at volume */
-  function refCombo(f, v, refs) {
-    const rows = refs[f.entity] || [];
-    const cur = rows.find(r => Number(v) === r.id);
-    return `<div class="refcombo" data-entity="${esc(f.entity)}">
-      <input type="hidden" name="${f.name}" value="${v == null || v === "" ? "" : Number(v)}">
-      <input type="text" class="refcombo-input" autocomplete="off" spellcheck="false"
-        placeholder="${esc(t("mil.combo.search"))}" role="combobox"
-        aria-expanded="false" value="${cur ? esc(refLabelOf(f.entity, cur)) : ""}">
-      <div class="refcombo-list" role="listbox" hidden></div>
-    </div>`;
-  }
-
-  function bindRefCombos(root, refs) {
-    root.querySelectorAll(".refcombo").forEach(box => {
-      const entity = box.dataset.entity;
-      const rows = refs[entity] || [];
-      const hidden = box.querySelector("input[type=hidden]");
-      const input = box.querySelector(".refcombo-input");
-      const list = box.querySelector(".refcombo-list");
-      const render = (q) => {
-        const needle = (q || "").trim().toLowerCase();
-        const matches = rows.filter(r => !needle ||
-          refLabelOf(entity, r).toLowerCase().includes(needle)).slice(0, 80);
-        list.innerHTML = matches.length
-          ? matches.map(r => `<div class="refcombo-item" role="option" data-id="${r.id}">${esc(refLabelOf(entity, r))}</div>`).join("")
-          : `<div class="refcombo-empty">${esc(t("mil.combo.noMatch"))}</div>`;
-        list.hidden = false;
-        input.setAttribute("aria-expanded", "true");
-      };
-      const close = () => {
-        list.hidden = true;
-        input.setAttribute("aria-expanded", "false");
-      };
-      input.addEventListener("focus", () => render(input.value));
-      input.addEventListener("input", () => {
-        hidden.value = "";            // typed text invalidates the selection
-        render(input.value);
-      });
-      list.addEventListener("mousedown", (ev) => {
-        const item = ev.target.closest(".refcombo-item");
-        if (!item) return;
-        ev.preventDefault();
-        const rec = rows.find(r => r.id === Number(item.dataset.id));
-        hidden.value = rec.id;
-        input.value = refLabelOf(entity, rec);
-        close();
-        hidden.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-      input.addEventListener("blur", () => {
-        setTimeout(close, 120);
-        const rec = rows.find(r => r.id === Number(hidden.value));
-        input.value = rec ? refLabelOf(entity, rec) : "";
-      });
-      input.addEventListener("keydown", (ev) => {
-        if (ev.key === "Escape") { close(); input.blur(); return; }
-        if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
-          ev.preventDefault();
-          if (list.hidden) { render(input.value); return; }
-          const items = [...list.querySelectorAll(".refcombo-item")];
-          if (!items.length) return;
-          let idx = items.findIndex(el => el.classList.contains("active"));
-          items.forEach(el => el.classList.remove("active"));
-          idx = ev.key === "ArrowDown"
-            ? Math.min(items.length - 1, idx + 1)
-            : Math.max(0, idx - 1);
-          items[idx].classList.add("active");
-          items[idx].scrollIntoView({ block: "nearest" });
-        }
-        if (ev.key === "Enter") {
-          const active = list.querySelector(".refcombo-item.active");
-          if (active) {
-            ev.preventDefault();
-            active.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-          }
-        }
-      });
-    });
-  }
 
   /* ====================================================== view: workspace */
   A.views.military = async function (root) {
@@ -264,10 +184,7 @@
 
     root.innerHTML =
       milNav("workspace") +
-      A.pageHead(t("mil.title"), t("mil.subtitle"), `
-        <button class="btn primary" id="milSample">${icon("plus")} ${esc(t("mil.action.loadSample"))}</button>
-        <button class="btn" id="milSampleReset">${icon("history")} ${esc(t("mil.action.resetSample"))}</button>
-        <button class="btn" id="milSampleClear">${icon("trash")} ${esc(t("mil.action.clearSample"))}</button>`) +
+      A.pageHead(t("mil.title"), t("mil.subtitle"), "") +
       `<div class="notice">${icon("eye")} ${esc(t("mil.disclaimer"))}</div>
       <div class="grid auto" style="margin-bottom:18px">
         ${kpis.map((k, i) => `
@@ -343,21 +260,6 @@
             <td class="small muted">${esc(r.summary || "")}</td></tr>`)}</div>`;
 
     bindChrome(root);
-    const run = async (fn) => {
-      if (role() === "viewer") { toast(t("mil.role.viewerBlocked"), "err"); return; }
-      try { await fn(); A.rerender(); } catch (err) { toast(err.message, "err"); }
-    };
-    root.querySelector("#milSample").onclick = () =>
-      run(() => mreq("POST", "/sample", {}));
-    root.querySelector("#milSampleReset").onclick = () =>
-      run(() => mreq("POST", "/sample", { force: true }));
-    root.querySelector("#milSampleClear").onclick = async () => {
-      const ok = await A.confirmDialog({
-        title: t("mil.action.clearSample"), message: t("mil.action.confirmDelete"),
-        confirmLabel: t("common.confirm")
-      });
-      if (ok) run(() => mreq("DELETE", "/sample"));
-    };
   };
 
   /* ===================================================== view: domain hub */
@@ -429,61 +331,7 @@
     bindChrome(root);
   };
 
-  /* ========================================================= view: list */
   /* ============================================ view: unified entity list */
-  /**
-   * CSV import as a modal on the shared list (staff+).  Every row runs through
-   * the full rule engine server-side; the report lists exact per-row failures.
-   */
-  A.milImport = {
-    open(entity) {
-      if (role() === "viewer") { toast(t("mil.role.viewerBlocked"), "err"); return; }
-      A.modal({
-        title: t("mil.import.button") + " — " + entLabel(entity),
-        size: "wide",
-        body: `
-          <div class="import-panel">
-            <div class="small muted">${esc(t("mil.import.hint"))}</div>
-            <div class="btn-row" style="margin:8px 0">
-              <input type="file" id="milImportFile" accept=".csv,text/csv">
-              <select class="ghost-select" id="milImportMode">
-                <option value="create">${esc(t("mil.import.modeCreate"))}</option>
-                <option value="upsert">${esc(t("mil.import.modeUpsert"))}</option>
-              </select>
-            </div>
-            <div id="milImportReport"></div>
-          </div>`,
-        buttons: [
-          { label: t("common.cancel") },
-          { label: t("mil.import.run"), cls: "primary", onClick: async (close, bodyEl) => {
-              const fileEl = bodyEl.querySelector("#milImportFile");
-              const file = fileEl && fileEl.files ? fileEl.files[0] : null;
-              if (!file) { toast(t("mil.import.pickFile"), "err"); return; }
-              const csv = await file.text();
-              const mode = bodyEl.querySelector("#milImportMode").value;
-              try {
-                const res = await mreq("POST", "/" + entity + "s/import.csv", { csv, mode });
-                const s = res.summary || { created: 0, updated: 0, errors: 0 };
-                const errs = (res.results || []).filter(r => r.status === "error");
-                bodyEl.querySelector("#milImportReport").innerHTML = `
-                  <div class="notice">${esc(t("mil.import.summary",
-                    { created: s.created, updated: s.updated, errors: s.errors }))}</div>
-                  ${errs.length ? `<div class="table-wrap"><table class="data">
-                    <thead><tr><th>${esc(t("mil.import.line"))}</th>
-                      <th>${esc(t("mil.dossier.status"))}</th>
-                      <th>${esc(t("mil.import.message"))}</th></tr></thead>
-                    <tbody>${errs.map(r => `<tr><td>${r.line}</td>
-                      <td>${chip("error")}</td><td>${esc(r.message)}</td></tr>`).join("")}</tbody>
-                  </table></div>` : ""}`;
-                toast(t("mil.import.done"), s.errors ? "err" : "ok");
-                if (A.rerender) A.rerender();
-              } catch (err) { toast(err.message, "err"); }
-            } }
-        ]
-      });
-    }
-  };
-
   /**
    * Every military table is browsed through the SAME list engine that serves
    * People / Places / Organizations — table, cards, gallery and list views, the
@@ -504,7 +352,8 @@
       <div data-mil-list-host></div>`;
     if (A.hydrateIcons) A.hydrateIcons(root);
     const importBtn = root.querySelector("#milImportBtn");
-    if (importBtn) importBtn.onclick = () => A.milImport.open(entity);
+    if (importBtn) importBtn.onclick = () =>
+      (location.hash = `#/import?entity=${encodeURIComponent(entity)}`);
     /* deep links: #/military/deployments?unit_id=5 opens pre-filtered */
     const filters = [];
     const spec = (await meta()).entities[entity];
@@ -544,10 +393,6 @@
       { label: entLabel(entity), href: "#/military/" + entity + "s" },
       { label: id ? "#" + id : t("common.new") }]);
     const record = id ? (await mreq("GET", "/" + entity + "s/" + id)).record : {};
-    const refs = {};
-    await Promise.all(spec.fields.filter(f => f.type === "ref").map(async f => {
-      if (!refs[f.entity]) refs[f.entity] = await refOptions(f.entity);
-    }));
 
     const fieldsHtml = spec.fields.map(f => {
       const v = record[f.name];
@@ -557,7 +402,10 @@
         control = `<select name="${f.name}"><option value=""></option>${f.options.map(o =>
           `<option value="${esc(o)}"${String(v) === o ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
       } else if (f.type === "ref") {
-        control = refCombo(f, v, refs);
+        /* linked field = the shared searchable, addable combobox (A.combobox,
+           quick-create included) mounted behind a hidden input named for the
+           form — one combobox engine for the whole application */
+        control = `<div class="ref-mount" data-ref="${f.name}" data-entity="${f.entity}"></div>`;
       } else if (f.type === "textarea") {
         control = `<textarea name="${f.name}" rows="3">${esc(v || "")}</textarea>`;
       } else if (f.type === "bool") {
@@ -605,7 +453,23 @@
     }
     bindChrome(root);
     const form = root.querySelector("#milForm");
-    bindRefCombos(root, refs);
+    spec.fields.filter(f => f.type === "ref").forEach(f => {
+      const mount = form.querySelector(`.ref-mount[data-ref="${f.name}"]`);
+      if (!mount) return;
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = f.name;
+      hidden.value = record[f.name] == null || record[f.name] === "" ? "" : Number(record[f.name]);
+      const combo = A.combobox({
+        entity: f.entity, value: hidden.value ? Number(hidden.value) : null,
+        size: "sm", allowCreate: true,
+        placeholder: t("mil.combo.search"),
+        onSelect: (it) => { hidden.value = it ? it.id : ""; },
+        onClear: () => { hidden.value = ""; }
+      });
+      mount.appendChild(combo);
+      mount.appendChild(hidden);
+    });
 
     /* live advisory document-name preview (automated numbering control) */
     if (!id) {
@@ -729,7 +593,8 @@
       return { slug, fk, rows: data.records || [], total: data.total || 0 };
     }));
     const relLimit = 10;
-    const notes = await mreq("GET",
+    /* a note does not collect notes about itself */
+    const notes = entity === "note" ? { records: [], total: 0 } : await mreq("GET",
       "/notes?limit=50&sort=id&direction=desc&entity_type=" + entity + "&target_id=" + id);
 
     const labelOf = (slug) => entLabel(slug.replace(/s$/, ""));
@@ -774,6 +639,7 @@
           <tbody data-relbody="${esc(d.slug)}">${d.rows.map(r => relRow(d.slug, r)).join("")}</tbody>
         </table></div>
       </div>`).join("")}
+      ${entity === "note" ? "" : `
       <div class="card" id="milNotesCard">
         <div class="card-head"><h2>${esc(t("mil.dossier.notes"))}</h2>
           <span class="badge slate">${fmtNum(notes.total || (notes.records || []).length)}</span></div>
@@ -792,7 +658,7 @@
               <td>${esc(n.author || "—")}</td>
               <td>${esc(n.note_at || "—")}</td></tr>`).join("")}</tbody>
         </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
-      </div>`;
+      </div>`}`;
     bindChrome(root);
     /* show more — append the next page of a related panel */
     root.querySelectorAll("[data-relmore]").forEach(btn => {

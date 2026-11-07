@@ -412,11 +412,20 @@ serves person / place / institution / source / relationship / event:
 | `GET/PUT/PATCH/DELETE /api/{entity}/{id}` | single-record facade | writes run the full military rule engine (rules, numbering, audit) and enforce `X-Military-Role` |
 | `GET /api/{entity}/duplicates`, `/next-code` | duplicate-name groups, numbering preview | |
 | `GET/POST/DELETE /api/saved-views` | shared saved views (`entity_type` = military key) | |
+| `GET /api/import/template/{entity}` | XLSX / CSV / JSON import template | shared `transfer` generator, AR/EN headers |
+| `POST /api/import/preview` | staged upload + column mapping + sample rows | shared wizard step 2 |
+| `POST /api/import/validate` | dry-run report (per-row errors) | shared wizard step 3 |
+| `POST /api/import/commit` | write rows (create / upsert / update_only) | shared wizard step 4; job history at `/api/import/jobs` |
 
 Reads go through the shared query engine (`app/repo.py`, spec-driven);
 writes dispatch to `app/military/service` so business rules, automatic
 numbering and audit always apply. `app/military/specs.py` holds the twelve
-`EntitySpec` definitions.
+`EntitySpec` definitions. **Import is unified the same way**: the shared
+import pipeline (`app/transfer.py`) serves every entity through the one
+wizard (`#/import`), and military rows are written through the military
+service via a registered write hook — so an imported row obeys the same
+rules, numbering and audit as a row typed into a form. There is no second,
+military-only import path.
 | `POST /{entity}` | create (201) | staff+ |
 | `PATCH /{entity}/{id}` | partial update | staff+ |
 | `DELETE /{entity}/{id}` | delete | admin |
@@ -424,7 +433,7 @@ numbering and audit always apply. `app/military/specs.py` holds the twelve
 | `POST /naming/preview` | advisory next name | any |
 | `PUT /naming/counter` | audited counter adjustment | admin |
 | `GET /audit/log` | append-only audit trail | admin |
-| `POST /sample`, `DELETE /sample` | load/reset (body `{"force": true}`) / clear the fictional sample | admin |
+| `POST /sample`, `DELETE /sample` | load/reset (body `{"force": true}`) / clear the fictional sample — *operations tooling only; the interface offers no sample-data controls* | admin |
 
 Rule violations map to **422**, conflicts (overlaps, single-current breaches,
 delete blocks) to **409**, role denials to **403**, unknown entities/records to
@@ -503,12 +512,40 @@ The fictional data disclaimer is displayed on the workspace.
 `siraj.mil.role` and sent as `X-Military-Role`); `viewer` is read-only in the
 interface and every write is re-checked server-side regardless.
 
+### Production posture (test data, clearing, seeding)
+
+The workspace is a production surface, not a demonstration:
+
+* **No test-data controls.** No interface button or option loads sample data.
+  The fictional datasets are *operations tooling* (`app.military.cli sample |
+  bulk | reload | clear` and the matching HTTP endpoints) for training and
+  evaluation environments.
+* **Linked fields are searchable and addable.** Every field that references
+  another table renders as the shared combobox (`A.combobox`): type to search
+  server-side (paged), pick, or create the related record inline
+  (`A.quickCreate`, required fields only) — one combobox engine for the whole
+  application, never a second copy of it. The form reads each picker through a
+  hidden input carrying the field name, so forms behave identically across
+  every entity.
+* **Clear all data.** `#/maintenance` → *Clear all data*
+  (`POST /api/maintenance/clear-data`, typed confirmation phrase
+  `CLEAR ALL DATA`) removes every record from the working database while
+  keeping static/reference data (vocabularies, users, settings, numbering
+  series, saved views, search configuration) and the append-only audit ledgers
+  intact; automatic numbering restarts at 1. Before anything is removed the
+  live database is copied to `data/<name>-archive-<stamp>-preclear.db` and
+  `data/uploads` is moved aside — archive-aside, never delete.
+* **Demo seeding is opt-in.** A fresh start is empty; the registry demo is
+  seeded only when explicitly requested (`--demo` / `SIRAJ_SEED_DEMO=1`).
+
 ---
 
 ## 9. Sample dataset
 
-`app/military/seed.py` — loaded with `POST /api/military/sample` or
-`python -m app.military.cli sample`. **Everything in it is fictional**:
+`app/military/seed.py` — loaded with `python -m app.military.cli sample`
+(or the operations endpoint `POST /api/military/sample`; the interface has
+no sample-data buttons — see §8, Production posture). **Everything in it is
+fictional**:
 "Republic of Aldervale", "12th Territorial Brigade", "Brig. Gen. Mara Vossen
 (fictional)", "Operation Glass Meadow (fictional)", and so on. Every record is
 written through the real service layer, so the dataset is rule-clean by

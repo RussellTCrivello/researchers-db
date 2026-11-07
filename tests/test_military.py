@@ -924,13 +924,17 @@ class TestVolumeUI:
 # ---------------------------------------------------------------------------
 class TestLinkedFieldCombobox:
     def test_ref_fields_render_searchable_combobox(self):
+        """Linked fields ride the SHARED searchable combobox (A.combobox) with
+        quick-create enabled — and the one-time combobox engine is gone, so the
+        application can never grow a second, duplicate one."""
         from pathlib import Path
         src = Path("app/static/js/views/military.js").read_text()
-        # ref fields use the combobox, not a plain <select>
-        assert "function refCombo(" in src
-        assert "bindRefCombos(root, refs)" in src
-        assert "refCombo(f, v, refs)" in src
-        assert "refcombo-list" in src
+        assert "A.combobox(" in src                    # shared engine, not a local copy
+        assert "allowCreate: true" in src              # linked fields are addable
+        assert 'hidden.name = f.name' in src           # form reads it like any field
+        assert "ref-mount" in src
+        assert "function refCombo(" not in src         # no duplicate combobox engine
+        assert "bindRefCombos" not in src
 
     def test_ref_options_fetch_every_page(self):
         """Regression: refOptions was capped at 500 rows, silently dropping
@@ -1315,11 +1319,17 @@ class TestShowMoreAndImportWiring:
         assert "data-relmore" in src and "mil.dossier.showMore" in src
 
     def test_import_ui_wired_on_every_list(self):
+        """One import UI for the whole application: every military list links
+        into the shared import wizard (template → mapping → validate → commit);
+        the old per-list CSV modal is gone, not duplicated."""
         from pathlib import Path
         src = Path("app/static/js/views/military.js").read_text()
-        assert "A.milImport" in src and "import.csv" in src
-        assert "milImportMode" in src and "mil.import.modeUpsert" in src
         assert "milImportBtn" in src           # reachable from every list page
+        assert "#/import?entity=" in src       # deep-links into the shared wizard
+        assert "A.milImport" not in src        # no second, duplicate import UI
+        assert "import.csv" not in src
+        admin = Path("app/static/js/views/admin.js").read_text()
+        assert "A.views.import" in admin       # the one wizard exists
 
 
 class TestConstraintErrorsClean:
@@ -1560,7 +1570,7 @@ class TestUnifiedWiring:
         from pathlib import Path
         mil = Path("app/static/js/views/military.js").read_text()
         assert "A.views.list(" in mil
-        assert "A.milImport" in mil
+        assert "A.milImport" not in mil        # import is the shared wizard now
         assert "entityKey(" in mil
 
     def test_generic_entity_routes_alias_to_military_views(self):
@@ -1573,3 +1583,206 @@ class TestUnifiedWiring:
         from pathlib import Path
         core = Path("app/static/js/core.js").read_text()
         assert "X-Military-Role" in core
+
+
+class TestUnifiedImportPipeline:
+    """One import system for the whole application: the shared wizard
+    (template → mapping → preview → validate → commit, job history) serves
+    registry AND military entities.  Regression from the production session:
+    ``GET /api/import/template/<military>`` returned 404 because the import
+    pipeline only knew registry specs."""
+
+    def test_military_templates_no_longer_404(self, client):
+        for entity in ("unit", "region", "division", "note", "training"):
+            for fmt in ("xlsx", "csv", "json"):
+                r = client.get(f"/api/import/template/{entity}?format={fmt}&lang=ar")
+                assert r.status_code == 200, (entity, fmt, r.text)
+                assert r.content
+        r = client.get("/api/import/template/region?format=csv&lang=en")
+        header = r.content.decode("utf-8-sig").splitlines()[0]
+        assert "Docname" in header and "Name" in header   # human-label headers
+
+    def test_preview_validate_commit_writes_through_the_service(self, client):
+        csv_bytes = b"name,country\nAlpha Region,NL\nBeta Region,DE\n"
+        prev = client.post("/api/import/preview", data={"entity": "region"},
+                           files={"file": ("regions.csv", csv_bytes, "text/csv")})
+        assert prev.status_code == 200
+        body = prev.json()
+        assert body["total_rows"] == 2
+        mapping = body["mapping"]
+        assert mapping.get("name") == "name"
+
+        val = client.post("/api/import/validate", json={
+            "entity": "region", "upload_id": body["upload_id"],
+            "filename": "regions.csv", "mapping": mapping, "mode": "create"})
+        rep = val.json()
+        assert val.status_code == 200 and rep["total"] == 2 and rep["failed"] == 0
+
+        com = client.post("/api/import/commit", json={
+            "entity": "region", "upload_id": body["upload_id"],
+            "filename": "regions.csv", "mapping": mapping, "mode": "create"})
+        rep = com.json()
+        assert com.status_code == 200 and rep["created"] == 2 and rep["failed"] == 0
+        # rows ran through the military service: automatic document names exist
+        with service.transaction() as conn:
+            data = service.list_records(conn, "region", limit=50, offset=0)
+        mine = [r for r in data["records"] if r["name"] in ("Alpha Region", "Beta Region")]
+        assert len(mine) == 2 and all(r.get("docname") for r in mine)
+
+    def test_import_job_history_is_recorded(self, client):
+        csv_bytes = b"name\nJob Region\n"
+        prev = client.post("/api/import/preview", data={"entity": "region"},
+                           files={"file": ("r.csv", csv_bytes, "text/csv")}).json()
+        rep = client.post("/api/import/validate", json={
+            "entity": "region", "upload_id": prev["upload_id"], "filename": "r.csv",
+            "mapping": prev["mapping"], "mode": "create"}).json()
+        assert rep["job_id"]
+        job = client.get(f"/api/import/jobs/{rep['job_id']}")
+        assert job.status_code == 200
+        assert job.json()["entity_type"] == "region"
+        assert job.json()["dry_run"] == 1            # validate jobs never write
+
+
+class TestClearAllData:
+    """The production reset: wipe every record, keep static/reference data and
+    the append-only ledgers, archive-aside before anything is removed."""
+
+    def test_clear_requires_the_exact_phrase(self, client):
+        assert client.post("/api/maintenance/clear-data", json={}).status_code == 422
+        assert client.post("/api/maintenance/clear-data",
+                           json={"confirm": "clear all data"}).status_code == 422
+        assert client.post("/api/maintenance/clear-data",
+                           json={"confirm": "CLEAR ALL"}).status_code == 422
+        ok = client.post("/api/maintenance/clear-data", json={"confirm": "CLEAR ALL DATA"})
+        assert ok.status_code == 200
+
+    def test_clear_wipes_records_preserves_static_and_ledger(self, client, tmp_db):
+        from app import db, repo, schemas
+        h = {"X-Military-Role": "staff"}
+        r = client.post("/api/military/regions", json={"name": "Clear Region"}, headers=h)
+        assert r.status_code == 201
+        conn = db.connect()
+        repo.create_record(conn, schemas.ENTITIES["person"],
+                           {"name_en": "Clear Person", "name_ar": "شخص"})
+        conn.execute("INSERT INTO mil_meta (key, value) VALUES ('bulk_loaded', '1')")
+        conn.commit()
+        tables = ("lookup", "app_user", "setting", "sequence", "locale",
+                  "naming_series_option", "search_doc_config")
+        before = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tables}
+        seq_rows = conn.execute("SELECT COUNT(*) FROM sequence").fetchone()[0]
+        conn.close()
+
+        res = client.post("/api/maintenance/clear-data", json={"confirm": "CLEAR ALL DATA"})
+        assert res.status_code == 200
+        body = res.json()
+        assert body["cleared_rows"] > 0
+
+        conn = db.connect()
+        after = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tables}
+        assert after == before                      # static/reference data intact
+        for t in ("region", "military_unit", "person", "place", "search_doc"):
+            assert conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] == 0, t
+        seq = conn.execute("SELECT next_value FROM sequence").fetchall()
+        assert len(seq) == seq_rows and all(row[0] == 1 for row in seq)  # numbering restarts
+        assert conn.execute(
+            "SELECT COUNT(*) FROM mil_meta WHERE key='bulk_loaded'").fetchone()[0] == 0
+        # the append-only ledger recorded the clear and was not wiped
+        assert conn.execute(
+            "SELECT COUNT(*) FROM change_log WHERE entity_code='maintenance.clear_data'"
+        ).fetchone()[0] == 1
+        conn.close()
+        # archive-aside: the pre-clear snapshot exists next to the database
+        from pathlib import Path
+        assert body["archive"].endswith("-preclear.db")
+        assert list(Path(tmp_db).parent.glob("*-preclear.db"))
+
+    def test_clear_is_idempotent(self, client):
+        first = client.post("/api/maintenance/clear-data", json={"confirm": "CLEAR ALL DATA"})
+        again = client.post("/api/maintenance/clear-data", json={"confirm": "CLEAR ALL DATA"})
+        assert first.status_code == again.status_code == 200
+        assert again.json()["cleared_rows"] == 0
+
+    def test_clear_survives_foreign_key_order(self, client):
+        """Regression (found live): the military schema declares real foreign
+        keys, and an alphabetical wipe deleted parents (classification) before
+        children (military_unit) — the whole request 500'd.  A wipe must be
+        order-independent."""
+        h = {"X-Military-Role": "staff"}
+        cls = client.post("/api/military/classifications",
+                          json={"name": "FK Class"}, headers=h).json()["record"]
+        reg = client.post("/api/military/regions",
+                          json={"name": "FK Region"}, headers=h).json()["record"]
+        r = client.post("/api/military/units",
+                        json={"name": "FK Unit", "classification_id": cls["id"],
+                              "region_id": reg["id"]}, headers=h)
+        assert r.status_code == 201
+        res = client.post("/api/maintenance/clear-data", json={"confirm": "CLEAR ALL DATA"})
+        assert res.status_code == 200
+        from app import db
+        conn = db.connect()
+        for t in ("classification", "region", "military_unit"):
+            assert conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] == 0, t
+        conn.close()
+
+
+class TestProductionReadiness:
+    """The interface must present no test-data tooling; demo seeding is opt-in;
+    linked-field quick-create must work against the strict military validator."""
+
+    def test_quickcreate_meta_keys_do_not_break_military_create(self, client):
+        """Regression: A.quickCreate sends `_reason` (and `actor`) with every
+        inline create; the strict military validator 422'd on unknown keys."""
+        h = {"X-Military-Role": "staff"}
+        r = client.post("/api/region", json={"name": "Quick Region",
+                                             "_reason": "created inline from a related field",
+                                             "actor": "someone"}, headers=h)
+        assert r.status_code == 200, r.text
+        rec = r.json()["record"]
+        assert rec["name"] == "Quick Region" and rec["docname"]
+
+    def test_specs_required_flags_match_the_service(self):
+        from app.military.specs import MIL_SPECS
+        must = {
+            "division": ["region_id"], "mission": ["start_date"],
+            "holding": ["quantity"],
+            "training": ["end_date", "duration_days", "participant_count"],
+            "assignment": ["assigned_date"],
+            "note": ["entity_type", "target_id", "note_text", "author"],
+        }
+        for ent, keys in must.items():
+            for k in keys:
+                f = MIL_SPECS[ent].field(k)
+                assert f is not None and f.required, (ent, k)
+
+    def test_demo_seeding_is_opt_in_not_default(self):
+        from pathlib import Path
+        assert 'SIRAJ_SEED_DEMO", "0"' in Path("app/server/api.py").read_text()
+        assert "args.demo if args.demo is not None else False" \
+            in Path("app/cli.py").read_text()
+
+    def test_no_sample_data_buttons_or_locales_remain(self):
+        import json
+        from pathlib import Path
+        mil = Path("app/static/js/views/military.js").read_text()
+        assert "milSample" not in mil and "loadSample" not in mil
+        assert "/sample" not in mil                 # no test-data API calls in the UI
+        for lang in ("en", "ar"):
+            loc = json.loads(Path(f"app/static/js/locales/{lang}.json").read_text())
+            for k in ("mil.action.loadSample", "mil.action.resetSample",
+                      "mil.action.clearSample"):
+                assert k not in loc
+
+    def test_clear_data_exposed_once_with_phrase_gate(self):
+        from pathlib import Path
+        src = Path("app/server/api.py").read_text()
+        assert src.count('"/api/maintenance/clear-data"') == 1   # one endpoint
+        assert "CLEAR_CONFIRM_PHRASE" in src
+        core = Path("app/static/js/core.js").read_text()
+        assert "requirePhrase" in core              # typed-phrase confirm dialog
+        admin = Path("app/static/js/views/admin.js").read_text()
+        assert admin.count("doClearData") == 2      # one card, one handler
+
+    def test_note_dossier_never_collects_notes_on_notes(self):
+        from pathlib import Path
+        mil = Path("app/static/js/views/military.js").read_text()
+        assert 'entity === "note" ? { records: [], total: 0 }' in mil

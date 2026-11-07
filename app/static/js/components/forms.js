@@ -567,7 +567,11 @@
       ["name_en", "classification_id", "country_id", "place_type_id", "institution_type_id",
        "source_type_id", "event_type_id", "record_status_id", "authentication_id"].includes(f.key));
     const fields = required.concat(extras.filter(f => !required.includes(f)));
-    const nameField = entity === "source" ? "title" : (entity === "event" ? "title_ar" : "name_ar");
+    let nameField = entity === "source" ? "title" : (entity === "event" ? "title_ar" : "name_ar");
+    if (!reg.some(f => f.key === nameField)) {
+      /* military and other title-keyed entities: name / full_name / exercise_name */
+      nameField = (A.entitySpec(entity) || {}).title || "name";
+    }
     let nameValue = presetName || "";
 
     const body = document.createElement("div");
@@ -588,13 +592,19 @@
           onSelect: (it) => { state[f.key] = it ? it.id : null; }
         });
         box.appendChild(combo);
-      } else if (f.type === "select") {
+      } else if (f.type === "select" && f.domain) {
         const sel = document.createElement("select");
         sel.innerHTML = `<option value="">${esc(t("common.select"))}</option>` +
           (A.domainOptions(f.domain) || []).map(o =>
             `<option value="${o.id}">${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`).join("");
         sel.onchange = () => { state[f.key] = sel.value ? Number(sel.value) : null; };
         box.appendChild(sel);
+      } else if (f.type === "select") {
+        /* free-code vocabulary (store = "code"): plain text, validated server-side */
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.oninput = () => { state[f.key] = inp.value || null; };
+        box.appendChild(inp);
       } else if (f.type === "textarea") {
         const ta = document.createElement("textarea");
         ta.rows = 2;
@@ -636,12 +646,15 @@
               const res = await api.post(`/api/${entity}`,
                 { ...state, _reason: "created inline from a related field" });
               const rec = res.record;
-              toast(`${t("rec.createdOk")} · ${rec.code}`, "ok");
+              const key = rec.code || rec.docname || "";
+              toast(`${t("rec.createdOk")}${key ? " · " + key : ""}`, "ok");
               close();
               if (onCreated) {
                 onCreated({
-                  id: rec.id, code: rec.code, label: rec._title,
-                  label_ar: rec.name_ar || rec.title_ar, hint: ""
+                  id: rec.id, code: key,
+                  label: rec._title || rec.label || rec.name || rec.full_name ||
+                         rec.exercise_name || rec.docname || ("#" + rec.id),
+                  label_ar: rec.name_ar || rec.title_ar || rec.label_ar || "", hint: ""
                 });
               }
             } catch (err) {

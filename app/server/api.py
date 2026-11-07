@@ -44,7 +44,7 @@ async def lifespan(_app: FastAPI):
     """Startup/shutdown hook (modern replacement for the deprecated on_event)."""
     db.init_db(seed_demo=False)
     # make sure a database exists with reference data (demo only if explicitly asked)
-    if os.environ.get("SIRAJ_SEED_DEMO", "1") == "1":
+    if os.environ.get("SIRAJ_SEED_DEMO", "0") == "1":
         db.init_db(seed_demo=True)
     # every declared setting gets a row, so an older database gains the keys a
     # newer build declares — without a migration per key
@@ -784,7 +784,7 @@ def saved_views_delete(view_id: int, conn=Depends(conn_dep)):
 @app.get("/api/import/template/{entity}")
 def import_template(entity: str, format: str = "xlsx", lang: str = "en",
                     example: bool = True, conn=Depends(conn_dep)):
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)   # registry *or* military — one import system
     data, name, mime = transfer.template_bytes(conn, spec, format, lang, example)
     return Response(content=data, media_type=mime,
                     headers={"Content-Disposition": content_disposition(name)})
@@ -793,7 +793,7 @@ def import_template(entity: str, format: str = "xlsx", lang: str = "en",
 @app.post("/api/import/preview")
 async def import_preview(entity: str = Form(...), file: UploadFile = File(...),
                          conn=Depends(conn_dep)):
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     raw = await file.read()
     if not raw:
         raise HTTPException(422, "The uploaded file is empty")
@@ -832,7 +832,7 @@ def _staged_rows(upload_id: str, entity: str) -> tuple[list[str], list[dict], st
 def import_validate(payload: dict = Body(...), conn=Depends(conn_dep),
                     x_actor: str | None = Header(None)):
     entity = payload.get("entity")
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     upload_id = payload.get("upload_id")
     if upload_id:
         _cols, rows, fmt = _staged_rows(upload_id, entity)
@@ -856,7 +856,7 @@ def import_validate(payload: dict = Body(...), conn=Depends(conn_dep),
 def import_commit(payload: dict = Body(...), conn=Depends(conn_dep),
                   x_actor: str | None = Header(None)):
     entity = payload.get("entity")
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     upload_id = payload.get("upload_id")
     if not upload_id:
         raise HTTPException(422, "upload_id is required")
@@ -1277,6 +1277,109 @@ def maintenance_vacuum(conn=Depends(conn_dep)):
     return {"ok": True, "size_bytes": db.DB_PATH.stat().st_size}
 
 
+# ---------------------------------------------------------------------------
+# clear all data — the production reset.  Static/reference/configuration data
+# (lookups, vocabulary, users, settings, numbering series, saved views, search
+# configuration, archive metadata) stays intact, and so do the append-only
+# audit ledgers (change_log is DB-enforced append-only; audit_log and
+# naming_adjustment_log follow the same accountability contract — an audit
+# trail can never be lost by clicking a button; retention pruning governs it).
+# Every *record* goes.  The destructive step is preceded by an archive-aside
+# copy, so nothing a person ever entered is lost — it leaves the working
+# database, not the world.
+# ---------------------------------------------------------------------------
+CLEAR_CONFIRM_PHRASE = "CLEAR ALL DATA"
+
+CLEAR_PRESERVE = {
+    "schema_migration", "lookup", "lookup_domain", "locale", "app_user",
+    "setting", "sequence", "naming_series_option", "saved_view", "app_meta",
+    "mil_meta", "search_doc_config", "sqlite_sequence", "backup", "session",
+    "change_log", "audit_log", "naming_adjustment_log",
+}
+
+
+@app.post("/api/maintenance/clear-data")
+def maintenance_clear_data(payload: dict = Body(default={}), conn=Depends(conn_dep),
+                           x_actor: str | None = Header(None)):
+    """Wipe every record from the working database; keep static data intact.
+
+    Requires ``{"confirm": "CLEAR ALL DATA"}`` — the exact phrase — so the
+    action can never fire from a stray click.  Before anything is deleted the
+    live database is copied to ``data/<name>-archive-<stamp>-preclear.db`` and
+    ``data/uploads`` is moved aside as ``uploads-<stamp>`` (renamed, never
+    deleted), then numbering counters are reset and the database is compacted.
+    """
+    phrase = str(payload.get("confirm") or "").strip()
+    if phrase != CLEAR_CONFIRM_PHRASE:
+        raise repo.ValidationError(
+            'This removes every record from the database (static/reference data is '
+            'kept). Type "CLEAR ALL DATA" to confirm.')
+    actor = actor_of(x_actor, None) or "researcher"
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+
+    # 1) archive-aside: copy the live db and move uploads out of the way
+    def _unique(path):
+        p, n = path, 2
+        while p.exists():
+            p = path.with_name(f"{path.name}-{n}")
+            n += 1
+        return p
+
+    archive = _unique(db.DB_PATH.with_name(f"{db.DB_PATH.stem}-archive-{stamp}-preclear.db"))
+    conn.commit()
+    dst = sqlite3.connect(archive)
+    try:
+        conn.backup(dst)
+    finally:
+        dst.close()
+    uploads_as = None
+    if db.UPLOAD_DIR.exists() and any(db.UPLOAD_DIR.iterdir()):
+        uploads_as = _unique(db.UPLOAD_DIR.with_name(f"{db.UPLOAD_DIR.name}-{stamp}"))
+        db.UPLOAD_DIR.rename(uploads_as)
+    db.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 2) wipe every table that is not static/reference/configuration.
+    # The wipe is order-independent: enforcement is switched off for the
+    # transaction (a no-op inside one, so it must precede the first DELETE).
+    # Because every non-preserved table ends empty, no dangling reference can
+    # survive — the database is consistent again the moment the wipe commits.
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys = OFF")
+    tables = [r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+    cleared: dict[str, int] = {}
+    for t in sorted(tables):
+        # FTS5 shadow tables are emptied through `search_doc` itself, never
+        # directly (deleting from a shadow corrupts the index)
+        if t in CLEAR_PRESERVE or t.startswith("search_doc_"):
+            continue
+        n = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+        if n:
+            conn.execute(f"DELETE FROM {t}")
+        cleared[t] = n
+
+    # 3) reset the automatic numbering machinery; the series definitions stay
+    conn.execute("UPDATE sequence SET next_value = 1")
+    conn.execute("DELETE FROM mil_meta WHERE key = 'bulk_loaded'")   # kv flag: absent = off
+
+    conn.commit()
+    db.log_change(conn, entity_type="setting", entity_id=None,
+                  entity_code="maintenance.clear_data", action="bulk", actor=actor,
+                  reason="clear all data",
+                  new_value=str(sum(cleared.values())),
+                  notes=f"archived as {archive.name}"
+                        + (f"; uploads moved to {uploads_as.name}" if uploads_as else ""))
+    conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    conn.execute("VACUUM")
+    conn.execute("ANALYZE")
+    conn.execute("PRAGMA foreign_keys = ON")
+    return {"ok": True, "archive": archive.name,
+            "uploads_archived_as": uploads_as.name if uploads_as else None,
+            "cleared": cleared, "cleared_rows": sum(cleared.values()),
+            "preserved": sorted(CLEAR_PRESERVE)}
+
+
 @app.post("/api/maintenance/prune")
 def maintenance_prune(payload: dict = Body(default={}), conn=Depends(conn_dep),
                       x_actor: str | None = Header(None)):
@@ -1536,6 +1639,9 @@ def entity_create(entity: str, payload: dict = Body(...), conn=Depends(conn_dep)
                   x_military_role: str | None = Header(None)):
     if is_mil(entity):
         _mil_write_guard(x_military_role)
+        # meta keys (_reason, _source_id, actor ...) are registry conveniences —
+        # the military service validates its fields strictly, so drop them here
+        payload = {k: v for k, v in payload.items() if not k.startswith("_") and k != "actor"}
         rec = _mil_write(conn, mil_service.create, entity, payload,
                          actor_of(x_actor, None) or "researcher")
         return {"ok": True, "record": mil_query_shim(rec, MIL_SPECS[entity])}
@@ -1563,6 +1669,7 @@ def entity_update(entity: str, rec_id: int, payload: dict = Body(...),
                   x_military_role: str | None = Header(None)):
     if is_mil(entity):
         _mil_write_guard(x_military_role)
+        payload = {k: v for k, v in payload.items() if not k.startswith("_") and k != "actor"}
         rec = _mil_write(conn, mil_service.update, entity, rec_id, payload,
                          actor_of(x_actor, None) or "researcher")
         return {"ok": True, "record": mil_query_shim(rec, MIL_SPECS[entity])}

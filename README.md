@@ -178,7 +178,7 @@ python -m app.cli backup -o backups/nov.zip   # consistent snapshot
 python -m app.cli export person out.xlsx --lang ar
 python -m app.cli reindex                     # rebuild search index
 python -m app.cli user reviewer reviewer      # add an acting user
-python -m pytest -q                           # run the test suite (110 tests)
+python -m pytest -q                           # run the full test suite (registry + military)
 python tests/verify_all.py                    # exercise all 101 API routes (407 checks)
 python tests/audit.py                         # the fundamental audit (162 checks)
 python -m app.cli check-integrity             # is the data structurally sound?
@@ -190,6 +190,35 @@ python tests/structures_ui.py                 # the six structures, in a browser
 python tests/desk_ui.py                       # the map desk, in a browser (87 checks)
 python samples/run_samples.py                 # import every sample file through the API
 ```
+
+## Production operation
+
+The application runs as a **production system by default** — there is no demonstration
+mode baked into it:
+
+* **No test-data controls.** The interface contains no buttons or options for loading
+  sample/test data. The fictional Military Organization datasets remain available as
+  *operations tooling* (`python -m app.military.cli sample|bulk|reload|clear`) for
+  training and evaluation environments, never as interface features.
+* **Demo seeding is opt-in.** `python run.py` (or `app.cli serve`) starts with the
+  database it finds — a fresh install starts empty. Seed the synthetic registry demo
+  explicitly with `python run.py init --demo`, `python run.py --demo`, or
+  `SIRAJ_SEED_DEMO=1`.
+* **Clear all data.** Maintenance (`#/maintenance`) offers *Clear all data* — one
+  function, behind a typed confirmation phrase (`CLEAR ALL DATA`). It removes every
+  record while keeping static/reference data intact (vocabularies, users, settings,
+  numbering series, saved views, search configuration) and the append-only audit
+  ledgers; automatic numbering restarts at 1. Before anything is removed the live
+  database is copied to `data/<name>-archive-<stamp>-preclear.db` and `data/uploads`
+  is moved aside — nothing a person ever entered is deleted, ever. The same function
+  is available as `POST /api/maintenance/clear-data`.
+* **One import system for every entity.** The import wizard (`#/import`) — template,
+  column mapping, preview, validation, commit modes and job history — serves the
+  registry *and* all twelve Military Organization entities; military imports run
+  through the full rule engine and automatic numbering.
+* **Linked fields are searchable and addable.** Every field that points at another
+  table renders as the shared combobox: type to search (server-side, paged), pick, or
+  create the related record inline without leaving the form.
 
 ## Documentation
 

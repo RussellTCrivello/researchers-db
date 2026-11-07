@@ -201,7 +201,7 @@ def _build_specs() -> dict[str, EntitySpec]:
     s["division"] = _spec("division", "division", [
         _docname(),
         F("name", "text", group="identity", required=True, in_list=True),
-        _ref("region_id", "region", group="structure", in_list=True),
+        _ref("region_id", "region", group="structure", required=True, in_list=True),
         _sel("division_type", in_list=True),
         F("formation_date", "date", group="structure", in_list=True),
         F("headquarters", "text", group="structure", in_list=True),
@@ -232,7 +232,7 @@ def _build_specs() -> dict[str, EntitySpec]:
         _docname(in_list=True),
         _ref("unit_id", "unit", group="structure", required=True, in_list=True),
         _ref("armament_id", "armament", group="structure", required=True, in_list=True),
-        F("quantity", "int", group="main", in_list=True),
+        F("quantity", "int", group="main", required=True, in_list=True),
         _sel("condition", in_list=True),
         F("acquisition_year", "int", group="main"),
         F("notes", "textarea", group="main"),
@@ -260,7 +260,7 @@ def _build_specs() -> dict[str, EntitySpec]:
         F("name", "text", group="identity", required=True, in_list=True),
         _sel("mission_type", in_list=True),
         _ref("deployment_id", "deployment", group="structure", in_list=True),
-        F("start_date", "date", group="main", in_list=True),
+        F("start_date", "date", group="main", required=True, in_list=True),
         F("end_date", "date", group="main"),
         _sel("status", in_list=True),
         F("area", "text", group="main"),
@@ -275,9 +275,9 @@ def _build_specs() -> dict[str, EntitySpec]:
         F("exercise_name", "text", group="identity", required=True, in_list=True),
         _sel("training_type", in_list=True),
         F("start_date", "date", group="main", required=True, in_list=True),
-        F("end_date", "date", group="main", in_list=True),
-        F("duration_days", "int", group="main"),
-        F("participant_count", "int", group="main", in_list=True),
+        F("end_date", "date", group="main", required=True, in_list=True),
+        F("duration_days", "int", group="main", required=True),
+        F("participant_count", "int", group="main", required=True, in_list=True),
         F("lead_trainer", "text", group="main"),
         _sel("assessment", in_list=True),
         F("location", "text", group="main"),
@@ -301,7 +301,7 @@ def _build_specs() -> dict[str, EntitySpec]:
         _ref("unit_id", "unit", group="structure", required=True, in_list=True),
         _ref("commander_id", "commander", group="structure", required=True, in_list=True),
         F("role", "text", group="main", in_list=True),
-        F("assigned_date", "date", group="main", in_list=True),
+        F("assigned_date", "date", group="main", required=True, in_list=True),
         F("relieved_date", "date", group="main"),
         F("is_current", "bool", group="main", in_list=True),
         F("notes", "textarea", group="main"),
@@ -310,10 +310,10 @@ def _build_specs() -> dict[str, EntitySpec]:
 
     s["note"] = _spec("note", "note", [
         _docname(in_list=True),
-        _sel("entity_type", in_list=True),
-        F("target_id", "int", group="main", in_list=True),
-        F("note_text", "textarea", group="main", in_list=True),
-        F("author", "text", group="main", in_list=True),
+        _sel("entity_type", in_list=True, required=True),
+        F("target_id", "int", group="main", required=True, in_list=True),
+        F("note_text", "textarea", group="main", required=True, in_list=True),
+        F("author", "text", group="main", required=True, in_list=True),
         F("note_at", "date", group="main", in_list=True),
         *_audit_fields(),
     ], "file-text")
@@ -385,3 +385,36 @@ def mil_options(conn, spec: EntitySpec, q: str | None, limit: int,
                     "label_ar": title, "hint": hint, "image": None,
                     "type": spec.key})
     return out
+
+# ---------------------------------------------------------------------------
+# Import/export pipeline integration.  The generic pipeline in app.transfer
+# serves every EntitySpec; registering the military specs here routes their
+# imports through the same template/preview/validate/commit machinery as the
+# registry — while writes still run through the military service (rules,
+# automatic numbering, roles, audit).  One import system, no duplicate one.
+# ---------------------------------------------------------------------------
+_LABEL_COLS = {k: tuple(v) for k, v in TITLE_FIELDS.items()}
+
+
+def _import_write_hook(conn, spec: EntitySpec, values: dict, actor: str,
+                       record_id: int | None = None) -> dict:
+    from . import service as mil_service  # local import: service is heavier
+
+    payload = {k: v for k, v in values.items() if not k.startswith("_")}
+    if record_id is not None:
+        return mil_service.update(conn, spec.key, record_id, payload, actor)
+    return mil_service.create(conn, spec.key, payload, actor)
+
+
+def register_import_support() -> None:
+    """Idempotently join the shared import/export pipeline."""
+    from .. import transfer  # local import: transfer does not know about us
+
+    for spec in MIL_SPECS.values():
+        if not any(s.key == spec.key for s, _ in transfer._REF_SOURCES):
+            transfer.register_ref_source(spec, _LABEL_COLS.get(spec.key, ()))
+        if spec.key not in transfer._WRITE_HOOKS:
+            transfer.register_write_hook(spec.key, _import_write_hook)
+
+
+register_import_support()

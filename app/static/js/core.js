@@ -620,13 +620,30 @@
          every confirmation resolve to "cancelled". */
       let settled = false;
       const answer = (value) => { if (!settled) { settled = true; resolve(value); } };
+      /* requirePhrase: destructive actions make the person type the exact
+         phrase (e.g. "CLEAR ALL DATA") before the confirm button engages. */
+      const phrase = opts.requirePhrase || "";
       const m = modal({
         title: opts.title || t("common.confirm"), size: "slim",
-        body: `<p>${opts.message || ""}</p>` + (opts.extra || ""),
+        body: `<p>${opts.message || ""}</p>` + (opts.extra || "") +
+          (phrase ? `<div class="field" style="margin-top:10px">
+            <label class="small muted">${esc(t("common.typeToConfirm"))}</label>
+            <input type="text" id="__confirmPhrase" class="grow" autocomplete="off"
+                   spellcheck="false" placeholder="${esc(phrase)}">
+          </div>` : ""),
         buttons: [
           { label: opts.cancelLabel || t("common.cancel"), cls: "", onClick: (c) => { answer(false); c(); } },
           { label: opts.confirmLabel || t("common.confirm"),
-            cls: opts.danger ? "danger" : "primary", onClick: (c) => { answer(true); c(); } }
+            cls: opts.danger ? "danger" : "primary", onClick: (c, bodyEl) => {
+              if (phrase) {
+                const inp = bodyEl ? bodyEl.querySelector("#__confirmPhrase") : null;
+                if (!inp || inp.value.trim() !== phrase) {
+                  toast(t("common.typeToConfirm"), "err");
+                  return;                       // keep the dialog open
+                }
+              }
+              answer(true); c();
+            } }
         ],
         onClose: () => answer(false)
       });
