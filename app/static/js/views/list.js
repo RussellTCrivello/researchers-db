@@ -827,7 +827,9 @@
         bounds.extend([p.lon, p.lat]);
         if (A.geopin) {
           const m = A.geopin.marker(map, [p.lon, p.lat], {
-            etype: entity, label: label || p.code, size: "sm", showLabel: false
+            etype: entity, label: label || p.code, size: "sm", showLabel: false,
+            associated: p.position === "associated",
+            title: (label || p.code) + (p.position === "associated" ? " · " + t("geo.associatedPoint") : "")
           });
           if (m) {
             const el = m.getElement();
@@ -2241,9 +2243,17 @@
     if (etype === "place") {
       if (rec.latitude == null || rec.longitude == null) return null;
       return { lat: Number(rec.latitude), lon: Number(rec.longitude),
-               label: A.dispTitle(rec, "place") || "", placeId: rec.id };
+               label: A.dispTitle(rec, "place") || "", placeId: rec.id,
+               position: "precise" };
     }
     if (etype === "source" || etype === "relationship") return null;
+    /* The record's own coordinates first: a linked place never lends its
+       position. It only anchors records whose own position is not recorded,
+       and such a point is marked "associated" so nothing reads it as theirs. */
+    if (rec.latitude != null && rec.longitude != null) {
+      return { lat: Number(rec.latitude), lon: Number(rec.longitude),
+               label: A.dispTitle(rec, etype) || "", position: "precise" };
+    }
     const key = etype === "person" ? "birthplace_id" : "place_id";
     const ref = (rec._refs || {})[key];
     if (!rec[key]) return null;
@@ -2252,38 +2262,23 @@
       if (place.latitude == null || place.longitude == null) return null;
       return { lat: Number(place.latitude), lon: Number(place.longitude),
                label: A.dispTitle(place, "place") || refName(ref),
-               placeId: place.id };
+               placeId: place.id, position: "associated" };
     } catch (e) {
       return null;
     }
   }
 
-  const MAP_CONTEXT_CAP = 22;
-
-  /** Every point at which one referenced record can be shown (usually one). */
-  async function anchorPointsForRef(etype, id, depth) {
-    if (!etype || !id) return [];
-    const d = depth || 0;
-    try {
-      const rec = await api.get(`/api/${etype}/${id}`);
-      if (etype === "relationship") {
-        if (d > 0) return [];
-        const pts = [];
-        const sides = [[rec.entity1_type, rec.entity1_id], [rec.entity2_type, rec.entity2_id]];
-        for (const side of sides) {
-          const sub = await anchorPointsForRef(side[0], side[1], d + 1);
-          sub.forEach(p => pts.push(p));
-        }
-        return pts;
-      }
-      const p = await anchorOfRecord(etype, rec);
-      return p ? [p] : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
   function pointKey(p) { return p.lat.toFixed(4) + "," + p.lon.toFixed(4); }
+
+  /** Small deterministic offset for markers that genuinely share one point:
+      separate records never merge into one marker — they fan out just enough
+      to stay individually selectable. */
+  function spiralOffset(slot) {
+    if (!slot) return [0, 0];
+    const angle = slot * 2.39996;
+    const r = 11 + 7 * Math.sqrt(slot);
+    return [Math.round(Math.cos(angle) * r), Math.round(Math.sin(angle) * r)];
+  }
 
   function haversineKm(a, b) {
     const R = 6371, rad = Math.PI / 180;
@@ -2299,80 +2294,52 @@
             [Math.max.apply(null, lons), Math.max.apply(null, lats)]];
   }
 
-  /** The map model for the panel: points, the tie between a relationship's
-      two sides, and what the caption should say. */
+  /** Why a network point is on this map: its provenance, in the active
+      language — "birthplace", "event held here", or an indirect hop through
+      a named intermediate record. */
+  function viaText(via) {
+    if (!via || via.kind === "self") return "";
+    const ar = A.state.lang === "ar";
+    const base = (ar ? (via.label_ar || via.label_en) : (via.label_en || via.label_ar)) || "";
+    const through = (via.through_label_en || via.through_label_ar)
+      ? (ar ? (via.through_label_ar || via.through_label_en) : (via.through_label_en || via.through_label_ar))
+      : "";
+    return through ? (base + " (" + t("geo.via") + " " + through + ")") : base;
+  }
+
+  /** The map model for the panel: every geographical point connected to the
+      record through the registry's own links (the server's bounded network
+      traversal — own positions, associated places, organizations, events, and
+      one step further, each with its provenance), the tie between a
+      relationship's two sides, and what the caption should say. */
   async function mapModelFor(entity, rec) {
     const model = { label: "", points: [], link: false, distance: null };
+    try {
+      const net = await api.get(`/api/map/network?entity=${encodeURIComponent(entity)}&id=${rec.id}&depth=2&limit=120`);
+      (net.points || []).forEach(p => {
+        const label = A.state.lang === "ar" ? (p.label_ar || p.label_en) : (p.label_en || p.label_ar);
+        model.points.push({
+          lat: Number(p.lat), lon: Number(p.lon),
+          label: label || p.code || "",
+          primary: !!p.primary,
+          position: p.position,
+          placeId: p.place_id || null,
+          via: p.via || null, entityType: p.entity_type, recId: p.id
+        });
+      });
+    } catch (e) {
+      /* an empty model shows the panel's own "no position" message */
+    }
     if (entity === "relationship") {
-      const sides = [
-        { type: rec.entity1_type, id: rec.entity1_id, name: rec.entity1_name, ref: (rec._refs || {}).entity1_id },
-        { type: rec.entity2_type, id: rec.entity2_id, name: rec.entity2_name, ref: (rec._refs || {}).entity2_id }
-      ];
-      for (const side of sides) {
-        const pts = await anchorPointsForRef(side.type, side.id);
-        if (pts.length) {
-          pts[0].label = side.name || refName(side.ref) || pts[0].label;
-          pts[0].primary = true;
-          if (!model.points.some(p => pointKey(p) === pointKey(pts[0]))) model.points.push(pts[0]);
-        }
-      }
-      model.link = model.points.length === 2;
-      if (model.link) model.distance = haversineKm(model.points[0], model.points[1]);
-      model.label = [sides[0].name || refName(sides[0].ref), sides[1].name || refName(sides[1].ref)]
-        .filter(Boolean).join(" \u2194 ");
-    } else if (entity === "event") {
-      const primary = await anchorOfRecord("event", rec);
-      if (primary) {
-        primary.primary = true;
-        model.points.push(primary);
-        model.placeId = primary.placeId;
-        model.label = primary.label;
-      }
-      const seenRecs = new Set();
-      const others = [];
-      (rec.relationships || []).forEach(r => {
-        const k = (r.other_type || "") + ":" + (r.other_id || "");
-        if (r.other_type && r.other_id && !seenRecs.has(k) && others.length < MAP_CONTEXT_CAP) {
-          seenRecs.add(k);
-          others.push([r.other_type, r.other_id]);
-        }
-      });
-      const extras = await Promise.all(others.map(x => anchorPointsForRef(x[0], x[1])));
-      extras.forEach(sub => sub.forEach(p => {
-        if (!model.points.some(q => pointKey(q) === pointKey(p))) {
-          p.primary = false;
-          model.points.push(p);
-        }
-      }));
-    } else if (entity === "source") {
-      let rows = [];
-      try { rows = await fetchClaims(entity, rec); } catch (e) { rows = []; }
-      const seenRecs = new Set();
-      const targets = [];
-      rows.forEach(r => {
-        const tgt = r.target;
-        if (!tgt || !tgt.type || !tgt.id) return;
-        const k = tgt.type + ":" + tgt.id;
-        if (!seenRecs.has(k) && targets.length < MAP_CONTEXT_CAP) {
-          seenRecs.add(k);
-          targets.push([tgt.type, tgt.id, tgt.label]);
-        }
-      });
-      const extras = await Promise.all(targets.map(x => anchorPointsForRef(x[0], x[1])));
-      extras.forEach((sub, i) => sub.forEach(p => {
-        if (!model.points.some(q => pointKey(q) === pointKey(p))) {
-          p.primary = true;
-          p.label = targets[i][2] || p.label;
-          model.points.push(p);
-        }
-      }));
+      const sides = model.points.filter(p => p.primary);
+      model.link = sides.length === 2;
+      if (model.link) model.distance = haversineKm(sides[0], sides[1]);
+      model.label = sides.map(p => p.label).filter(Boolean).join(" \u2194 ");
     } else {
-      const p = await anchorOfRecord(entity, rec);
-      if (p) {
-        p.primary = true;
-        model.points.push(p);
-        model.placeId = p.placeId;
-        model.label = p.label;
+      const main = model.points.find(p => p.primary) || model.points[0] || null;
+      if (main) {
+        model.placeId = main.placeId;
+        model.label = main.label;
       }
     }
     return model;
@@ -2551,8 +2518,10 @@
     hydrateIcons(bar);
     if (cap) {
       if (located) {
+        const mainAssociated = main.position === "associated";
         cap.hidden = false;
-        cap.innerHTML = `<span>${esc(t("inspect.anchor." + entity))}</span>
+        cap.innerHTML = `<span>${esc(mainAssociated ? t("inspect.anchor." + entity) : t("geo.ownPosition"))}</span>
+          ${mainAssociated ? `<span class="badge gray">${esc(t("geo.associatedPoint"))}</span>` : ""}
           ${multi ? `<span class="badge gray">${esc(t("inspect.map.multi").replace("{n}", String(pts.length)))}</span>` : ""}
           ${model && model.distance != null ? `<span class="badge amber">${esc(t("inspect.map.distance"))} ${fmtNum(model.distance)} km</span>` : ""}
           <b dir="ltr">${main.lat.toFixed(5)}, ${main.lon.toFixed(5)}</b>
@@ -2596,13 +2565,20 @@
     if (!canvas) return;
     const st = state[entity];
     const pts = ((model && model.points) || []).filter(p => p && p.lat != null && p.lon != null);
-    /* one marker per distinct position; context points ride along quieter */
+    /* one marker per RECORD: separate records never merge because they share
+       a point — coincident markers fan out by a small spiral offset so each
+       stays individually selectable */
     const uniq = [];
     const seen = new Set();
+    const at = new Map();
     pts.forEach(p => {
-      const k = pointKey(p);
+      const k = (p.entityType || "") + ":" + (p.recId || "") + "@" + pointKey(p);
       if (seen.has(k)) return;
       seen.add(k);
+      const pk = pointKey(p);
+      const n = at.get(pk) || 0;
+      at.set(pk, n + 1);
+      p._slot = n;
       uniq.push(p);
     });
     if (!uniq.length || !window.maplibregl) {
@@ -2611,7 +2587,7 @@
       return;
     }
     /* already showing this record: just bring it back to size */
-    const key = entity + ":" + uniq.map(pointKey).join("|");
+    const key = entity + ":" + uniq.map(p => (p.entityType || "") + ":" + (p.recId || "") + "@" + pointKey(p)).join("|");
     if (st._inspectMap && st._inspectMapKey === key) {
       requestAnimationFrame(() => { try { st._inspectMap.resize(); } catch (e) { /* */ } });
       return;
@@ -2650,19 +2626,27 @@
       }
       uniq.forEach(p => {
         const title = (p.label || "").toString();
+        /* an associated point is shown at its place — say so, never let the
+           marker imply the place's coordinates are the record's own; every
+           marker also says why it is here (its provenance in the network) */
+        const assoc = p.position === "associated";
+        const why = viaText(p.via);
+        const tip = title + (why ? " · " + why : "") + (assoc ? " · " + t("geo.associatedPoint") : "");
         if (p.primary !== false) {
           if (A.geopin) {
             st._inspectPins.push(A.geopin.marker(map, [p.lon, p.lat], {
-              etype: entity, label: title, selected: true, size: "lg", showLabel: !!title
+              etype: entity, label: title, selected: true, size: "lg", showLabel: !!title,
+              title: tip, associated: assoc, offset: spiralOffset(p._slot)
             }));
           }
         } else {
           /* context points: plain dots, quieter than the anchors */
           const el = document.createElement("div");
-          el.className = "inspect-map-dot";
-          if (title) el.title = title;
-          st._inspectPins.push(new window.maplibregl.Marker({ element: el })
-            .setLngLat([p.lon, p.lat]).addTo(map));
+          el.className = "inspect-map-dot" + (assoc ? " assoc" : "");
+          if (tip) el.title = tip;
+          st._inspectPins.push(new window.maplibregl.Marker({
+            element: el, offset: spiralOffset(p._slot)
+          }).setLngLat([p.lon, p.lat]).addTo(map));
         }
       });
       if (model && model.link && uniq.length >= 2) drawInspectLink(map, uniq[0], uniq[1]);

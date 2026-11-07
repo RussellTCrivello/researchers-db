@@ -186,16 +186,42 @@ def map_overlays(layers: str | None = None,
 
 
 # --------------------------------------------------------------------------- #
+# the geographical network around one record
+# --------------------------------------------------------------------------- #
+@router.get("/api/map/network")
+def map_network(entity: str, rec_id: int = Query(..., alias="id"),
+                depth: int = Query(2, ge=1, le=3),
+                limit: int = Query(120, ge=1, le=500), conn=Depends(conn_dep)):
+    """Every geographical point connected to one record, with provenance.
+
+    Breadth-first over the registry's own links — foreign-key associations and
+    relationship rows, in both directions — bounded by depth and a point
+    budget: the record's own position, its associated place, its organization,
+    the events it took part in, and one bounded step further. Each point keeps
+    its identity, says *why* it is here (`via`), and marks whether it is an
+    independently recorded position or an associated place shown for context.
+    """
+    if entity not in ENTITIES:
+        raise HTTPException(422, f"unknown entity type '{entity}'")
+    try:
+        data = mapdata.network(conn, entity, int(rec_id), depth=depth, limit=limit)
+    except LookupError:
+        raise HTTPException(404, f"{entity} #{rec_id} not found") from None
+    return {"ok": True, **data}
+
+
+# --------------------------------------------------------------------------- #
 # one feature, in full
 # --------------------------------------------------------------------------- #
 @router.get("/api/map/feature/{entity_type}/{rec_id}")
 def map_feature(entity_type: str, rec_id: int, conn=Depends(conn_dep)):
     """The inspector payload for one selected feature.
 
-    Coordinates in DD and DMS, in three CRSs, the place the position was inherited
-    from, the country polygon the point falls in, and the record's own located
-    relationships — everything a researcher needs to *judge* a position, and nothing
-    that duplicates the record view.
+    Coordinates in DD and DMS, in three CRSs, whether the point is the record's
+    own position or its associated place shown for context, the country polygon
+    the point falls in, and the record's own located relationships — everything
+    a researcher needs to *judge* a position, and nothing that duplicates the
+    record view.
     """
     if entity_type not in ENTITIES:
         raise HTTPException(422, f"unknown entity type '{entity_type}'")

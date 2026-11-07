@@ -799,7 +799,7 @@
       const grid = fs.querySelector(".form-grid");
       groups[g].forEach(f => {
         /* longitude is the other half of the coordinate control, not its own box */
-        if (entity === "place" && f.key === "longitude") return;
+        if (f.key === "longitude") return;
         grid.appendChild(fieldEl(f));
       });
       form.appendChild(fs);
@@ -818,11 +818,11 @@
       initTags(fs);
     }
 
-    /* Events first: participants (who was there) before optional coordinate tooling. */
+    /* Events first: participants (who was there) before the linked-place note. */
     if (entity === "event") initParticipants();
 
     const LOC_FK = { person: "birthplace_id", institution: "place_id", event: "place_id" };
-    if (LOC_FK[entity]) initPreciseLocation(LOC_FK[entity]);
+    if (LOC_FK[entity]) initLinkedPlaceNote(LOC_FK[entity]);
 
     if (spec.has_positions) {
       const fs = document.createElement("fieldset");
@@ -1026,7 +1026,7 @@
       } else if (f.type === "url" && f.key === "image_url") {
         wrap.appendChild(imageEditor(f, val, hidden));
         wrap.appendChild(hidden);
-      } else if (entity === "place" && f.key === "latitude") {
+      } else if (f.key === "latitude") {
         wrap.classList.add("span2");
         const lon0 = rec && rec.longitude != null ? rec.longitude : null;
         const lat0 = val === "" || val == null ? null : Number(val);
@@ -1387,51 +1387,32 @@
         /* coordinates still stand; reverse fill is best-effort */
       }
     }
-    function initPreciseLocation(fkKey) {
-      const fs = document.createElement("fieldset");
-      fs.className = "field-group";
-      fs.innerHTML = `<legend>${esc(t("geo.preciseTitle"))}</legend>
-        <div data-loc-host></div>
-        <div class="notice small" data-loc-note hidden></div>`;
-      form.appendChild(fs);
-      let userLoc = null;
-      let linkedCoords = null;
-      const note = fs.querySelector("[data-loc-note]");
-      const ctl = A.coordControl({
-        onChange: (p) => { userLoc = p; if (note) note.hidden = true; markDirty(); }
-      });
-      fs.querySelector("[data-loc-host]").appendChild(ctl.el);
-      form._location = () => userLoc;
-      form._coordEntity = ctl;
-      form._locationGuard = () => {
-        if (userLoc && Number.isFinite(Number(userLoc.lat)) && Number.isFinite(Number(userLoc.lon))) return "";
-        const hid = form.querySelector(`[data-k="${fkKey}"]`);
-        if (hid && hid.value && linkedCoords === false) return t("geo.preciseUnlocated");
-        return "";
-      };
+    /* A linked place is an association, never a position: picking a place must
+       not assign that place's coordinates to this record. The record's own
+       coordinates live in its own fields (the Geographic group), entered
+       independently — several records linked to one place keep distinct
+       points. This note simply says which of the two the researcher is looking
+       at; it never writes into the coordinate control. */
+    function initLinkedPlaceNote(fkKey) {
+      const host = form.querySelector(`.field[data-field="${fkKey}"]`);
+      if (!host) return;
+      const note = document.createElement("div");
+      note.className = "notice small";
+      note.hidden = true;
+      host.appendChild(note);
       form._onPlacePick = async (it) => {
-        linkedCoords = null;
-        if (!it) { if (note) note.hidden = true; return; }
+        if (!it) { note.hidden = true; return; }
         try {
           const place = await api.get(`/api/place/${it.id}`);
-          if (place.latitude != null && place.longitude != null) {
-            linkedCoords = true;
-            ctl.show(place.latitude, place.longitude);
-            if (note) note.hidden = true;
-          } else {
-            linkedCoords = false;
-            if (note) {
-              note.hidden = false;
-              note.textContent = t("geo.preciseUnlocated");
-            }
-          }
+          const located = place.latitude != null && place.longitude != null;
+          note.hidden = false;
+          note.textContent = located ? t("geo.linkedNote") : t("geo.linkedNoteUnlocated");
         } catch (e) {
-          if (note) { note.hidden = false; note.textContent = e.message || ""; }
+          note.hidden = false;
+          note.textContent = e.message || "";
         }
       };
-      if (rec && rec[fkKey]) {
-        form._onPlacePick({ id: rec[fkKey] });
-      }
+      if (rec && rec[fkKey]) form._onPlacePick({ id: rec[fkKey] });
     }
     function initParticipants() {
       const fs = document.createElement("fieldset");
@@ -1525,10 +1506,6 @@
       }
       if (form._tags) data.tags = form._tags();
       if (form._positions) data.positions = form._positions();
-      if (typeof form._location === "function") {
-        const loc = form._location();
-        if (loc) data._location = { lat: loc.lat, lon: loc.lon, method: loc.method };
-      }
       if (typeof form._participants === "function") data._participants = form._participants();
       data._reason = (form.querySelector("[data-reason]") || {}).value || null;
       data._source_id = sourceCombo.getValue() || null;
@@ -1558,7 +1535,7 @@
           box.appendChild(e);
         }
       });
-      if (entity === "place") {
+      {
         const lat = form.querySelector('[data-k="latitude"]');
         const lon = form.querySelector('[data-k="longitude"]');
         const hasLat = lat && String(lat.value || "").trim() !== "";
@@ -1567,10 +1544,6 @@
           ok = false;
           toast(t("geo.preciseNeedPair"), "warn");
         }
-      }
-      if (ok && typeof form._locationGuard === "function") {
-        const msg = form._locationGuard();
-        if (msg) { ok = false; toast(msg, "warn"); }
       }
       const first = form.querySelector(".field.error");
       if (first) {

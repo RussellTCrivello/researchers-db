@@ -348,6 +348,50 @@ def resolve_all_labels(conn, spec: EntitySpec, row: dict,
 # ---------------------------------------------------------------------------
 # ENTITY DEFINITIONS
 # ---------------------------------------------------------------------------
+
+def _own_position_fields() -> list[Field]:
+    """The geographic position of a record, kept for that record alone.
+
+    Linking a person, an institution or an event to a named place is an
+    association — it never assigns the place's coordinates to the record.
+    The record's own point is typed or picked on the map independently, and
+    several records associated with one place hold several distinct points.
+    The provenance fields mirror place: a coordinate is only as good as the
+    way it was obtained.
+    """
+    return [
+        F("latitude", "float", "Latitude", "خط العرض", group="geo", in_list=False,
+          help_en="This record's own position, independent of any linked place. "
+                  "Type the latitude or pick the point on the map beside it — "
+                  "linking a place never assigns its coordinates here.",
+          help_ar="موقع هذا السجل الخاص، مستقل عن أي مكان مرتبط. أدخل خط العرض أو "
+                  "حدّد النقطة على الخريطة بجانبه — ربط المكان لا يُسند إحداثياته إلى هنا."),
+        F("longitude", "float", "Longitude", "خط الطول", group="geo", in_list=False,
+          help_en="The longitude of this record's own position. The same named "
+                  "place may anchor many different points — each record keeps its own.",
+          help_ar="خط الطول لموقع هذا السجل الخاص. قد يحتضن المكان نفسه نقاطاً "
+                  "مختلفة كثيرة — لكل سجل إحداثيته الخاصة."),
+        F("geo_precision", "select", "Coordinate precision", "دقة الإحداثيات",
+          domain="geo_precision", group="geo", in_list=False,
+          help_en="How close the point is to the true position: exact point, "
+                  "approximate, centroid of an area, or uncertain.",
+          help_ar="مدى قرب النقطة من الموقع الحقيقي: نقطة دقيقة، أو تقريبية، أو "
+                  "مركز منطقة، أو غير مؤكدة."),
+        F("geocoding_method", "select", "How the point was obtained", "طريقة تحديد النقطة",
+          domain="geocoding_method", group="geo", in_list=False,
+          help_en="Filled automatically when the point is typed or picked on the map.",
+          help_ar="يُملأ تلقائياً عند إدخال النقطة أو اختيارها على الخريطة."),
+        F("geo_uncertainty_m", "float", "Uncertainty radius (metres)",
+          "نصف قطر عدم اليقين (متر)", group="geo", in_list=False,
+          help_en="The radius the true position could lie within.",
+          help_ar="نصف القطر الذي قد يقع فيه الموقع الحقيقي."),
+        F("geometry_source", "text", "Point source", "مصدر النقطة", group="geo",
+          in_list=False, max_len=120,
+          help_en="Which map or source supplied the point (filled automatically on entry).",
+          help_ar="الخريطة أو المصدر الذي أُخذت منه النقطة (يُملأ تلقائياً عند الإدخال)."),
+    ]
+
+
 person_fields: list[Field] = [
     code_field("person"),
     F("name_ar", "text", "Name in Arabic", "الاسم بالعربية", group="identity", required=True,
@@ -409,6 +453,7 @@ person_fields: list[Field] = [
     F("website", "url", "Official website", "الموقع الرسمي", group="contact", in_list=False),
     F("social_accounts", "text", "Official accounts", "الحسابات الرسمية", group="contact",
       max_len=500, in_list=False),
+    *_own_position_fields(),
     PRIMARY_SOURCE(),
     DOC(),
     AUTH(),
@@ -532,6 +577,7 @@ institution_fields: list[Field] = [
       max_len=500, in_list=False),
     F("research_significance", "textarea", "Research significance", "الأهمية البحثية",
       group="research", in_list=False),
+    *_own_position_fields(),
     PRIMARY_SOURCE(),
     DOC(),
     AUTH(),
@@ -623,6 +669,7 @@ event_fields: list[Field] = [
     F("place_id", "fk", "Place", "المكان", ref="place", group="location"),
     F("description", "textarea", "Description", "الوصف", group="detail", in_list=False),
     F("significance", "textarea", "Significance", "الأهمية", group="detail", in_list=False),
+    *_own_position_fields(),
     PRIMARY_SOURCE(),
     DOC(),
     AUTH(),
@@ -856,6 +903,11 @@ EVENT_CORE = ["title_ar", "event_type_id", "start_date", "place_id",
 
 DERIVED_FIELDS: dict[str, list[Derived]] = {
     "person": [
+        Derived("has_coords", "Own position recorded", "موقع خاص مسجَّل",
+                "CASE WHEN t.latitude IS NOT NULL AND t.longitude IS NOT NULL THEN 1 ELSE 0 END",
+                "int", "geo",
+                help_en="1 when the person's own coordinates are recorded — independent of any linked place.",
+                help_ar="=1 عند تسجيل إحداثيات الشخص الخاصة — مستقلة عن أي مكان مرتبط."),
         Derived("birth_year", "Birth year", "سنة الميلاد", "year_of(t.birth_date)",
                 "int", "life", unit="year", help_en="Sortable/filterable numeric year.",
                 help_ar="سنة رقمية قابلة للفرز والتصفية."),
@@ -905,6 +957,9 @@ DERIVED_FIELDS: dict[str, list[Derived]] = {
                 "AND cl.entity_id = t.id)", "date", "quality"),
     ],
     "institution": [
+        Derived("has_coords", "Own position recorded", "موقع خاص مسجَّل",
+                "CASE WHEN t.latitude IS NOT NULL AND t.longitude IS NOT NULL THEN 1 ELSE 0 END",
+                "int", "geo"),
         Derived("type_label", "Type (label)", "النوع (تسمية)",
                 _lookup_label("institution_type_id"), "text", "identity"),
         Derived("country_label", "Country (label)", "البلد (تسمية)",
@@ -994,6 +1049,9 @@ DERIVED_FIELDS: dict[str, list[Derived]] = {
                 "THEN year_of(t.end_date) - year_of(t.start_date) END", "int", "detail"),
     ],
     "event": [
+        Derived("has_coords", "Own position recorded", "موقع خاص مسجَّل",
+                "CASE WHEN t.latitude IS NOT NULL AND t.longitude IS NOT NULL THEN 1 ELSE 0 END",
+                "int", "geo"),
         Derived("type_label", "Type (label)", "النوع (تسمية)",
                 _lookup_label("event_type_id"), "text", "identity"),
         Derived("year", "Year", "السنة", "year_of(t.start_date)", "int", "timing", unit="year"),

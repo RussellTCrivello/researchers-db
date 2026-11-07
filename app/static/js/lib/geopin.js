@@ -115,10 +115,14 @@
     if (!window.maplibregl || !map) return null;
     const o = opts || {};
     const el = element(o);
+    /* an associated point stands at a linked place, not at the record's own
+       position — the class dims it and the title says so */
+    if (o.associated) el.classList.add("assoc");
+    if (o.title) el.title = o.title;
     const m = new window.maplibregl.Marker({
       element: el,
       anchor: "bottom",
-      offset: [0, 0],
+      offset: o.offset || [0, 0],
       draggable: !!o.draggable,
       pitchAlignment: "viewport",
       rotationAlignment: "viewport"

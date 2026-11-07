@@ -556,3 +556,33 @@ the admin screens (vocabularies, numbering, settings, change log, reindex/vacuum
 data-entry surface setting (page mode, dialog mode, Escape and the dirty guard, Save + New, editing
 over a dossier, the trial button, and the automatic breakpoint at 1440 px and 700 px) and the 880 px
 layout. It fails on any console error or uncaught exception, section by section.
+
+## 14 · Coordinates: entering and reading positions
+
+**A record's position is its own.** Picking or changing a place never writes
+the place's coordinates into the record, and entering a record's coordinates
+never touches the place. The two are separate fields of thought, and the
+interface keeps them that way.
+
+* **Entering a point** (place, person, institution and event forms — the
+  *Geographic* group): type latitude and longitude by hand, or click the map to
+  set the point, or drag the marker to adjust it. A full coordinate pair pasted
+  into either box (decimal or DMS, Latin or Arabic-Indic digits) is parsed and
+  split into both fields. Clearing both boxes clears the point. Precision,
+  acquisition method and uncertainty are recorded alongside; the method is
+  filled automatically ("map pick" / "typed coordinates").
+* **The linked-place note** on person, institution and event forms says it
+  plainly: linking a place does not assign its coordinates. If the record's own
+  position is not recorded, the map shows it — clearly marked — at the
+  associated place.
+* **Reading the map:** a solid marker is an independently recorded position; a
+  dimmed, dashed marker is an associated place shown for context (its tooltip
+  says "Position not recorded — shown at the associated place"). Records that
+  genuinely share a point fan out in a small spiral so each stays selectable.
+  The layer counts split into *precise* and *at associated place*.
+* **The record's Map tab** shows the complete geographical network around the
+  record: its own position, its organization, the events it took part in, its
+  associated places — and one bounded step further — with every marker
+  explaining *why* it is there (its provenance in the network) and linking to
+  the record it belongs to. Depth is bounded (2 by default) and duplicates are
+  folded; separate records are never merged.

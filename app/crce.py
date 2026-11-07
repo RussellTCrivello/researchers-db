@@ -296,6 +296,7 @@ CATEGORY_OF: dict[str, str] = {
 # The role a coordinate plays, and the sentence that keeps it honest.
 ROLE_TEXT: dict[str, tuple[str, str]] = {
     "site": ("own site", "الموقع الخاص"),
+    "measured": ("own recorded position", "الموضع المسجَّل للسجل"),
     "birthplace": ("birthplace on file", "مكان الميلاد المسجّل"),
     "seat": ("recorded seat", "المقر المسجّل"),
     "event_place": ("place of the event", "مكان الحدث"),
@@ -467,16 +468,38 @@ def _anchor(conn: sqlite3.Connection, etype: str, rid: int) -> dict | None:
     }.get(etype, (None, None))
     if not col:
         return None
-    ref = conn.execute(f"SELECT {col} FROM {ENTITIES[etype].table} WHERE id = ? AND deleted_at IS NULL",
-                       (rid,)).fetchone()
-    if not ref or ref[0] is None:
+    rec = conn.execute(
+        f"SELECT {col} AS link_id, latitude, longitude, geo_precision, "
+        f"geo_uncertainty_m, geocoding_method, geometry_source "
+        f"FROM {ENTITIES[etype].table} WHERE id = ? AND deleted_at IS NULL",
+        (rid,)).fetchone()
+    if not rec:
         return None
-    place = conn.execute(
-        "SELECT id, code, name_en, name_ar, latitude, longitude, geo_precision, "
-        "geo_uncertainty_m, geocoding_method, geometry_source, parent_place_id, country_id "
-        "FROM place WHERE id = ? AND deleted_at IS NULL", (ref[0],)).fetchone()
+    place = None
+    if rec["link_id"] is not None:
+        place = conn.execute(
+            "SELECT id, code, name_en, name_ar, latitude, longitude, geo_precision, "
+            "geo_uncertainty_m, geocoding_method, geometry_source, parent_place_id, country_id "
+            "FROM place WHERE id = ? AND deleted_at IS NULL", (rec["link_id"],)).fetchone()
+    if rec["latitude"] is not None and rec["longitude"] is not None:
+        # the record's own position — recorded for it alone, never taken over
+        # from the place it is associated with
+        return {
+            "lat": float(rec["latitude"]), "lon": float(rec["longitude"]),
+            "role": "measured",
+            "place_id": place["id"] if place else None,
+            "place_code": place["code"] if place else None,
+            "place_en": place["name_en"] if place else None,
+            "place_ar": place["name_ar"] if place else None,
+            "precision": _precision_of(conn, rec["geo_precision"]),
+            "uncertainty_m": rec["geo_uncertainty_m"],
+            "method": _method_text(conn, rec["geocoding_method"]),
+            "source": rec["geometry_source"], "inherited": False,
+            "parent_place_id": place["parent_place_id"] if place else None,
+            "country_id": place["country_id"] if place else None,
+        }
     if not place or place["latitude"] is None:
-        # the place exists; the point does not. Still a real reference, no fix.
+        # the link is real; no point anywhere. Still a real reference, no fix.
         return None
     return {
         "lat": float(place["latitude"]), "lon": float(place["longitude"]),
@@ -616,12 +639,22 @@ def _notes(etype: str, anchor: dict | None, ref: dict | None,
             "ar": f"النقطة مستعارة من {role_ar} ({anchor['place_ar'] or anchor['place_en']}); "
                   f"وهي تصف ذلك المكان، لا موضعاً قيس لهذا السجل."})
     if etype == "person":
-        notes.append({
-            "code": "person_not_pin", "level": "info",
-            "en": "A person's location is not their identity. This is the birthplace on "
-                  "file, and it says nothing about where the person lived, worked or is now.",
-            "ar": "موقع الشخص ليس هويته. هذه نقطة مكان الميلاد المسجّل، ولا تقول شيئاً عن "
-                  "مكان إقامته أو عمله أو وجوده الآن."})
+        if anchor and not anchor["inherited"]:
+            notes.append({
+                "code": "person_not_pin", "level": "info",
+                "en": "A person's location is not their identity. This point is the "
+                      "person's own recorded position, kept independently of any "
+                      "associated place — it says nothing beyond what the record states.",
+                "ar": "موقع الشخص ليس هويته. هذه نقطة الموقع المسجَّل للشخص نفسه، "
+                      "محفوظة بصورة مستقلة عن أي مكان مرتبط — ولا تقول شيئاً أكثر مما "
+                      "يدّعيه السجل."})
+        else:
+            notes.append({
+                "code": "person_not_pin", "level": "info",
+                "en": "A person's location is not their identity. This is the birthplace on "
+                      "file, and it says nothing about where the person lived, worked or is now.",
+                "ar": "موقع الشخص ليس هويته. هذه نقطة مكان الميلاد المسجّل، ولا تقول شيئاً عن "
+                      "مكان إقامته أو عمله أو وجوده الآن."})
     if etype == "institution":
         notes.append({
             "code": "seat_not_operations", "level": "info",

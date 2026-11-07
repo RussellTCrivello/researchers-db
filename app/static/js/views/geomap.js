@@ -173,7 +173,9 @@
         properties: {
           etype: p.entity_type, id: p.id, code: p.code,
           label: A.state.lang === "ar" ? (p.label_ar || p.label_en) : (p.label_en || p.label_ar),
-          lat: p.lat, lon: p.lon, status: p.status || ""
+          lat: p.lat, lon: p.lon, status: p.status || "",
+          position: p.position || "precise",
+          anchor: A.state.lang === "ar" ? (p.anchor_ar || "") : (p.anchor_en || "")
         },
         geometry: { type: "Point", coordinates: [p.lon, p.lat] }
       }))
@@ -606,7 +608,10 @@
             "circle-blur": 0.35
           }
         });
-        /* Fallback pin (always present): crisp disc. Dimmed once glyphs load. */
+        /* Fallback pin (always present): crisp disc. Dimmed once glyphs load.
+           An "associated" point stands at a linked place, not at the record's
+           own position — it renders dimmer with a wider ring, so nobody reads
+           the place's coordinates as the record's. */
         map.addLayer({
           id: "geo-points", type: "circle", source: "records",
           filter: ["!", ["has", "point_count"]],
@@ -614,8 +619,8 @@
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3.2, 8, 5.2, 14, 7],
             "circle-color": etypeColor,
             "circle-stroke-color": "#fff",
-            "circle-stroke-width": 1.5,
-            "circle-opacity": 0.95
+            "circle-stroke-width": ["case", ["==", ["get", "position"], "associated"], 2.4, 1.5],
+            "circle-opacity": ["case", ["==", ["get", "position"], "associated"], 0.5, 0.95]
           }
         });
         map.addLayer({
@@ -1651,6 +1656,13 @@
       const pos = doc.position;
       const country = pos && pos.country_polygon
         ? (lang === "ar" ? pos.country_polygon.name_ar : pos.country_polygon.name_en) : null;
+      /* an associated point is shown at its place — name the association, never
+         present the place's coordinates as the record's own position */
+      const assocPos = !!(pos && pos.position === "associated");
+      const anchorText = !pos ? "" : assocPos
+        ? ((lang === "ar" ? pos.anchor_ar : pos.anchor_en) + ": " +
+           (lang === "ar" ? (pos.place_ar || pos.place_en) : (pos.place_en || pos.place_ar)))
+        : t("geo.ownPosition");
       dom.rightBody.innerHTML = `
         <div class="geo-inspector">
           <div class="geo-insp-head">
@@ -1662,7 +1674,8 @@
           ${pos ? `
             ${coordBlock(pos.lat, pos.lon, `
               <div class="geo-kv"><span>${esc(t("geo.anchor"))}</span>
-                <b dir="auto">${esc(lang === "ar" ? pos.anchor_ar : pos.anchor_en)}: ${esc(lang === "ar" ? (pos.place_ar || pos.place_en) : (pos.place_en || pos.place_ar))}</b></div>
+                <b dir="auto">${esc(anchorText)}</b></div>
+              ${assocPos ? `<div class="notice small">${esc(t("geo.associatedPoint"))}</div>` : ""}
               ${pos.precision ? `<div class="geo-kv"><span>${esc(t("geo.precision"))}</span><b>${esc(pos.precision)}</b></div>` : ""}
               ${country ? `<div class="geo-kv"><span>${esc(t("geo.country"))}</span><b dir="auto">${esc(country)}</b></div>` : ""}
               ${pos.country_en ? `<div class="geo-kv"><span>${esc(t("geo.recordCountry"))}</span><b dir="auto">${esc(lang === "ar" ? pos.country_ar : pos.country_en)}</b></div>` : ""}

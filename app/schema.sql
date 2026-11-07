@@ -194,6 +194,14 @@ CREATE TABLE IF NOT EXISTS institution (
     city                   TEXT,
     place_id               INTEGER REFERENCES place(id) ON DELETE SET NULL,
     address                TEXT,
+    -- own position — recorded for the institution alone, never inherited
+    -- from the linked place
+    latitude               REAL CHECK (latitude  IS NULL OR (latitude  BETWEEN -90  AND 90)),
+    longitude              REAL CHECK (longitude IS NULL OR (longitude BETWEEN -180 AND 180)),
+    geo_precision          TEXT,
+    geocoding_method       TEXT,
+    geo_uncertainty_m      REAL,
+    geometry_source        TEXT,
     current_leadership     TEXT,
     founders_text          TEXT,
     objectives             TEXT,
@@ -252,6 +260,14 @@ CREATE TABLE IF NOT EXISTS person (
     institutional_relations  TEXT,
     website                  TEXT,
     social_accounts          TEXT,
+    -- own position — recorded for the person alone, never inherited from
+    -- a linked place (linking is association, not assignment)
+    latitude                 REAL CHECK (latitude  IS NULL OR (latitude  BETWEEN -90  AND 90)),
+    longitude                REAL CHECK (longitude IS NULL OR (longitude BETWEEN -180 AND 180)),
+    geo_precision            TEXT,
+    geocoding_method         TEXT,
+    geo_uncertainty_m        REAL,
+    geometry_source          TEXT,
     primary_source_id        INTEGER REFERENCES source(id) ON DELETE SET NULL,
     documentation_id         INTEGER REFERENCES lookup(id),
     authentication_id        INTEGER REFERENCES lookup(id),
@@ -308,6 +324,13 @@ CREATE TABLE IF NOT EXISTS event (
     start_precision    TEXT,
     end_date           TEXT,
     place_id           INTEGER REFERENCES place(id) ON DELETE SET NULL,
+    -- own position — the venue point, independent of the person and the place
+    latitude           REAL CHECK (latitude  IS NULL OR (latitude  BETWEEN -90  AND 90)),
+    longitude          REAL CHECK (longitude IS NULL OR (longitude BETWEEN -180 AND 180)),
+    geo_precision      TEXT,
+    geocoding_method   TEXT,
+    geo_uncertainty_m  REAL,
+    geometry_source    TEXT,
     description        TEXT,
     significance       TEXT,
     primary_source_id  INTEGER REFERENCES source(id) ON DELETE SET NULL,

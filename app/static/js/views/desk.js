@@ -865,7 +865,7 @@
          <b class="mono-cell">${esc(crsText(v))}</b></div>`).join("");
       return `
         <div class="desk-kv-list">
-          <div class="desk-kv"><span>${esc(t("desk.anchor"))}</span><b>${esc(label(pos, "anchor_en", "anchor_ar") || "—")}</b></div>
+          <div class="desk-kv"><span>${esc(t("desk.anchor"))}</span><b>${esc(label(pos, "anchor_en", "anchor_ar") || t("desk.ownPosition"))}</b></div>
           <div class="desk-kv"><span>${esc(t("desk.dd"))}</span><b class="mono-cell">${pos.lat.toFixed(6)}, ${pos.lon.toFixed(6)}</b></div>
           <div class="desk-kv"><span>${esc(t("desk.dms"))}</span>
             <b class="mono-cell dms-pair"><span>${dms(pos.lat, "lat")}</span><span>${dms(pos.lon, "lon")}</span></b></div>

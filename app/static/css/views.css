@@ -2666,6 +2666,17 @@ svg.relmap .map-node.is-selected .atlas-label.is-dim { opacity: 1; }
   box-shadow: 0 1px 4px rgba(0, 0, 0, .35); cursor: default;
 }
 
+/* An associated point stands at a linked place, not at the record's own
+   position: dimmed with a dashed halo so it never reads as theirs. */
+.inspect-map-dot.assoc {
+  opacity: .55;
+  border: 2px dashed var(--teal, #166d75);
+}
+.geo-pin.assoc { opacity: .62; }
+.geo-pin.assoc .geo-pin-disc {
+  outline: 2px dashed rgba(23, 57, 92, .55); outline-offset: 2px;
+}
+
 /* ------------------------------------------------------------------ map downloads --- */
 .geo-download-menu { width: 340px; max-height: 72vh; overflow-y: auto; }
 .geo-download-menu .dl-hint { margin-bottom: 8px; }

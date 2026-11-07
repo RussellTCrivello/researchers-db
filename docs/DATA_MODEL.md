@@ -159,3 +159,41 @@ are wall-clock dates in the researcher's calendar, not events on a server.
   never touches the date.
 * **Migration:** none was required — the seed data contained only `YYYY` and `YYYY-MM-DD`, and the
   parser accepts the old shapes unchanged.
+
+## 9. Positions are per-record
+
+**A record's coordinates belong to the record, never to a place it is associated
+with.** Linking a person to Amsterdam is an association; it does not assign
+Amsterdam's coordinates to the person. Several persons linked to one place hold
+several distinct points, and none of them moves the place.
+
+* **Columns.** `person`, `institution`, `event` and `place` each carry their own
+  `latitude`, `longitude`, `geo_precision`, `geocoding_method`,
+  `geo_uncertainty_m` and `geometry_source` (migration `013` added them to the
+  first three; `place` has carried them since the base schema and `011`).
+  A coordinate pair is only ever written to the record it describes —
+  never onto a linked place, and never through a synthetic coordinate-named
+  place (that behaviour was removed with `013`, which lifts any such historical
+  points back onto their records and retires the synthetic places).
+* **Association is not a position.** Foreign keys (`birthplace_id`,
+  `affiliated_institution_id`, `place_id`, `parent_place_id`) name places; they
+  are never repurposed to store a point. An entity may be linked to a place
+  that has no coordinates at all — the link stays valid, and the entity keeps
+  its own coordinates (or none).
+* **Resolution** (`app/geo/mapdata.py` is the only authority): a record is
+  plotted at **its own** coordinates; such a point is classed `precise`. A
+  record with no coordinates of its own may still be *shown* at the place it is
+  linked to — classed `associated`, visually distinct, labelled as the
+  associated place, never presented as the record's own position. A record with
+  neither is `unlocated`: counted, never drawn at a made-up place.
+* **Provenance.** How a point was obtained is stored with it (`geocoding_method`
+  — manual, typed, map pick — plus `geo_precision` and the uncertainty radius);
+  `app/crce.py` renders the same distinction on the research dossiers
+  (`inherited` ⇔ associated).
+* **Discovery** (`mapdata.network()` / `GET /api/map/network`): selecting a
+  record returns every geographical point connected to it through the
+  registry's own links — foreign-key associations and relationship rows in both
+  directions — breadth-first, bounded by depth (1–3) and a point budget. Each
+  point keeps its identity and carries `via`: the link that brought it there,
+  naming the intermediate record for indirect hops. No point is ever merged
+  with another because of a shared name, city, or similar coordinates.
