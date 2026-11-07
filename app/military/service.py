@@ -486,16 +486,31 @@ _HOOKS: dict[str, Callable[[sqlite3.Connection, dict[str, Any], int | None], Non
 # record helpers
 # ---------------------------------------------------------------------------
 def _row_to_dict(entity: str, row: sqlite3.Row | None,
-                 conn: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+                 conn: sqlite3.Connection | None = None,
+                 with_rollup: bool = True) -> dict[str, Any] | None:
     if row is None:
         return None
     data = dict(row)
     spec = ENTITY_SPECS[entity]
     if spec.get("tree"):
         data["subtree_personnel"] = None
-        if entity == "unit" and conn is not None:
+        if entity == "unit" and conn is not None and with_rollup:
             data["subtree_personnel"] = rules.descendant_personnel(conn, row["id"])
     return data
+
+
+def _subtree_personnel_map(conn: sqlite3.Connection) -> dict[int, int]:
+    """Σ direct personnel per unit in ONE pass (parents precede descendants in
+    path order, and every ancestor id appears in the path)."""
+    rows = conn.execute(
+        "SELECT id, path, direct_personnel FROM military_unit ORDER BY path").fetchall()
+    sums: dict[int, int] = {}
+    for r in rows:
+        sums[r["id"]] = r["direct_personnel"]
+    for r in rows:
+        for ancestor in [p for p in r["path"].split("/") if p][:-1]:
+            sums[int(ancestor)] = sums.get(int(ancestor), 0) + r["direct_personnel"]
+    return sums
 
 
 def get_record(conn, entity: str, record_id: int) -> dict[str, Any] | None:
@@ -658,7 +673,9 @@ def list_records(conn, entity: str, q: str | None = None, filters: dict[str, Any
     rows = conn.execute(
         f"SELECT * FROM {spec['table']}{where_sql} ORDER BY {sort} {direction} "
         f"LIMIT ? OFFSET ?", [*args, limit, offset]).fetchall()
-    return {"records": [_row_to_dict(entity, r, conn) for r in rows], "total": total}
+    # list rows skip the per-row rollup (N+1); use force-summary for that
+    return {"records": [_row_to_dict(entity, r, conn, with_rollup=False) for r in rows],
+            "total": total}
 
 
 # ---------------------------------------------------------------------------
@@ -668,9 +685,12 @@ def tree(conn, entity: str) -> list[dict[str, Any]]:
     spec = ENTITY_SPECS[entity]
     rows = conn.execute(
         f"SELECT * FROM {spec['table']} ORDER BY path, id").fetchall()
+    rollup = _subtree_personnel_map(conn) if entity == "unit" else None
     nodes = []
     for r in rows:
-        d = _row_to_dict(entity, r, conn)
+        d = _row_to_dict(entity, r, conn, with_rollup=False)
+        if rollup is not None:
+            d["subtree_personnel"] = rollup.get(r["id"], 0)
         d["children"] = []
         nodes.append(d)
     by_id = {n["id"]: n for n in nodes}
@@ -805,10 +825,18 @@ def summary(conn) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 @contextmanager
 def transaction() -> Iterator[sqlite3.Connection]:
-    """One connection + one transaction per request; commits on success."""
+    """One connection + one transaction per request; commits on success.
+
+    ``BEGIN IMMEDIATE`` serialises writers from the first statement so that
+    check-then-act rules (one current deployment per unit, one current
+    appointment per unit+role, unique holdings, naming counters) cannot race
+    between concurrent requests — the transaction sees a stable world and the
+    next writer waits (busy_timeout) instead of interleaving.
+    """
     ensure()
     conn = connect()
     try:
+        conn.execute("BEGIN IMMEDIATE")
         yield conn
         conn.commit()
     except Exception:

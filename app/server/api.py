@@ -69,10 +69,10 @@ app.add_middleware(
 app.include_router(map_router)
 app.include_router(crce_router)
 app.include_router(structures_router)
-# The Military Organization module (Brigade Information Management System) is
-# self-contained: its own SQLite database (military.db), its own router under
-# /api/military, and its own interface at /military/.  Registered here like the
-# other feature modules; SIRAJ routes and data are untouched.
+# The Military Organization module (Brigade Information Management System)
+# shares the unified registry.db (military schema via migration 015, additive)
+# and the shell interface at #/military.  Registered here like the other
+# feature modules; SIRAJ routes and registry data are untouched.
 app.include_router(military_router)
 
 

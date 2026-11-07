@@ -42,6 +42,7 @@
   width: 18px; height: 18px; display: inline-flex; align-items: center;
   justify-content: center; font-size: 11px; color: var(--muted);
 }
+details:not([open]) > summary .mil-toggle { transform: rotate(-90deg); }
 
 /* form validation, mirroring the registry forms */
 .field.invalid input,

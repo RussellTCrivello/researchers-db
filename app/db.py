@@ -9,6 +9,7 @@ requires replacing this module (the SQL used elsewhere is standard).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -249,9 +250,9 @@ def run_migrations(conn: sqlite3.Connection) -> list[str]:
         if path.name in applied:
             continue
         sql = path.read_text(encoding="utf-8")
-        checksum = str(hash(sql))
+        checksum = hashlib.sha256(sql.encode("utf-8")).hexdigest()
         ok, note = 1, None
-        for statement in [x.strip() for x in sql.split(";") if x.strip()]:
+        for statement in split_sql_statements(sql):
             try:
                 conn.execute(statement)
             except sqlite3.OperationalError as exc:
@@ -268,6 +269,33 @@ def run_migrations(conn: sqlite3.Connection) -> list[str]:
     ensure_audit_guards(conn)
     conn.commit()
     return done
+
+
+def split_sql_statements(sql: str) -> list[str]:
+    """Split a SQL script into complete statements.
+
+    Unlike a naive ``split(";")`` this respects semicolons inside ``--``
+    comments and string literals: sqlite3's own parser decides where each
+    statement ends (via :func:`sqlite3.complete_statement`), and comment-only
+    fragments are dropped.
+    """
+    statements: list[str] = []
+    buf: list[str] = []
+    for line in sql.splitlines(keepends=True):
+        buf.append(line)
+        candidate = "".join(buf)
+        if sqlite3.complete_statement(candidate):
+            stripped = "\n".join(
+                ln for ln in candidate.splitlines()
+                if not ln.strip().startswith("--")).strip()
+            if stripped:
+                statements.append(candidate.strip())
+            buf = []
+    tail = "\n".join(ln for ln in "".join(buf).splitlines()
+                     if not ln.strip().startswith("--")).strip()
+    if tail:
+        statements.append(tail)
+    return statements
 
 
 def init_db(seed_demo: bool = False) -> None:

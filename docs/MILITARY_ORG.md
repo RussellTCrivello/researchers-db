@@ -13,25 +13,30 @@ without touching the registry, its routes, or its locale catalogues.
 
 | Aspect | Where it lives |
 | --- | --- |
-| Database | `military.db` in the project data directory (`SIRAJ_MILITARY_DB` overrides) — **never** `registry.db` |
-| Schema, connection rules | `app/military/dbm.py` |
+| Database | the **one** `registry.db` in the project data directory — the military schema is applied by migration `015_military_org.sql` |
+| Schema | `app/migrations/015_military_org.sql` (17 tables, 16 indexes), applied idempotently by `app/military/dbm.py` and by the registry's own `run_migrations` |
+| Connection rules | `app/db.py` (`connect()` house rules: WAL, foreign keys, 30 s busy timeout) |
 | Controlled vocabularies | `app/military/vocab.py` |
 | Naming series engine | `app/military/naming.py` |
 | Rule catalogue | `app/military/rules.py` |
 | Transactional service layer | `app/military/service.py` (incl. bilingual `label_en`/`label_ar` specs) |
 | HTTP API | `app/military/api.py`, mounted at `/api/military` |
 | Fictional sample dataset | `app/military/seed.py` |
-| CLI verification | `app/military/cli.py` (`python -m app.military.cli verify`) |
+| Bulk fictional dataset | `app/military/bulk.py` (deterministic stress/demo loader) |
+| CLI verification | `app/military/cli.py` (`python -m app.military.cli verify` · `sample` · `bulk` · `clear`) |
 | Interface | `app/static/js/views/military.js` + `app/static/css/military.css` — the **Brigade Command workspace inside the SIRAJ shell** (`#/military`), sharing its navigation, locales, themes and design language |
 | Tests | `tests/test_military.py` |
 
-The module is a first-class part of **one integrated application**: the
-workspace registers like every other shell view (`App.views`), its strings
-live in the application locale bundles under the `mil.*` namespace (EN/AR at
-parity), and its field/entity labels follow the registry's bilingual schema
-convention (`label_en`/`label_ar` in `/api/military/meta`). Only the data is
-separate (`military.db`), deliberately: the registry and the force database
-must never endanger each other.
+The module is a first-class part of **one integrated application over one
+database**: the workspace registers like every other shell view (`App.views`),
+its strings live in the application locale bundles under the `mil.*` namespace
+(EN/AR at parity), and its field/entity labels follow the registry's bilingual
+schema convention (`label_en`/`label_ar` in `/api/military/meta`). The
+military tables live **inside `registry.db`** alongside the registry schema —
+one file to open, back up, and reason about. User data protection remains
+absolute: the migration is strictly **additive and idempotent** (`CREATE TABLE
+IF NOT EXISTS`), military writes touch only military tables, and restricted
+deletes + foreign keys keep every table's rows independent.
 
 Companion documents: [DATA_MODEL](DATA_MODEL.md) (SIRAJ registry),
 [API](API.md) (SIRAJ endpoints), [OPERATIONS](OPERATIONS.md) (deployment &
@@ -453,7 +458,8 @@ construction and doubles as a live example:
 * deployments covering all four statuses with exactly one current deployment;
 * missions exercising the same-unit and ancestor-deployment links;
 * armament across categories with per-unit holdings;
-* trainings within subtree capacity (250 of 368 participants, 60 of 143…);
+* trainings within subtree participant capacity (the engine recomputes the
+  subtree ceiling and rejects any exercise above it);
 * a CO history (relieved predecessor, current commander) plus staff roles;
 * polymorphic notes on a unit, a deployment and a commander.
 
@@ -492,16 +498,31 @@ transactions).
 
 ## 11. Storage, migrations, operations
 
-* The database is created lazily on first use (`CREATE TABLE IF NOT EXISTS`) —
-  importing the module never touches disk. Timestamps are UTC ISO-8601.
+* **One database.** The military schema lives in the same `registry.db` as the
+  SIRAJ registry, applied by `app/migrations/015_military_org.sql` — additive,
+  idempotent (`CREATE TABLE IF NOT EXISTS`), recorded in the registry's
+  `schema_migration` ledger, and never touching existing registry rows. The
+  module also applies the migration lazily (`dbm.ensure()`), so both the app
+  and the CLI work against a database created by either entry point.
+* Timestamps are UTC ISO-8601. Connections use the registry house rules from
+  [DATA_MODEL](DATA_MODEL.md): WAL mode, enforced foreign keys, 30 s busy
+  timeout; writers serialise on `BEGIN IMMEDIATE` so rule checks and updates
+  are atomic under concurrency.
+* Back up by copying `registry.db` while the server is stopped (or use
+  SQLite's backup API) — one file now covers both the registry and the force
+  data.
+* **Datasets.** `python -m app.military.cli sample` loads the curated fictional
+  sample; `python -m app.military.cli bulk [--scale N]` loads a large
+  deterministic fictional dataset (~7,000 records at the default scale) that
+  exercises every rule, counter and read model under volume;
+  `python -m app.military.cli clear` resets military records while preserving
+  the append-only audit trail.
 * The UI is plain shell assets (`views/military.js`, `css/military.css`): no
   CDN, no extra dependencies — like the rest of the application it runs
-  fully offline.
-* Foreign keys are enforced (`ON DELETE RESTRICT` + service-level pre-checks);
-  WAL mode, 30 s busy timeout — the same house rules as the registry
-  ([DATA_MODEL](DATA_MODEL.md)).
-* Back up by copying `military.db` while the server is stopped (or use SQLite's
-  backup API); the file is independent of `registry.db`.
+  fully offline. Entity lists paginate server-side ("load more", 200-row
+  pages) and trees render collapsed below the top level, so the workspace
+  stays responsive at thousands of records.
+* Foreign keys are enforced (`ON DELETE RESTRICT` + service-level pre-checks).
 * The module obeys the security checklist in [OPERATIONS](OPERATIONS.md):
   token middleware covers `/api/military/*`, roles are enforced server-side,
   and all values are parameterised SQL.

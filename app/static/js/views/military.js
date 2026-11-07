@@ -234,8 +234,17 @@
       }
     }));
 
+    const rowHtml = r => `
+      <tr data-search="${esc(JSON.stringify(r).toLowerCase())}">
+        <td class="mono-cell">${esc(r.docname)}</td>
+        ${colSpecs.map(f => `<td>${cell(r, f, refMap)}</td>`).join("")}
+        <td><a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a></td>
+      </tr>`;
+    let offset = data.records.length;
+    const total = data.total;
+
     root.innerHTML = milNav("e:" + entity) +
-      A.pageHead(entLabel(entity), t("mil.list.count", { n: fmtNum(data.total) }), `
+      A.pageHead(entLabel(entity), t("mil.list.count", { n: fmtNum(total) }), `
         <a class="btn primary" href="#/military/${entity}s/new">${icon("plus")} ${esc(t("common.new"))}</a>`) +
       `<div class="card">
         <div class="btn-row" style="margin-bottom:12px">
@@ -243,12 +252,11 @@
             placeholder="${esc(t("mil.search.placeholder"))}" style="max-width:320px">
         </div>
         ${table([t("mil.form.docname")].concat(colSpecs.map(fieldLabel), [t("common.actions")]),
-          data.records, r => `
-          <tr data-search="${esc(JSON.stringify(r).toLowerCase())}">
-            <td class="mono-cell">${esc(r.docname)}</td>
-            ${colSpecs.map(f => `<td>${cell(r, f, refMap)}</td>`).join("")}
-            <td><a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a></td>
-          </tr>`)}
+          data.records, rowHtml)}
+        ${total > offset ? `<div class="btn-row" style="margin-top:12px">
+          <button id="milMore" class="btn">
+            ${esc(t("mil.list.loadMore", { n: fmtNum(Math.min(200, total - offset)) }))}
+          </button></div>` : ""}
       </div>`;
     bindChrome(root);
     const search = root.querySelector("#milSearch");
@@ -257,6 +265,17 @@
       root.querySelectorAll("tbody tr[data-search]").forEach(tr => {
         tr.style.display = !q || tr.dataset.search.includes(q) ? "" : "none";
       });
+    };
+    /* server-side pagination: append the next page on demand (volume-safe) */
+    const more = root.querySelector("#milMore");
+    if (more) more.onclick = async () => {
+      more.disabled = true;
+      const page = await mreq("GET", "/" + entity + "s?limit=200&offset=" + offset);
+      root.querySelector("tbody").insertAdjacentHTML("beforeend", page.records.map(rowHtml).join(""));
+      offset += page.records.length;
+      if (offset >= total) { more.remove(); return; }
+      more.disabled = false;
+      more.textContent = t("mil.list.loadMore", { n: fmtNum(Math.min(200, total - offset)) });
     };
   };
 
@@ -399,19 +418,19 @@
       { label: kind === "units" ? t("mil.nav.unitsTree") : t("mil.nav.regionsTree") }]);
     const data = await mreq("GET", "/" + kind + "/tree");
 
-    const nodeHtml = (n) => {
+    const nodeHtml = (n, depth) => {
       const hasKids = n.children && n.children.length;
       const extra = kind === "units"
         ? ` <span class="small muted">Σ ${fmtNum(n.subtree_personnel != null ? n.subtree_personnel : 0)} · ${esc(t("mil.tree.subtreePersonnel"))}</span>`
         : "";
-      return `<li><details${hasKids ? " open" : ""}>
+      return `<li><details${hasKids && depth < 1 ? " open" : ""}>
         <summary><div class="mil-node">
           <span class="mil-toggle">${hasKids ? "▾" : "·"}</span>
           <a href="#/military/${entity}s/${n.id}"><b>${esc(n.name)}</b></a>
           <span class="mono-cell small">${esc(n.docname)}</span>
           ${kind === "units" ? chip(n.status) : badge(n.region_type || "—", "slate")}${extra}
         </div></summary>
-        ${hasKids ? `<ul>${n.children.map(nodeHtml).join("")}</ul>` : ""}
+        ${hasKids ? `<ul>${n.children.map(c => nodeHtml(c, depth + 1)).join("")}</ul>` : ""}
       </details></li>`;
     };
 
@@ -422,7 +441,7 @@
       `<div class="card">
         <input id="milTreeSearch" type="search" placeholder="${esc(t("mil.tree.filter"))}"
           style="max-width:320px;margin-bottom:12px">
-        <div class="mil-tree"><ul>${data.tree.map(nodeHtml).join("")}</ul></div>
+        <div class="mil-tree"><ul>${data.tree.map(n => nodeHtml(n, 0)).join("")}</ul></div>
       </div>`;
     bindChrome(root);
     const search = root.querySelector("#milTreeSearch");

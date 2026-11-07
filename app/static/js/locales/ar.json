@@ -1074,6 +1074,7 @@
   "mil.list.unitReadiness": "جاهزية الوحدات",
   "mil.list.recentActivity": "النشاط الأخير",
   "mil.list.count": "{n} سجل",
+  "mil.list.loadMore": "تحميل {n} إضافية",
   "mil.col.name": "الاسم",
   "mil.col.unit": "الوحدة",
   "mil.col.start": "البداية",

@@ -5,7 +5,9 @@ Usage (from the repository root)::
     python -m app.military.cli verify     # run the Appendix C checklist
     python -m app.military.cli sample     # load the fictional sample dataset
     python -m app.military.cli sample --force
-    python -m app.military.cli clear      # remove sample records
+    python -m app.military.cli bulk       # load a LARGE fictional dataset (stress)
+    python -m app.military.cli bulk --scale 2000
+    python -m app.military.cli clear      # remove all military records
 
 Exit code 0 = every check passed; 1 = at least one check failed.
 """
@@ -13,8 +15,9 @@ from __future__ import annotations
 
 import sys
 
+from .. import db
 from . import seed, service
-from .dbm import MIL_DB_PATH, ensure
+from .dbm import ensure
 
 
 def verify() -> int:
@@ -148,19 +151,23 @@ def verify() -> int:
             return "document names unique; 19 naming series options present"
         run("C.9 Naming — generated document names", c9)
 
-        # C.10 — sample data sanity (only when loaded)
+        # C.10 — dataset invariants (sample or bulk: run whenever data exists)
         def c10() -> str:
             mark = conn.execute(
                 "SELECT value FROM mil_meta WHERE key = 'sample_loaded'").fetchone()
-            if not mark:
-                return "sample not loaded — skipped"
+            has_data = conn.execute(
+                "SELECT 1 FROM military_unit LIMIT 1").fetchone()
+            if not mark and not has_data:
+                return "no military data loaded — skipped"
             problems = seed.check_sample_rules(conn)
             assert not problems, "; ".join(problems)
-            return f"sample dataset rule-clean (loaded {mark['value']})"
+            what = f"sample dataset rule-clean (loaded {mark['value']})" if mark \
+                else "dataset rule-clean (bulk or mixed data)"
+            return what
         run("C.10 Sample dataset invariants", c10)
 
     width = max(len(name) for name, _, _ in checks)
-    print(f"Military Organization — Appendix C verification ({MIL_DB_PATH})")
+    print(f"Military Organization — Appendix C verification ({db.DB_PATH})")
     print("=" * (width + 24))
     failed = 0
     for name, ok, detail in checks:
@@ -185,6 +192,19 @@ def sample(force: bool = False) -> int:
     return 0
 
 
+def bulk(scale: int = 7000) -> int:
+    """Load a large deterministic fictional dataset (stress & demonstration)."""
+    from . import bulk as bulk_mod
+    ensure()
+    print(seed.FICTIONAL_DISCLAIMER)
+    with service.transaction() as conn:
+        result = bulk_mod.load_bulk(conn, scale=scale)
+    print(f"bulk fictional dataset loaded: {result['total']} records")
+    for entity, n in sorted(result["counts"].items()):
+        print(f"  {entity:14s} {n}")
+    return 0
+
+
 def clear() -> int:
     ensure()
     with service.transaction() as conn:
@@ -200,6 +220,12 @@ def main(argv: list[str] | None = None) -> int:
         return verify()
     if cmd == "sample":
         return sample(force="--force" in argv)
+    if cmd == "bulk":
+        scale = 7000
+        for i, a in enumerate(argv):
+            if a == "--scale" and i + 1 < len(argv):
+                scale = int(argv[i + 1])
+        return bulk(scale=scale)
     if cmd == "clear":
         return clear()
     print(__doc__)

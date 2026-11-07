@@ -1074,6 +1074,7 @@
   "mil.list.unitReadiness": "Unit readiness",
   "mil.list.recentActivity": "Recent activity",
   "mil.list.count": "{n} records",
+  "mil.list.loadMore": "Load {n} more",
   "mil.col.name": "Name",
   "mil.col.unit": "Unit",
   "mil.col.start": "Start",

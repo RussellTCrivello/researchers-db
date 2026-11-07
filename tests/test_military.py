@@ -1,8 +1,10 @@
 """Military Organization — test suite (self-contained module).
 
 Isolated from the SIRAJ registry: every test runs against a temporary
-``military.db``.  Covers the rule catalogue (§8), the naming engine (§11.2),
-the audit trail (§12.3), role enforcement (§8.9) and the sample dataset.
+throwaway ``registry.db`` (see tests/conftest.py and the ``tmp_db`` fixture).
+Covers the rule catalogue (§8), the naming engine (§11.2), the audit trail
+(§12.3), role enforcement (§8.9), the sample and bulk datasets, and the
+unified-database migration (015_military_org.sql).
 """
 from __future__ import annotations
 
@@ -18,9 +20,10 @@ from app.military.service import ServiceError
 
 @pytest.fixture()
 def tmp_db(tmp_path, monkeypatch):
-    """Point the module at a throwaway database and reset lazy init."""
-    db_path = tmp_path / "military.db"
-    monkeypatch.setattr(dbm, "MIL_DB_PATH", db_path)
+    """Point the unified registry database at a throwaway file (per test)."""
+    from app import db
+    db_path = tmp_path / "registry.db"
+    monkeypatch.setattr(db, "DB_PATH", db_path)
     monkeypatch.setattr(dbm, "_initialised", False)
     return db_path
 
@@ -697,3 +700,222 @@ def test_military_workspace_wired_into_shell():
     assert "/military" in app_js
     # the parallel standalone app is gone: one structure only
     assert not Path("app/military/ui").exists()
+
+
+# ---------------------------------------------------------------------------
+# Unified database + stress-arc regressions (defects surfaced 2026-11-07)
+# ---------------------------------------------------------------------------
+def _mk_unit(conn, name, *, parent_id=None, personnel=0):
+    from app.military import service
+    if parent_id is None:
+        region = service.create(conn, "region", {"name": f"{name} Region"},
+                                actor="t")
+        div = service.create(conn, "division", {"name": f"{name} Division",
+                                                "region_id": region["id"]},
+                             actor="t")
+    else:
+        row = service.get_record(conn, "unit", parent_id)
+        div = {"id": row["division_id"]}
+    payload = {"name": name, "division_id": div["id"]}
+    if parent_id is not None:
+        payload["parent_id"] = parent_id
+    if personnel:
+        payload["direct_personnel"] = personnel
+    return service.create(conn, "unit", payload, actor="t")
+
+
+class TestUnifiedDatabase:
+    def test_military_tables_live_inside_registry_db(self, tmp_db):
+        """init_db applies 015 into the ONE registry.db database."""
+        import sqlite3 as s
+
+        from app import db
+        db.init_db(seed_demo=False)
+        c = s.connect(db.DB_PATH)
+        tables = {r[0] for r in c.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        led = c.execute("SELECT ok FROM schema_migration WHERE filename=?",
+                        ("015_military_org.sql",)).fetchone()
+        c.close()
+        assert {"military_unit", "operational_deployment", "mission",
+                "unit_armament", "naming_counter"} <= tables
+        assert led is not None and led[0] == 1
+
+    def test_015_idempotent_via_ensure(self, tmp_db):
+        from app.military import dbm
+        dbm.ensure()
+        dbm._initialised = False
+        dbm.ensure()   # second pass must not raise
+        conn = dbm.connect()
+        n = conn.execute("SELECT count(*) FROM military_unit").fetchone()[0]
+        conn.close()
+        assert n == 0
+
+
+class TestMigrationMachinery:
+    def test_splitter_respects_comments_and_literals(self):
+        from app.db import split_sql_statements
+        script = (
+            "-- tricky; comment with semicolon\n"
+            "CREATE TABLE t (a TEXT DEFAULT 'x;y');\n"
+            "-- another; one\n"
+            "INSERT INTO t (a) VALUES ('p;q');\n")
+        stmts = split_sql_statements(script)
+        assert len(stmts) == 2
+        assert "CREATE TABLE" in stmts[0]
+        assert "INSERT INTO" in stmts[1]
+
+    def test_run_migrations_tolerates_semicolon_in_comment(
+            self, tmp_db, tmp_path, monkeypatch):
+        from app import db
+        db.init_db(seed_demo=False)
+        d = tmp_path / "mig"
+        d.mkdir()
+        (d / "900_tricky.sql").write_text(
+            "-- note: a; b; c\nCREATE TABLE tricky (x TEXT DEFAULT 'a;b');\n",
+            encoding="utf-8")
+        monkeypatch.setattr(db, "MIGRATIONS_DIR", d)
+        conn = db.connect()
+        done = db.run_migrations(conn)
+        conn.close()
+        assert "900_tricky.sql" in done
+
+    def test_checksums_are_deterministic(self, tmp_db, tmp_path, monkeypatch):
+        import hashlib
+
+        from app import db
+        db.init_db(seed_demo=False)
+        d = tmp_path / "mig"
+        d.mkdir()
+        (d / "901_hash.sql").write_text("CREATE TABLE h (x INTEGER);",
+                                        encoding="utf-8")
+        monkeypatch.setattr(db, "MIGRATIONS_DIR", d)
+        conn = db.connect()
+        db.run_migrations(conn)
+        row = conn.execute(
+            "SELECT checksum FROM schema_migration WHERE filename=?",
+            ("901_hash.sql",)).fetchone()
+        conn.close()
+        expect = hashlib.sha256(b"CREATE TABLE h (x INTEGER);").hexdigest()
+        assert row["checksum"] == expect
+
+
+class TestConcurrency:
+    def test_only_one_current_deployment_wins(self, tmp_db):
+        """Two writers racing to set the current deployment: exactly one wins.
+
+        Regression for the check-then-act race fixed by BEGIN IMMEDIATE in
+        service.transaction().
+        """
+        import threading
+
+        from app.military import rules, service
+        with service.transaction() as conn:
+            unit = _mk_unit(conn, "Race Unit")
+        errors: list[Exception] = []
+        won: list[int] = []
+        barrier = threading.Barrier(2)
+
+        def attempt(idx: int) -> None:
+            try:
+                barrier.wait(timeout=5)
+                with service.transaction() as conn:
+                    rec = service.create(conn, "deployment", {
+                        "name": f"Race Op {idx}", "unit_id": unit["id"],
+                        "status": "Active", "is_current": True,
+                        "start_date": "2026-01-01"}, actor="t")
+                    won.append(rec["id"])
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
+
+        threads = [threading.Thread(target=attempt, args=(i,)) for i in (0, 1)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join()
+        assert len(won) == 1, f"winners={won} errors={errors}"
+        assert len(errors) == 1
+        assert isinstance(errors[0], (rules.RuleViolation, service.ServiceError))
+        with service.transaction() as conn:
+            cur = conn.execute(
+                "SELECT count(*) FROM operational_deployment WHERE is_current=1 "
+                "AND unit_id=?", (unit["id"],)).fetchone()[0]
+        assert cur == 1
+
+
+class TestRollupContract:
+    def test_list_returns_null_rollup_but_get_and_tree_compute(self, tmp_db):
+        from app.military import service
+        with service.transaction() as conn:
+            parent = _mk_unit(conn, "R Parent", personnel=10)
+            _mk_unit(conn, "R Child", parent_id=parent["id"], personnel=7)
+        with service.transaction() as conn:
+            rows = service.list_records(conn, "unit")["records"]
+        target = [r for r in rows if r["name"] == "R Parent"][0]
+        assert target["subtree_personnel"] is None   # lists never compute rollup
+        with service.transaction() as conn:
+            rec = service.get_record(conn, "unit", target["id"])
+        assert rec["subtree_personnel"] == 17        # get computes rollup
+        with service.transaction() as conn:
+            tree = service.tree(conn, "unit")
+        node = _find_node(tree, target["id"])
+        assert node is not None and node["subtree_personnel"] == 17
+
+
+def _find_node(nodes, node_id):
+    for n in nodes:
+        if n["id"] == node_id:
+            return n
+        found = _find_node(n.get("children", []), node_id)
+        if found:
+            return found
+    return None
+
+
+class TestBulkLoader:
+    def test_bulk_load_small_scale_is_rule_clean(self, tmp_db):
+        from app.military import bulk, seed, service
+        with service.transaction() as conn:
+            result = bulk.load_bulk(conn, scale=300)
+        assert result["loaded"] is True
+        assert result["total"] >= 200
+        with service.transaction() as conn:
+            assert all("(fictional)" in v for v in
+                       (r["name"] for r in service.list_records(conn, "unit")["records"]))
+        with service.transaction() as conn:
+            assert seed.check_sample_rules(conn) == []
+        with service.transaction() as conn:
+            cur = conn.execute(
+                "SELECT unit_id, count(*) AS n FROM operational_deployment "
+                "WHERE is_current=1 GROUP BY unit_id HAVING n > 1").fetchall()
+        assert cur == []
+
+
+class TestVolumeUI:
+    """Volume-UI fixes (list pagination, tree collapse) — source-level guards.
+
+    Browser execution is unavailable in this environment (Playwright browsers
+    cannot be installed), so these assert the shipped wiring rather than
+    rendered behaviour; the live smoke checks the same markers on the wire.
+    """
+
+    def test_mil_list_paginates_with_offset(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "limit=200&offset=" in src        # load-more fetches the next page
+        assert 'id="milMore"' in src             # visible affordance
+        assert "mil.list.loadMore" in src        # localized label
+
+    def test_tree_collapses_below_top_level(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/military.js").read_text()
+        assert "hasKids && depth < 1" in src     # only top level renders open
+        assert "nodeHtml(c, depth + 1)" in src   # depth tracked recursively
+
+    def test_load_more_key_exists_in_both_locales(self):
+        import json as _json
+        from pathlib import Path
+        loc = Path("app/static/js/locales")
+        for lang in ("en", "ar"):
+            keys = _json.loads((loc / f"{lang}.json").read_text(encoding="utf-8"))
+            assert "mil.list.loadMore" in keys
