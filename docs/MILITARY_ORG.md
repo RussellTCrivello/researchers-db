@@ -394,6 +394,29 @@ inside FastAPI's `detail`.
 | `POST /{entity}/import.csv` | CSV import through the full rule engine (create/upsert; per-row report) | staff |
 | `GET /quality` | data-completeness profile: per-entity fill histogram + per-field statistics | any |
 | `GET /naming/history` | counter adjustment history (numbering control) | any |
+
+### 9.2 The unified data contract
+
+The twelve military entities are also served by the generic SIRAJ endpoints,
+in the exact shape the shared list engine speaks — the same contract that
+serves person / place / institution / source / relationship / event:
+
+| Route | Purpose | Notes |
+|---|---|---|
+| `GET /api/meta` | entity + field catalogue | includes the 12 military entities (`soft_delete=False`, `full_text_index=False`) |
+| `POST /api/{entity}/query` | one page of records (`where[]` filters, `q`, sort, paging) | items carry `_refs`, `_labels`, display-title shims |
+| `POST /api/{entity}/kpi` | KPI strip tiles for the current selection | |
+| `GET/POST /api/options/{entity}` | searchable picker options | |
+| `GET/POST /api/export/{entity}` | XLSX / CSV / TSV / JSON export with column picker | shared `transfer` exporter |
+| `POST /api/{entity}/bulk` | bulk delete (per-row counts) | staff+ |
+| `GET/PUT/PATCH/DELETE /api/{entity}/{id}` | single-record facade | writes run the full military rule engine (rules, numbering, audit) and enforce `X-Military-Role` |
+| `GET /api/{entity}/duplicates`, `/next-code` | duplicate-name groups, numbering preview | |
+| `GET/POST/DELETE /api/saved-views` | shared saved views (`entity_type` = military key) | |
+
+Reads go through the shared query engine (`app/repo.py`, spec-driven);
+writes dispatch to `app/military/service` so business rules, automatic
+numbering and audit always apply. `app/military/specs.py` holds the twelve
+`EntitySpec` definitions.
 | `POST /{entity}` | create (201) | staff+ |
 | `PATCH /{entity}/{id}` | partial update | staff+ |
 | `DELETE /{entity}/{id}` | delete | admin |
@@ -434,19 +457,32 @@ domain's data tables and tools):
 
 Each domain has a **command hub** (`#/military/forces` etc.): KPI cards per
 data table, a management grid (Manage / New / tree shortcuts per table), and
-the domain's action list. Every data table page is a complete management
-surface: create, read, update (generated forms with required markers, choice
-vocabularies, **searchable reference dropdowns** with full option coverage and
-keyboard navigation, a **live document-name preview** on new records),
-delete with confirmation, **CSV import** (rows run through the full rule
-engine with a per-row report; create-only or create-or-update modes) and
-**CSV export** of the current query. Lists are volume-ready: server-side
-search, sortable columns, choice-facet filters, **Table / Cards view modes**
-(persisted per entity) plus a **Tree view** for hierarchy entities,
-server-side pagination ("load more"), "show more" on dossier related panels,
-and deep-linkable filters (`#/military/deployments?unit_id=5`). Every record
-has a **dossier** (all fields, related-record panels, inline polymorphic
-notes).
+the domain's action list.
+
+**One list engine for the whole application.** Every military table is
+browsed and managed through the *same* engine that serves People, Places and
+Organizations — one query/export/meta contract with a military source behind
+it. A military list page therefore carries the registry stack's full feature
+set: **table / cards / gallery / list view modes** (persisted per entity), the
+**deep filter builder** (typed operators per field — contains, ranges, date
+and year operators, in/not-in sets, null/empty tests, AND/OR logic), sortable
+columns, the **column chooser** and **card-layout control**, **saved views**,
+bulk selection with bulk delete, quick search, "load more" paging, and the
+**multi-format export modal** (XLSX / CSV / TSV / JSON with column picker and
+reference resolution). Registry-only affordances (typed natural-language
+query, soft-delete bin, duplicate merge) are gated off for military tables.
+Military-specific surfaces stay on top: the **CSV import** panel (rows run
+through the full rule engine with a per-row report; create or upsert), the
+**Tree views** for units and regions, and the domain hubs.
+
+Record management is complete and consistent everywhere: create, read, update
+(generated forms with required markers, choice vocabularies, **searchable
+reference dropdowns**, a **live document-name preview**), delete with
+confirmation, and a **record dossier** per record (all fields,
+related-record panels with show-more and see-all deep links, inline
+polymorphic notes). The generic `/entity/...` routes resolve military
+entities to their own forms and dossiers, so links from shared surfaces
+(export rows, reference links, "Add" buttons) all work.
 
 **Administration** — **naming series** with full numbering control (19
 options with partitions, next previews, the advisory preview tool,

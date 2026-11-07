@@ -13,8 +13,18 @@
 
   const ENTITY_GLYPH = {
     person: "user", institution: "building", place: "map-pin",
-    source: "book", relationship: "link", event: "calendar"
+    source: "book", relationship: "link", event: "calendar",
+    unit: "shield", region: "map-pin", division: "layers", classification: "tag",
+    armament: "target", holding: "package", deployment: "send", mission: "crosshair",
+    training: "award", commander: "user", assignment: "briefcase", note: "file-text"
   };
+  /* The twelve military entities share this engine through the unified API
+     facade; registry-only affordances (typed query, soft delete, duplicates)
+     are gated off for them. */
+  const MIL = new Set(["unit", "region", "division", "classification", "armament",
+                       "holding", "deployment", "mission", "training", "commander",
+                       "assignment", "note"]);
+  const isMil = (entity) => MIL.has(entity);
   const MAP_ENTITIES = new Set(["person", "institution", "place", "event"]);
   /* People, places and organizations keep the table and the record on one page. */
   /* The record panel beside the list covers every entity; person, place and
@@ -37,7 +47,19 @@
       place: ["place_type_id", "country_id"],
       source: ["source_type_id", "publication_date"],
       event: ["event_type_id", "start_date"],
-      relationship: ["relationship_type_id", "start_date"]
+      relationship: ["relationship_type_id", "start_date"],
+      unit: ["echelon", "status", "direct_personnel"],
+      region: ["region_type", "country"],
+      division: ["division_type", "region_id"],
+      classification: ["category", "readiness_tier"],
+      armament: ["category", "origin_country"],
+      holding: ["unit_id", "armament_id", "quantity"],
+      deployment: ["deployment_type", "status", "start_date"],
+      mission: ["mission_type", "status", "start_date"],
+      training: ["training_type", "start_date", "participant_count"],
+      commander: ["rank_title", "branch", "status"],
+      assignment: ["unit_id", "commander_id", "assigned_date"],
+      note: ["entity_type", "author", "note_at"]
     }[entity] || [];
     const stats = {
       person: ["relationships_count", "citations_count", "positions_count"],
@@ -139,8 +161,9 @@
       <div class="filters" data-rows></div>
       <hr class="hr-soft">
       <div class="flex wrap">
+        ${isMil(entity) ? "" : `
         <label class="check"><input type="checkbox" data-del ${st.include_deleted ? "checked" : ""}> ${t("list.includeDeleted")}</label>
-        <label class="check"><input type="checkbox" data-onlydel ${st.only_deleted ? "checked" : ""}> ${t("common.trash") || "Recycle bin"}</label>
+        <label class="check"><input type="checkbox" data-onlydel ${st.only_deleted ? "checked" : ""}> ${t("common.trash") || "Recycle bin"}</label>`}
         <span class="spacer"></span>
         <button class="btn sm primary" data-apply>${t("common.apply")}</button>
       </div>`;
@@ -195,11 +218,13 @@
     box.querySelectorAll("[data-logic]").forEach(b => {
       b.onclick = () => { st.logic = b.dataset.logic; renderFilters(entity); reload(entity); };
     });
-    box.querySelector("[data-del]").onchange = (e) => {
+    const delBox = box.querySelector("[data-del]");
+    if (delBox) delBox.onchange = (e) => {
       st.include_deleted = e.target.checked; if (e.target.checked) st.only_deleted = false;
       reload(entity);
     };
-    box.querySelector("[data-onlydel]").onchange = (e) => {
+    const onlyDelBox = box.querySelector("[data-onlydel]");
+    if (onlyDelBox) onlyDelBox.onchange = (e) => {
       st.only_deleted = e.target.checked; if (e.target.checked) st.include_deleted = false;
       reload(entity);
     };
@@ -499,7 +524,7 @@
             ${icon("search")}
             <input data-list-q placeholder="${esc(t("common.search"))}" value="${esc(st.q)}">
           </div>
-          <div class="querybar ${st.query ? "on" : ""}" data-querybar>
+          <div class="querybar ${st.query ? "on" : ""}" data-querybar ${isMil(entity) ? "hidden" : ""}>
             <span class="qmark" aria-hidden="true">⌗</span>
             <input data-query dir="ltr" spellcheck="false" autocomplete="off"
                    value="${esc(st.query || st.queryDraft || "")}"
@@ -523,7 +548,7 @@
           <button class="btn sm" data-cols>${icon("columns")} ${t("list.columns")}</button>
           <button class="btn sm" data-saved>${icon("save")} ${t("list.saved")}${(st.savedViews || []).length ? ` (${st.savedViews.length})` : ""}</button>
           <span class="spacer"></span>
-          <button class="btn sm" data-dups>${icon("share")} ${A.t("ui.duplicates")}</button>
+          ${isMil(entity) ? "" : `<button class="btn sm" data-dups>${icon("share")} ${A.t("ui.duplicates")}</button>`}
           <button class="btn sm" data-export>${icon("download")} ${t("common.export")}</button>
           <a class="btn sm primary" href="#/entity/${entity}/new">${icon("plus")} ${t("common.add")}</a>
         </div>
@@ -631,9 +656,10 @@
     if (!st.selected.size) return "";
     return `<div class="toolbar" style="background:var(--ink-50)">
       <b>${st.selected.size} ${t("list.selected")}</b>
+      ${isMil(entity) ? "" : `
       <button class="btn sm" data-bulk-status>${t("list.bulkStatus")}</button>
       <button class="btn sm" data-bulk-merge>${A.t("ui.mergeSelected")}</button>
-      <button class="btn sm" data-bulk-restore>${t("list.bulkRestore")}</button>
+      <button class="btn sm" data-bulk-restore>${t("list.bulkRestore")}</button>`}
       <button class="btn sm danger" data-bulk-delete>${t("list.bulkDelete")}</button>
       <button class="btn sm ghost" data-bulk-clear>${t("common.reset")}</button>
     </div>`;
@@ -3434,11 +3460,17 @@
       st.queryInfo = null;
       st.q = ""; st.where = [{ op: "eq" }]; st.page = 1;
     }
+    /* structured deep links (#/military/deployments?unit_id=5 or a wrapper
+       passing filters): seeded into the builder before the first load */
+    if (params && Array.isArray(params.filters) && params.filters.length) {
+      st.where = params.filters.map(f => Object.assign({ op: "eq" }, f));
+      st.page = 1;
+    }
     A.crumbs([{ label: t("nav.entities") }, { label: A.pluralOf(entity) }]);
     root.innerHTML = A.pageHead(
       A.pluralOf(entity),
       A.state.lang === "ar" ? spec.description_ar : spec.description_en,
-      `<a class="btn" href="#/reports/custom">${icon("chart")} ${t("nav.reports")}</a>
+      `${isMil(entity) ? "" : `<a class="btn" href="#/reports/custom">${icon("chart")} ${t("nav.reports")}</a>`}
        <button class="btn" id="listExport">${icon("download")} ${t("common.export")}</button>
        <a class="btn primary" href="#/entity/${entity}/new">${icon("plus")} ${t("common.add")}</a>`)
       + `<div class="filter-dock${st.showFilters ? "" : " hidden"}" data-filters-host

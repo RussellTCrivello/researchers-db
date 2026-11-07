@@ -33,6 +33,11 @@
     { re: /^\/numbering$/, view: "numbering" },
     { re: /^\/settings$/, view: "settings" },
     { re: /^\/maintenance$/, view: "maintenance" },
+    /* military entities share the unified list engine but keep their own
+       forms and dossiers: alias the generic /entity/ routes first */
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/new$/, view: "milForm", keys: ["entity"] },
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/(\d+)\/edit$/, view: "milForm", keys: ["entity", "id"] },
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/(\d+)$/, view: "milDossier", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)\/edit$/, view: "recordEdit", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)$/, view: "record", keys: ["entity", "id"] },

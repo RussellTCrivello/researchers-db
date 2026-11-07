@@ -262,7 +262,15 @@
   /* -------------------------------------------------------------- API --- */
   async function request(method, url, body, opts) {
     opts = opts || {};
-    const headers = Object.assign({ "X-Actor": App.state.actor }, opts.headers || {});
+    const headers = Object.assign({
+      "X-Actor": App.state.actor,
+      /* every request may touch the military facade; the workspace role
+         selector persists this key and the API re-checks it server-side */
+      "X-Military-Role": (function () {
+        try { return localStorage.getItem("siraj.mil.role") || "admin"; }
+        catch (e) { return "admin"; }
+      })()
+    }, opts.headers || {});
     let payload;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) { headers["Content-Type"] = "application/json"; payload = JSON.stringify(body); }

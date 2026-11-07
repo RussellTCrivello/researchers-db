@@ -9,10 +9,8 @@ unified-database migration (015_military_org.sql).
 from __future__ import annotations
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.military import api as military_api
 from app.military import dbm, naming, rules, seed, service
 from app.military.rules import RuleViolation
 from app.military.service import ServiceError
@@ -36,9 +34,8 @@ def conn(tmp_db):
 
 @pytest.fixture()
 def client(tmp_db):
-    app = FastAPI()
-    app.include_router(military_api.router)
-    with TestClient(app) as tc:
+    from app.server.api import app as full_app
+    with TestClient(full_app) as tc:
         yield tc
 
 
@@ -901,10 +898,11 @@ class TestVolumeUI:
 
     def test_mil_list_paginates_with_offset(self):
         from pathlib import Path
+        lst = Path("app/static/js/views/list.js").read_text()
+        assert "data-load-more" in lst          # show-more appends the next page
+        assert "page_size" in lst              # server-side paging
         src = Path("app/static/js/views/military.js").read_text()
-        assert "limit=200&offset=" in src        # load-more fetches the next page
-        assert 'id="milMore"' in src             # visible affordance
-        assert "mil.list.loadMore" in src        # localized label
+        assert "offset=" in src                # ref options page through fully
 
     def test_tree_collapses_below_top_level(self):
         from pathlib import Path
@@ -973,11 +971,12 @@ class TestNumberingControl:
 class TestListViewTools:
     def test_sort_filter_export_wiring(self):
         from pathlib import Path
+        lst = Path("app/static/js/views/list.js").read_text()
+        assert "data-sort" in lst                  # column sorting
+        assert "filterRowEl" in lst                # deep filter builder rows
+        assert "/api/export/" in lst               # export modal endpoint
         src = Path("app/static/js/views/military.js").read_text()
-        assert "th.sortable" in src                 # column sorting
-        assert "milFacet" in src                    # choice-facet filters
-        assert "export.csv" in src                  # CSV export endpoint
-        assert "URLSearchParams" in src             # deep-link query state
+        assert "URLSearchParams" in src            # deep-link query state
 
     def test_export_csv_service_roundtrip(self, tmp_db):
         from app.military import service
@@ -1211,12 +1210,15 @@ class TestCommandDomainOrganisation:
 
 
 class TestViewModes:
-    def test_table_cards_toggle_wired(self):
+    def test_unified_list_supplies_view_modes(self):
+        # military lists run on the shared engine; its viewswitch provides
+        # table / cards / gallery / list for every entity alike
         from pathlib import Path
-        src = Path("app/static/js/views/military.js").read_text()
-        assert "milVmTable" in src and "milVmCards" in src
-        assert "siraj.mil.vm." in src          # mode persisted per entity
-        assert "cardHtml" in src
+        mil = Path("app/static/js/views/military.js").read_text()
+        lst = Path("app/static/js/views/list.js").read_text()
+        assert "A.views.list(" in mil          # delegation to the shared engine
+        assert "data-viewswitch" in lst
+        assert 'siraj.view." + entity' in lst  # mode persisted per entity
 
     def test_tree_mode_link_for_hierarchy_entities(self):
         from pathlib import Path
@@ -1315,8 +1317,9 @@ class TestShowMoreAndImportWiring:
     def test_import_ui_wired_on_every_list(self):
         from pathlib import Path
         src = Path("app/static/js/views/military.js").read_text()
-        assert "milImportPanel" in src and "import.csv" in src
+        assert "A.milImport" in src and "import.csv" in src
         assert "milImportMode" in src and "mil.import.modeUpsert" in src
+        assert "milImportBtn" in src           # reachable from every list page
 
 
 class TestConstraintErrorsClean:
@@ -1365,3 +1368,208 @@ class TestConstraintErrorsClean:
         r = client.patch(f"/api/military/classifications/{a['id']}",
                          json={"name": "Upd Dupe B"}, headers=h)
         assert r.status_code == 409
+
+
+# ---------------------------------------------------------------------------
+# Unified list engine (2026-11-07 fourth directive): every military table is
+# managed through the same query/export/meta contract as People/Places/
+# Organizations, with the military service on the write path.
+# ---------------------------------------------------------------------------
+MIL_KEYS = ("unit", "region", "division", "classification", "armament", "holding",
+            "deployment", "mission", "training", "commander", "assignment", "note")
+
+
+class TestUnifiedMeta:
+    def test_meta_carries_all_twelve_military_entities(self, client):
+        m = client.get("/api/meta").json()
+        keys = {e["key"] for e in m["entities"]}
+        assert set(MIL_KEYS) <= keys
+        for k in MIL_KEYS:
+            fields = {f["key"] for f in m["fields"][k]}
+            assert "docname" in fields
+            assert m["derived"][k] == []
+
+    def test_meta_field_descriptors_are_engine_shaped(self, client):
+        m = client.get("/api/meta").json()
+        by_key = {f["key"]: f for f in m["fields"]["unit"]}
+        assert by_key["parent_id"]["type"] == "fk"
+        assert by_key["parent_id"]["ref"] == "unit"
+        assert by_key["status"]["type"] == "select"
+        assert by_key["direct_personnel"]["type"] == "int"
+        assert by_key["name"]["required"] is True
+        assert by_key["docname"]["read_only"] is True
+
+    def test_entity_meta_labels_are_bilingual(self, client):
+        m = client.get("/api/meta").json()
+        unit = next(e for e in m["entities"] if e["key"] == "unit")
+        assert unit["label_en"] and unit["label_ar"] and unit["plural_ar"]
+
+
+class TestUnifiedQuery:
+    def test_query_shape_and_title_shim(self, client):
+        r = client.post("/api/unit/query", json={"page": 1, "page_size": 5}).json()
+        assert set(r) >= {"items", "total", "page", "pages"}
+        if r["items"]:
+            it = r["items"][0]
+            assert it["name_en"] == it["name_ar"] == it["_title"]
+
+    def test_filter_operators(self, client):
+        def total(payload):
+            return client.post("/api/commander/query", json=payload).json()["total"]
+        all_ = total({})
+        assert total({"where": [{"field": "status", "op": "eq", "value": "Active"}]}) <= all_
+        assert total({"where": [{"field": "full_name", "op": "contains", "value": "a"}]}) <= all_
+        assert total({"where": [{"field": "commission_date", "op": "year_lte", "value": "2030"}]}) <= all_
+        assert total({"where": [{"field": "commission_date", "op": "is_null"}]}) <= all_
+        assert total({"where": [{"field": "id", "op": "in", "value": [1, 2, 3]}]}) <= 3
+
+    def test_between_and_logic_or(self, client):
+        r = client.post("/api/holding/query", json={
+            "where": [{"field": "quantity", "op": "between", "value": [1, 100000]}],
+            "logic": "or"}).json()
+        assert r["total"] >= 0
+        r2 = client.post("/api/training/query", json={
+            "where": [{"field": "participant_count", "op": "gte", "value": 0}]}).json()
+        assert r2["total"] >= 0
+
+    def test_q_like_search_for_unindexed_entities(self, client):
+        h = {"X-Military-Role": "staff"}
+        made = client.post("/api/unit", json={"name": "Zebra Search Unit"}, headers=h).json()["record"]
+        r = client.post("/api/unit/query", json={"q": "Zebra", "page_size": 50}).json()
+        assert r["total"] >= 1
+        assert any(i["id"] == made["id"] for i in r["items"])
+
+    def test_sort_order_and_paging(self, client):
+        r = client.post("/api/note/query", json={
+            "sort": "id", "order": "desc", "page": 1, "page_size": 3}).json()
+        assert len(r["items"]) <= 3
+        r2 = client.post("/api/note/query", json={
+            "sort": "id", "order": "asc", "page": 1, "page_size": 3}).json()
+        if r["items"] and r2["items"]:
+            assert r["items"][0]["id"] >= r2["items"][0]["id"]
+
+    def test_ref_labels_resolve_names(self, client):
+        h = {"X-Military-Role": "staff"}
+        u = client.post("/api/unit", json={"name": "Ref Label Unit"}, headers=h).json()["record"]
+        client.post("/api/deployment", json={
+            "name": "Ref Label Op", "unit_id": u["id"],
+            "start_date": "2026-01-01"}, headers=h)
+        r = client.post("/api/deployment/query", json={"page_size": 5}).json()
+        refs = [i["_refs"]["unit_id"] for i in r["items"] if (i.get("_refs") or {}).get("unit_id")]
+        assert refs
+        assert not refs[0]["label"].startswith("#")
+
+    def test_kpi_tiles(self, client):
+        k = client.post("/api/training/kpi", json={}).json()
+        assert k["entity"] == "training"
+        assert any(t["key"] == "records" for t in k["tiles"])
+
+
+class TestUnifiedExport:
+    def test_all_formats_via_registry_exporter(self, client):
+        for fmt in ("csv", "tsv", "json", "xlsx"):
+            r = client.post("/api/export/unit", json={"format": fmt, "page_size": 100})
+            assert r.status_code == 200
+            assert len(r.content) > 0
+
+    def test_export_respects_filters(self, client):
+        full = client.post("/api/armament/export.csv".replace("export.csv", "query"),
+                           json={"page_size": 1000}).json()["total"]
+        assert full >= 0
+        r = client.post("/api/export/armament", json={
+            "format": "csv", "where": [{"field": "category", "op": "eq", "value": "Weapons"}]})
+        assert r.status_code == 200
+
+    def test_export_columns_selection(self, client):
+        r = client.post("/api/export/commander", json={
+            "format": "csv", "columns": ["full_name", "rank_title"]})
+        header = r.content.decode("utf-8-sig").splitlines()[0]
+        # the exporter writes human labels, exactly as for registry entities
+        assert "Full Name" in header and "Rank Title" in header
+
+
+class TestUnifiedFacadeWrites:
+    def test_create_update_delete_round_trip(self, client):
+        h = {"X-Military-Role": "staff"}
+        cr = client.post("/api/classification",
+                         json={"name": "Unified Facade Class"}, headers=h)
+        assert cr.status_code == 200
+        rid = cr.json()["record"]["id"]
+        up = client.patch(f"/api/classification/{rid}",
+                          json={"category": "Support"}, headers=h)
+        assert up.status_code == 200 and up.json()["record"]["category"] == "Support"
+        assert client.delete(f"/api/classification/{rid}", headers=h).status_code == 200
+        assert client.get(f"/api/classification/{rid}").status_code == 404
+
+    def test_rules_apply_through_the_facade(self, client):
+        h = {"X-Military-Role": "staff"}
+        bad = client.post("/api/mission", json={
+            "name": "Facade Rule Mission", "unit_id": 999999,
+            "start_date": "2026-01-01"}, headers=h)
+        assert bad.status_code == 422
+        assert bad.json()["detail"]["error"]["code"] == "unit_not_found"
+
+    def test_viewer_is_blocked_on_writes(self, client):
+        v = {"X-Military-Role": "viewer"}
+        assert client.post("/api/armament", json={"name": "X"}, headers=v).status_code == 403
+        assert client.delete("/api/armament/1", headers=v).status_code == 403
+
+    def test_bulk_delete_counts(self, client):
+        h = {"X-Military-Role": "staff"}
+        u = client.post("/api/unit", json={"name": "Bulk Note Unit"}, headers=h).json()["record"]
+        a = client.post("/api/note", json={
+            "note_text": "bulk a", "entity_type": "unit", "target_id": u["id"],
+            "author": "tester"}, headers=h).json()["record"]
+        b = client.post("/api/note", json={
+            "note_text": "bulk b", "entity_type": "unit", "target_id": u["id"],
+            "author": "tester"}, headers=h).json()["record"]
+        res = client.post("/api/note/bulk",
+                          json={"ids": [a["id"], b["id"], 999999], "action": "delete"},
+                          headers=h).json()
+        assert res["ok"] == 2 and res["failed"] == 1
+
+    def test_restore_rejected_for_military(self, client):
+        r = client.post("/api/unit/1/restore")
+        assert r.status_code == 422
+
+    def test_next_code_and_duplicates(self, client):
+        nc = client.get("/api/unit/next-code")
+        assert nc.status_code == 200 and "code" in nc.json()
+        dup = client.get("/api/unit/duplicates")
+        assert dup.status_code == 200 and "groups" in dup.json()
+
+    def test_saved_views_accept_military_entities(self, client):
+        r = client.post("/api/saved-views",
+                        json={"name": "Units", "entity_type": "unit"})
+        assert r.status_code == 200
+        got = client.get("/api/saved-views?entity_type=unit").json()
+        assert any(v["name"] == "Units" for v in got)
+
+
+class TestUnifiedWiring:
+    def test_list_engine_gates_registry_only_tools(self):
+        from pathlib import Path
+        lst = Path("app/static/js/views/list.js").read_text()
+        assert "const MIL = new Set(" in lst
+        assert "isMil(entity)" in lst
+        # registry-only affordances are hidden behind isMil gates
+        assert '${isMil(entity) ? "" : `<button class="btn sm" data-dups>' in lst
+        assert '${isMil(entity) ? "" : `\n      <button class="btn sm" data-bulk-status>' in lst
+
+    def test_military_list_delegates_to_shared_engine(self):
+        from pathlib import Path
+        mil = Path("app/static/js/views/military.js").read_text()
+        assert "A.views.list(" in mil
+        assert "A.milImport" in mil
+        assert "entityKey(" in mil
+
+    def test_generic_entity_routes_alias_to_military_views(self):
+        from pathlib import Path
+        app = Path("app/static/js/app.js").read_text()
+        assert 'view: "milForm", keys: ["entity"]' in app
+        assert 'view: "milDossier", keys: ["entity", "id"]' in app
+
+    def test_every_request_carries_the_role_header(self):
+        from pathlib import Path
+        core = Path("app/static/js/core.js").read_text()
+        assert "X-Military-Role" in core

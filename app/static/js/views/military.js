@@ -66,6 +66,14 @@
   const fieldLabel = (f) =>
     A.state.lang === "ar" ? (f.label_ar || f.label || f.name) : (f.label_en || f.label || f.name);
 
+  /** Normalise a route slug ("units" or "unit") to the canonical entity key. */
+  function entityKey(slug) {
+    const s = String(slug || "");
+    if (ENTITIES.includes(s)) return s;
+    const bare = s.replace(/s$/, "");
+    return ENTITIES.includes(bare) ? bare : null;
+  }
+
   /* ------------------------------------------------------- shared chrome - */
   /* the four command domains — the primary organisation of the workspace */
   const DOMAINS = {
@@ -422,235 +430,95 @@
   };
 
   /* ========================================================= view: list */
-  A.views.milList = async function (root, params) {
-    const entity = params.entity;
-    const m = await meta();
-    const spec = m.entities[entity];
-    if (!spec) { location.hash = "#/military"; return; }
-    A.crumbs([{ label: t("nav.military"), href: "#/military" }, { label: entLabel(entity) }]);
-    const names = spec.fields.map(f => f.name);
-    const cols = ["name", "full_name", "exercise_name", "code", "entity_type"]
-      .filter(n => names.includes(n)).slice(0, 1)
-      .concat(["status", "category", "role", "condition", "echelon", "region_type"]
-        .filter(n => names.includes(n)).slice(0, 1))
-      .concat(["unit_id", "start_date", "quantity", "author"]
-        .filter(n => names.includes(n)).slice(0, 2));
-    const colSpecs = cols.map(n => spec.fields.find(f => f.name === n));
-    /* reference columns resolve labels from a fully paged id map */
-    const refMap = {};
-    await Promise.all(colSpecs.filter(f => f && f.type === "ref").map(async f => {
-      if (!refMap[f.entity]) {
-        const rows = await refOptions(f.entity);
-        refMap[f.entity] = {};
-        rows.forEach(r => { refMap[f.entity][r.id] = r; });
-      }
-    }));
-
-    const state = { q: "", sort: "id", direction: "asc", filters: {}, offset: 0,
-      rows: [], mode: localStorage.getItem("siraj.mil.vm." + entity) || "table" };
-    /* deep links: #/military/deployments?unit_id=5 opens pre-filtered */
-    const hashQuery = (location.hash.split("?")[1] || "");
-    new URLSearchParams(hashQuery).forEach((v, k) => {
-      if (k === "q") state.q = v;
-      else if (k === "sort") state.sort = v;
-      else if (k === "direction") state.direction = v;
-      else if (names.includes(k)) state.filters[k] = v;
-    });
-    const facets = spec.fields.filter(f => f.type === "choice");
-    const rowHtml = r => `
-      <tr data-search="${esc(JSON.stringify(r).toLowerCase())}">
-        <td class="mono-cell">${esc(r.docname)}</td>
-        ${colSpecs.map(f => `<td>${cell(r, f, refMap)}</td>`).join("")}
-        <td class="nowrap">
-          <a class="btn sm" href="#/military/${entity}s/${r.id}/show">${esc(t("common.view"))}</a>
-          <a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a>
-        </td>
-      </tr>`;
-    const cardHtml = r => `
-      <div class="card inner">
-        <div class="card-head"><h4>${esc(r.name || r.full_name || r.exercise_name || r.docname || "#" + r.id)}</h4>
-          ${r.status ? chip(r.status) : ""}</div>
-        <div class="small muted mono-cell">${esc(r.docname || "")}</div>
-        <div class="small">${colSpecs.map(f => `${esc(fieldLabel(f))}: ${cell(r, f, refMap)}`).join(" · ")}</div>
-        <div class="btn-row" style="margin-top:8px">
-          <a class="btn sm" href="#/military/${entity}s/${r.id}/show">${esc(t("common.view"))}</a>
-          <a class="btn sm" href="#/military/${entity}s/${r.id}">${esc(t("common.edit"))}</a>
-        </div>
-      </div>`;
-    const query = () => {
-      const p = new URLSearchParams();
-      if (state.q) p.set("q", state.q);
-      if (state.sort !== "id" || state.direction !== "asc") {
-        p.set("sort", state.sort);
-        p.set("direction", state.direction);
-      }
-      Object.entries(state.filters).forEach(([k, v]) => { if (v) p.set(k, v); });
-      return p.toString();
-    };
-    const th = (label, key) =>
-      `<th class="sortable" data-sort="${esc(key)}" aria-sort="${
-        state.sort === key ? (state.direction === "asc" ? "ascending" : "descending") : "none"
-      }">${esc(label)}</th>`;
-    const isTree = entity === "unit" || entity === "region";
-
-    root.innerHTML = milNav("e:" + entity) +
-      A.pageHead(entLabel(entity), t("mil.list.count", { n: "—" }), `
-        <a class="btn primary" href="#/military/${entity}s/new">${icon("plus")} ${esc(t("common.new"))}</a>`) +
-      `<div class="card">
-        <div class="btn-row" style="margin-bottom:12px">
-          <input id="milSearch" type="search" class="grow" value="${esc(state.q)}"
-            placeholder="${esc(t("mil.search.placeholder"))}" style="max-width:240px">
-          ${facets.map(f => `<select class="ghost-select milFacet" data-field="${f.name}">
-            <option value="">${esc(fieldLabel(f))}: ${esc(t("mil.list.all"))}</option>
-            ${(f.options || []).map(o => `<option value="${esc(o)}"${state.filters[f.name] === o ? " selected" : ""}>${esc(o)}</option>`).join("")}
-          </select>`).join("")}
-          <button class="btn sm" id="milClearFilters">${esc(t("mil.list.clearFilters"))}</button>
-          <span class="vmodes">
-            <button class="btn sm${state.mode === "table" ? " primary" : ""}" id="milVmTable">${esc(t("mil.view.table"))}</button>
-            <button class="btn sm${state.mode === "cards" ? " primary" : ""}" id="milVmCards">${esc(t("mil.view.cards"))}</button>
-          </span>
-          ${isTree ? `<a class="btn sm" href="#/military/${entity}s/tree">${esc(t("mil.view.tree"))}</a>` : ""}
-          <button class="btn sm" id="milImport">${icon("plus")} ${esc(t("mil.import.button"))}</button>
-          <button class="btn sm" id="milExport">${icon("download")} ${esc(t("mil.list.export"))}</button>
-        </div>
-        <div id="milImportPanel" class="import-panel" hidden>
-          <div class="btn-row" style="margin-bottom:8px">
-            <input type="file" id="milImportFile" accept=".csv,text/csv">
-            <select class="ghost-select" id="milImportMode">
-              <option value="create">${esc(t("mil.import.modeCreate"))}</option>
-              <option value="upsert">${esc(t("mil.import.modeUpsert"))}</option>
-            </select>
-            <button class="btn primary" id="milImportRun">${esc(t("mil.import.run"))}</button>
-            <span class="small muted">${esc(t("mil.import.hint"))}</span>
-          </div>
-          <div id="milImportReport"></div>
-        </div>
-        <div id="milTableWrap" class="table-wrap"><table class="data">
-          <thead><tr>${th(t("mil.form.docname"), "docname")}${
-            colSpecs.map(f => th(fieldLabel(f), f.name)).join("")
-          }<th>${esc(t("common.actions"))}</th></tr></thead>
-          <tbody></tbody>
-        </table></div>
-        <div id="milCardGrid" class="grid c3" hidden></div>
-        <div class="btn-row" style="margin-top:12px">
-          <button id="milMore" class="btn" hidden></button>
-        </div>
-      </div>`;
-    bindChrome(root);
-
-    const renderAll = () => {
-      const tbody = root.querySelector("tbody");
-      const grid = root.querySelector("#milCardGrid");
-      const wrap = root.querySelector("#milTableWrap");
-      if (!state.rows.length) {
-        tbody.innerHTML = `<tr><td colspan="${colSpecs.length + 2}" class="empty">${esc(t("list.noRecords"))}</td></tr>`;
-        grid.innerHTML = `<div class="empty">${esc(t("list.noRecords"))}</div>`;
-      } else {
-        tbody.innerHTML = state.rows.map(rowHtml).join("");
-        grid.innerHTML = state.rows.map(cardHtml).join("");
-      }
-      wrap.hidden = state.mode !== "table";
-      grid.hidden = state.mode !== "cards";
-    };
-    const moreBtn = root.querySelector("#milMore");
-    const loadPage = async (append) => {
-      const data = await mreq("GET", "/" + entity + "s?limit=200&offset="
-        + state.offset + (query() ? "&" + query() : ""));
-      if (!append) state.rows = [];
-      state.rows.push(...data.records);
-      state.offset += data.records.length;
-      renderAll();
-      const sub = root.querySelector(".page-head .sub");
-      if (sub) sub.textContent = t("mil.list.count", { n: fmtNum(data.total) });
-      const rest = data.total - state.offset;
-      if (rest > 0) {
-        moreBtn.hidden = false;
-        moreBtn.textContent = t("mil.list.loadMore", { n: fmtNum(Math.min(200, rest)) });
-      } else {
-        moreBtn.hidden = true;
-      }
-    };
-    const reset = () => { state.offset = 0; loadPage(false); };
-    const setMode = (mode) => {
-      state.mode = mode;
-      localStorage.setItem("siraj.mil.vm." + entity, mode);
-      root.querySelector("#milVmTable").classList.toggle("primary", mode === "table");
-      root.querySelector("#milVmCards").classList.toggle("primary", mode === "cards");
-      renderAll();
-    };
-
-    let searchTimer;
-    root.querySelector("#milSearch").oninput = (ev) => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        state.q = ev.target.value.trim();
-        reset();
-      }, 250);
-    };
-    root.querySelectorAll(".milFacet").forEach(sel => {
-      sel.onchange = () => {
-        state.filters[sel.dataset.field] = sel.value;
-        reset();
-      };
-    });
-    root.querySelector("#milClearFilters").onclick = () => {
-      state.q = "";
-      state.filters = {};
-      root.querySelector("#milSearch").value = "";
-      root.querySelectorAll(".milFacet").forEach(sel => { sel.value = ""; });
-      reset();
-    };
-    root.querySelectorAll("th.sortable").forEach(el => {
-      el.onclick = () => {
-        const key = el.dataset.sort;
-        state.direction = (state.sort === key && state.direction === "asc") ? "desc" : "asc";
-        state.sort = key;
-        reset();
-      };
-    });
-    moreBtn.onclick = () => loadPage(true);
-    root.querySelector("#milVmTable").onclick = () => setMode("table");
-    root.querySelector("#milVmCards").onclick = () => setMode("cards");
-    root.querySelector("#milExport").onclick = async () => {
-      const res = await mreq("GET", "/" + entity + "s/export.csv"
-        + (query() ? "?" + query() : ""));
-      const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = res.filename;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast(t("mil.list.export") + " ✓", "ok");
-    };
-
-    /* CSV import through the full rule engine (staff+; per-row report) */
-    const panel = root.querySelector("#milImportPanel");
-    root.querySelector("#milImport").onclick = () => { panel.hidden = !panel.hidden; };
-    root.querySelector("#milImportRun").onclick = async () => {
+  /* ============================================ view: unified entity list */
+  /**
+   * CSV import as a modal on the shared list (staff+).  Every row runs through
+   * the full rule engine server-side; the report lists exact per-row failures.
+   */
+  A.milImport = {
+    open(entity) {
       if (role() === "viewer") { toast(t("mil.role.viewerBlocked"), "err"); return; }
-      const file = root.querySelector("#milImportFile").files[0];
-      if (!file) { toast(t("mil.import.pickFile"), "err"); return; }
-      const text = await file.text();
-      const mode = root.querySelector("#milImportMode").value;
-      try {
-        const res = await mreq("POST", "/" + entity + "s/import.csv", { csv: text, mode });
-        const s = res.summary;
-        const errs = res.results.filter(r => r.status === "error");
-        root.querySelector("#milImportReport").innerHTML = `
-          <div class="notice">${esc(t("mil.import.summary",
-            { created: s.created, updated: s.updated, errors: s.errors }))}</div>
-          ${errs.length ? `<div class="table-wrap"><table class="data">
-            <thead><tr><th>${esc(t("mil.import.line"))}</th>
-              <th>${esc(t("mil.dossier.status"))}</th>
-              <th>${esc(t("mil.import.message"))}</th></tr></thead>
-            <tbody>${errs.map(r => `<tr><td>${r.line}</td>
-              <td>${chip("error")}</td><td>${esc(r.message)}</td></tr>`).join("")}</tbody>
-          </table></div>` : ""}`;
-        toast(t("mil.import.done"), s.errors ? "err" : "ok");
-        reset();
-      } catch (err) { toast(err.message, "err"); }
-    };
-    await loadPage(false);
+      A.modal({
+        title: t("mil.import.button") + " — " + entLabel(entity),
+        size: "wide",
+        body: `
+          <div class="import-panel">
+            <div class="small muted">${esc(t("mil.import.hint"))}</div>
+            <div class="btn-row" style="margin:8px 0">
+              <input type="file" id="milImportFile" accept=".csv,text/csv">
+              <select class="ghost-select" id="milImportMode">
+                <option value="create">${esc(t("mil.import.modeCreate"))}</option>
+                <option value="upsert">${esc(t("mil.import.modeUpsert"))}</option>
+              </select>
+            </div>
+            <div id="milImportReport"></div>
+          </div>`,
+        buttons: [
+          { label: t("common.cancel") },
+          { label: t("mil.import.run"), cls: "primary", onClick: async (close, bodyEl) => {
+              const fileEl = bodyEl.querySelector("#milImportFile");
+              const file = fileEl && fileEl.files ? fileEl.files[0] : null;
+              if (!file) { toast(t("mil.import.pickFile"), "err"); return; }
+              const csv = await file.text();
+              const mode = bodyEl.querySelector("#milImportMode").value;
+              try {
+                const res = await mreq("POST", "/" + entity + "s/import.csv", { csv, mode });
+                const s = res.summary || { created: 0, updated: 0, errors: 0 };
+                const errs = (res.results || []).filter(r => r.status === "error");
+                bodyEl.querySelector("#milImportReport").innerHTML = `
+                  <div class="notice">${esc(t("mil.import.summary",
+                    { created: s.created, updated: s.updated, errors: s.errors }))}</div>
+                  ${errs.length ? `<div class="table-wrap"><table class="data">
+                    <thead><tr><th>${esc(t("mil.import.line"))}</th>
+                      <th>${esc(t("mil.dossier.status"))}</th>
+                      <th>${esc(t("mil.import.message"))}</th></tr></thead>
+                    <tbody>${errs.map(r => `<tr><td>${r.line}</td>
+                      <td>${chip("error")}</td><td>${esc(r.message)}</td></tr>`).join("")}</tbody>
+                  </table></div>` : ""}`;
+                toast(t("mil.import.done"), s.errors ? "err" : "ok");
+                if (A.rerender) A.rerender();
+              } catch (err) { toast(err.message, "err"); }
+            } }
+        ]
+      });
+    }
+  };
+
+  /**
+   * Every military table is browsed through the SAME list engine that serves
+   * People / Places / Organizations — table, cards, gallery and list views, the
+   * deep filter builder, column and card-layout control, saved views, bulk
+   * actions and multi-format export — under the military workspace chrome.
+   */
+  A.views.milList = async function (root, params) {
+    const entity = entityKey(params.entity);
+    if (!entity) { location.hash = "#/military"; return; }
+    const isTree = entity === "unit" || entity === "region";
+    root.innerHTML = milNav("e:" + entity) +
+      `<div class="toolbar" style="margin:10px 0">
+        <a class="btn sm" href="#/military/${DOMAIN_OF[entity]}">${icon("undo")} ${esc(t("common.back"))}</a>
+        ${isTree ? `<a class="btn sm" href="#/military/${entity}s/tree">${icon("share")} ${esc(t("mil.view.tree"))}</a>` : ""}
+        <span class="spacer"></span>
+        <button class="btn sm" id="milImportBtn">${icon("upload")} ${esc(t("mil.import.button"))}</button>
+      </div>
+      <div data-mil-list-host></div>`;
+    if (A.hydrateIcons) A.hydrateIcons(root);
+    const importBtn = root.querySelector("#milImportBtn");
+    if (importBtn) importBtn.onclick = () => A.milImport.open(entity);
+    /* deep links: #/military/deployments?unit_id=5 opens pre-filtered */
+    const filters = [];
+    const spec = (await meta()).entities[entity];
+    const names = new Set(((spec && spec.fields) || []).map(f => f.name));
+    new URLSearchParams(location.hash.split("?")[1] || "").forEach((v, k) => {
+      if (k !== "q" && k !== "sort" && k !== "direction" && names.has(k)) {
+        filters.push({ field: k, op: "eq", value: v });
+      }
+    });
+    await A.views.list(root.querySelector("[data-mil-list-host]"),
+                       { entity, filters, q: params.q });
+    A.crumbs([{ label: t("nav.military"), href: "#/military" },
+      { label: t(DOMAIN_LABEL[DOMAIN_OF[entity]]), href: "#/military/" + DOMAIN_OF[entity] },
+      { label: entLabel(entity) }]);
   };
 
   function cell(rec, f, refMap) {
@@ -668,7 +536,7 @@
 
   /* ========================================================= view: form */
   A.views.milForm = async function (root, params) {
-    const entity = params.entity, id = params.id ? Number(params.id) : null;
+    const entity = entityKey(params.entity), id = params.id ? Number(params.id) : null;
     const m = await meta();
     const spec = m.entities[entity];
     if (!spec) { location.hash = "#/military"; return; }
@@ -836,7 +704,7 @@
   };
 
   A.views.milDossier = async function (root, params) {
-    const entity = params.entity;
+    const entity = entityKey(params.entity);
     const id = Number(params.id);
     const m = await meta();
     const spec = m.entities[entity];

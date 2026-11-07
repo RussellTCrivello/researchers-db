@@ -26,6 +26,8 @@ from fastapi.staticfiles import StaticFiles
 from .. import db, graph, querylang, repo, reports, stats, transfer
 from .. import settings as settings_mod
 from ..military import router as military_router
+from ..military import service as mil_service
+from ..military.specs import MIL_SPECS, is_mil, mil_entity_meta, mil_options, mil_query_shim
 from ..schemas import ENTITIES, ENTITY_TYPES, derived_meta, entity_meta, fields_meta
 from .crce_api import router as crce_router
 from .deps import actor_of, conn_dep
@@ -113,6 +115,41 @@ def spec_of(entity: str) -> Any:
     return spec
 
 
+def spec_of_any(entity: str) -> Any:
+    """Registry *or* military entity — one query/export/meta contract for both."""
+    if entity in MIL_SPECS:
+        return MIL_SPECS[entity]
+    return spec_of(entity)
+
+
+def _mil_role(x_military_role: str | None) -> str:
+    role = (x_military_role or "").strip().lower()
+    # mirrors app.military.api._role_of: an unknown/absent role defaults to admin
+    return role if role in ("viewer", "staff", "admin") else "admin"
+
+
+def _mil_write_guard(x_military_role: str | None) -> str:
+    role = _mil_role(x_military_role)
+    if role not in ("staff", "admin"):
+        raise HTTPException(403, {"ok": False, "error": {
+            "code": "forbidden", "message": "staff role or above required"}})
+    return role
+
+
+def _mil_write(conn, fn, *args):
+    """Run a military-service write, commit it and map its errors to HTTP."""
+    try:
+        out = fn(conn, *args)
+        conn.commit()
+        return out
+    except (mil_service.ServiceError, mil_service.rules.RuleViolation) as exc:
+        conn.rollback()
+        raise HTTPException(getattr(exc, "status", 422), {"ok": False, "error": {
+            "code": getattr(exc, "code", "error"),
+            "message": getattr(exc, "message", str(exc)),
+            "field": getattr(exc, "field", None)}}) from exc
+
+
 # ===========================================================================
 # meta / bootstrap
 # ===========================================================================
@@ -180,9 +217,11 @@ def meta(conn=Depends(conn_dep), lang: str = "en"):
     }
     return {
         "app": {"name": "SIRAJ", "version": "1.0.0", "schema_version": "1.0.0"},
-        "entities": entity_meta(lang),
-        "fields": {k: fields_meta(v) for k, v in ENTITIES.items()},
-        "derived": {k: derived_meta(k) for k in ENTITIES},
+        "entities": entity_meta(lang) + mil_entity_meta(),
+        "fields": {**{k: fields_meta(v) for k, v in ENTITIES.items()},
+                   **{k: fields_meta(v) for k, v in MIL_SPECS.items()}},
+        "derived": {**{k: derived_meta(k) for k in ENTITIES},
+                    **{k: [] for k in MIL_SPECS}},
         "view_modes": ["table", "cards", "gallery", "list"],
         "lookups": lookups,
         "lookup_domains": domains,
@@ -294,6 +333,11 @@ def options(entity: str, q: str | None = None, limit: int = 50, ids: str | None 
     when it falls outside the first page of results. For places, `country_id` and
     comma-separated `place_types` (e.g. ``district,neighbourhood``) narrow the list.
     """
+    if is_mil(entity):
+        spec = MIL_SPECS[entity]
+        wanted = [int(i) for i in (ids or "").split(",") if i.strip().isdigit()][:200]
+        return mil_options(conn, spec, q, limit,
+                           ids=wanted or None)
     spec = spec_of(entity)
     if ids:
         wanted = [int(i) for i in ids.split(",") if i.strip().isdigit()][:200]
@@ -343,9 +387,10 @@ def picker_item(conn, spec, row) -> dict:
             hint_parts.append(str(d["publisher"]))
         label_ar = d.get("title_ar")
     else:
-        label_ar = d.get("title_ar")
+        label_ar = (d.get("title_ar") or d.get("name_ar") or d.get("name")
+                    or d.get("full_name") or d.get("exercise_name"))
     return {
-        "id": d["id"], "code": d.get("code"), "label": spec.title(d),
+        "id": d["id"], "code": d.get("code") or d.get("docname"), "label": spec.title(d),
         "label_ar": label_ar, "hint": " · ".join(hint_parts),
         "image": d.get("image_url"), "type": spec.key,
     }
@@ -708,7 +753,7 @@ def saved_views_post(payload: dict = Body(...), conn=Depends(conn_dep),
                      x_actor: str | None = Header(None)):
     if not payload.get("name") or not payload.get("entity_type"):
         raise HTTPException(422, "name and entity_type are required")
-    spec_of(payload["entity_type"])
+    spec_of_any(payload["entity_type"])
     conn.execute(
         """INSERT INTO saved_view (name, entity_type, filters, columns, sort, is_shared, owner)
            VALUES (?,?,?,?,?,?,?)
@@ -861,8 +906,8 @@ def import_job_get(job_id: str, conn=Depends(conn_dep)):
 # export
 # ===========================================================================
 def _export_response(conn, entity: str, payload: dict, fmt: str, columns, lang,
-                     resolve: bool, title=None):
-    spec = spec_of(entity)
+                    resolve: bool, title=None):
+    spec = spec_of_any(entity)
     data, name, mime = transfer.export_bytes(conn, spec, payload, fmt, columns, lang,
                                              resolve, title)
     db.log_change(conn, entity_type=spec.key, entity_id=None, action="update",
@@ -1180,12 +1225,22 @@ def external_ids_delete(ext_id: int, conn=Depends(conn_dep),
 @app.post("/api/{entity}/kpi")
 def entity_kpi(entity: str, payload: dict = Body(default={}), conn=Depends(conn_dep)):
     """Headline figures for the current selection (the KPI strip above a list)."""
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     return repo.kpi_summary(conn, spec, payload or {})
 
 
 @app.get("/api/{entity}/duplicates")
 def duplicates(entity: str, limit: int = 50, offset: int = 0, conn=Depends(conn_dep)):
+    if is_mil(entity):
+        spec = MIL_SPECS[entity]
+        title_col = spec.name_fields[0]
+        rows = conn.execute(
+            f"SELECT {title_col} AS label, COUNT(*) AS n FROM {spec.table} "
+            f"WHERE {title_col} IS NOT NULL AND {title_col} != '' "
+            f"GROUP BY {title_col} HAVING COUNT(*) > 1 "
+            f"ORDER BY n DESC LIMIT ? OFFSET ?", (limit, offset)).fetchall()
+        groups = [{"label": r["label"], "count": r["n"]} for r in rows]
+        return {"entity": entity, "groups": groups, "total": len(groups)}
     spec = spec_of(entity)
     groups, total = repo.duplicate_groups(conn, spec, limit=limit, offset=offset)
     return {"entity": entity, "groups": groups, "total": total}
@@ -1389,9 +1444,11 @@ def entity_query(entity: str, payload: dict = Body(default={}), conn=Depends(con
     later.  Explicit body keys still win over the string, so a client can pin a
     page or a page size while the user edits the query.
     """
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     payload = dict(payload or {})
     if isinstance(payload.get("query"), str) and payload["query"].strip():
+        if is_mil(entity):
+            raise HTTPException(422, "typed queries are not supported for military entities")
         compiled = querylang.parse_for(spec, payload["query"])
         resolved, extra = querylang.resolve(conn, spec, compiled["payload"])
         merged = dict(resolved)
@@ -1400,7 +1457,11 @@ def entity_query(entity: str, payload: dict = Body(default={}), conn=Depends(con
                             "warnings": compiled["warnings"] + extra,
                             "unknown": compiled["unknown"]}
         return repo.list_records(conn, spec, merged)
-    return repo.list_records(conn, spec, payload)
+    out = repo.list_records(conn, spec, payload)
+    if is_mil(entity):
+        for item in out.get("items", []):
+            mil_query_shim(item, spec)
+    return out
 
 
 @app.post("/api/query/parse")
@@ -1457,13 +1518,27 @@ def entity_list(entity: str, q: str | None = None, page: int = 1, page_size: int
 
 @app.get("/api/{entity}/next-code")
 def entity_next_code(entity: str, conn=Depends(conn_dep)):
+    if is_mil(entity):
+        from ..military import naming
+        from ..military.naming import NamingError
+        try:
+            preview = naming.preview(conn, entity, {})
+            return {"entity": entity, "code": preview["next_value"]}
+        except NamingError:
+            return {"entity": entity, "code": ""}
     spec_of(entity)
     return {"entity": entity, "code": db.peek_next_code(conn, entity)}
 
 
 @app.post("/api/{entity}")
 def entity_create(entity: str, payload: dict = Body(...), conn=Depends(conn_dep),
-                  x_actor: str | None = Header(None)):
+                  x_actor: str | None = Header(None),
+                  x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        rec = _mil_write(conn, mil_service.create, entity, payload,
+                         actor_of(x_actor, None) or "researcher")
+        return {"ok": True, "record": mil_query_shim(rec, MIL_SPECS[entity])}
     spec = spec_of(entity)
     rec = repo.create_record(conn, spec, payload, actor_of(x_actor, payload.get("actor")),
                              payload.get("_reason"), payload.get("_source_id"))
@@ -1473,13 +1548,24 @@ def entity_create(entity: str, payload: dict = Body(...), conn=Depends(conn_dep)
 @app.get("/api/{entity}/{rec_id}")
 def entity_get(entity: str, rec_id: int, include_deleted: bool = False,
                conn=Depends(conn_dep)):
+    if is_mil(entity):
+        rec = mil_service.get_record(conn, entity, rec_id)
+        if rec is None:
+            raise HTTPException(404, f"{entity} {rec_id} not found")
+        return mil_query_shim(rec, MIL_SPECS[entity])
     return repo.get_record(conn, spec_of(entity), rec_id, include_deleted)
 
 
 @app.put("/api/{entity}/{rec_id}")
 @app.patch("/api/{entity}/{rec_id}")
 def entity_update(entity: str, rec_id: int, payload: dict = Body(...),
-                  conn=Depends(conn_dep), x_actor: str | None = Header(None)):
+                  conn=Depends(conn_dep), x_actor: str | None = Header(None),
+                  x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        rec = _mil_write(conn, mil_service.update, entity, rec_id, payload,
+                         actor_of(x_actor, None) or "researcher")
+        return {"ok": True, "record": mil_query_shim(rec, MIL_SPECS[entity])}
     spec = spec_of(entity)
     rec = repo.update_record(
         conn, spec, rec_id, payload, actor_of(x_actor, payload.get("actor")),
@@ -1490,7 +1576,13 @@ def entity_update(entity: str, rec_id: int, payload: dict = Body(...),
 
 @app.delete("/api/{entity}/{rec_id}")
 def entity_delete(entity: str, rec_id: int, hard: bool = False, reason: str | None = None,
-                  conn=Depends(conn_dep), x_actor: str | None = Header(None)):
+                  conn=Depends(conn_dep), x_actor: str | None = Header(None),
+                  x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        _mil_write(conn, mil_service.delete, entity, rec_id,
+                   actor_of(x_actor, None) or "researcher")
+        return {"ok": True, "deleted": rec_id}
     spec = spec_of(entity)
     if hard:
         return repo.hard_delete(conn, spec, rec_id, actor_of(x_actor, None), reason)
@@ -1500,12 +1592,37 @@ def entity_delete(entity: str, rec_id: int, hard: bool = False, reason: str | No
 @app.post("/api/{entity}/{rec_id}/restore")
 def entity_restore(entity: str, rec_id: int, conn=Depends(conn_dep),
                    x_actor: str | None = Header(None)):
+    if is_mil(entity):
+        raise HTTPException(422, "military records are deleted outright; nothing to restore")
     return repo.restore(conn, spec_of(entity), rec_id, actor_of(x_actor, None))
 
 
 @app.post("/api/{entity}/bulk")
 def entity_bulk(entity: str, payload: dict = Body(...), conn=Depends(conn_dep),
-                x_actor: str | None = Header(None)):
+                x_actor: str | None = Header(None),
+                x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        ids = payload.get("ids") or []
+        action = payload.get("action")
+        actor = actor_of(x_actor, None) or "researcher"
+        if not ids:
+            raise HTTPException(422, "ids is required")
+        ok = failed = 0
+        for rid in ids:
+            try:
+                if action == "delete":
+                    mil_service.delete(conn, entity, int(rid), actor)
+                elif action == "status" and payload.get("patch") is not None:
+                    mil_service.update(conn, entity, int(rid),
+                                       dict(payload["patch"]), actor)
+                else:
+                    raise HTTPException(422, f"unsupported bulk action '{action}'")
+                ok += 1
+            except Exception:  # noqa: BLE001 - per-row isolation, like the importer
+                failed += 1
+        conn.commit()
+        return {"ok": ok, "failed": failed}
     spec = spec_of(entity)
     ids = payload.get("ids") or []
     action = payload.get("action")
