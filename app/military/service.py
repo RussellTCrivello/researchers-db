@@ -36,6 +36,85 @@ from .vocab import (
     UNIT_STATUSES,
 )
 
+# ---------------------------------------------------------------------------
+# bilingual display labels — the registry convention (schemas.py): field specs
+# carry label_en/label_ar; the interface picks by language.  Arabic labels for
+# entity + field names live here so ENTITY_SPECS stays readable.
+# ---------------------------------------------------------------------------
+ENTITY_LABELS_AR = {
+    "region": "منطقة", "division": "فرقة", "classification": "تصنيف",
+    "commander": "قائد", "unit": "وحدة عسكرية", "deployment": "نشر عملياتي",
+    "mission": "مهمة", "armament": "تسليح", "holding": "تسليح الوحدة",
+    "training": "تدريب", "assignment": "تعيين قيادي", "note": "ملاحظة",
+}
+
+FIELD_LABELS_AR: dict[tuple[str, str], str] = {
+    ("region", "name"): "اسم المنطقة", ("region", "region_type"): "نوع المنطقة",
+    ("region", "parent_id"): "المنطقة الأم", ("region", "country"): "الدولة",
+    ("region", "description"): "الوصف",
+    ("division", "name"): "اسم الفرقة", ("division", "region_id"): "المنطقة",
+    ("division", "division_type"): "نوع الفرقة", ("division", "formation_date"): "تاريخ التشكيل",
+    ("division", "headquarters"): "مقر القيادة", ("division", "description"): "الوصف",
+    ("classification", "name"): "اسم التصنيف", ("classification", "category"): "الفئة",
+    ("classification", "readiness_tier"): "مستوى الجاهزية",
+    ("classification", "description"): "الوصف",
+    ("commander", "full_name"): "الاسم الكامل", ("commander", "rank_title"): "الرتبة",
+    ("commander", "branch"): "الفرع", ("commander", "commission_date"): "تاريخ التكليف",
+    ("commander", "status"): "الحالة", ("commander", "biography"): "السيرة",
+    ("unit", "name"): "اسم الوحدة", ("unit", "code"): "الرمز التشغيلي",
+    ("unit", "echelon"): "المستوى", ("unit", "parent_id"): "الوحدة الأم",
+    ("unit", "classification_id"): "التصنيف", ("unit", "division_id"): "الفرقة",
+    ("unit", "region_id"): "المنطقة", ("unit", "commander_id"): "القائد",
+    ("unit", "role"): "الدور", ("unit", "status"): "الحالة",
+    ("unit", "direct_personnel"): "القوة المباشرة",
+    ("unit", "formation_date"): "تاريخ التشكيل", ("unit", "headquarters"): "مقر القيادة",
+    ("unit", "notes"): "ملاحظات",
+    ("deployment", "name"): "اسم النشر", ("deployment", "unit_id"): "الوحدة",
+    ("deployment", "deployment_type"): "نوع النشر",
+    ("deployment", "start_date"): "تاريخ البداية", ("deployment", "end_date"): "تاريخ النهاية",
+    ("deployment", "status"): "الحالة", ("deployment", "is_current"): "النشر الحالي",
+    ("deployment", "location"): "الموقع", ("deployment", "area_of_operations"): "منطقة العمليات",
+    ("deployment", "notes"): "ملاحظات",
+    ("mission", "name"): "اسم المهمة", ("mission", "unit_id"): "الوحدة",
+    ("mission", "mission_type"): "نوع المهمة", ("mission", "deployment_id"): "النشر المرتبط",
+    ("mission", "start_date"): "تاريخ البداية", ("mission", "end_date"): "تاريخ النهاية",
+    ("mission", "status"): "الحالة", ("mission", "area"): "المنطقة",
+    ("mission", "description"): "الوصف", ("mission", "notes"): "ملاحظات",
+    ("armament", "name"): "اسم التسليح", ("armament", "category"): "الفئة",
+    ("armament", "specification"): "المواصفات", ("armament", "origin_country"): "بلد المنشأ",
+    ("armament", "description"): "الوصف",
+    ("holding", "unit_id"): "الوحدة", ("holding", "armament_id"): "التسليح",
+    ("holding", "quantity"): "الكمية", ("holding", "condition"): "الحالة الفنية",
+    ("holding", "acquisition_year"): "سنة التوريد", ("holding", "notes"): "ملاحظات",
+    ("training", "exercise_name"): "اسم التمرين", ("training", "unit_id"): "الوحدة",
+    ("training", "training_type"): "نوع التدريب",
+    ("training", "start_date"): "تاريخ البداية", ("training", "end_date"): "تاريخ النهاية",
+    ("training", "duration_days"): "المدة (أيام)", ("training", "participant_count"): "عدد المشاركين",
+    ("training", "lead_trainer"): "المدرب الرئيسي", ("training", "assessment"): "التقييم",
+    ("training", "location"): "الموقع", ("training", "notes"): "ملاحظات",
+    ("assignment", "unit_id"): "الوحدة", ("assignment", "commander_id"): "القائد",
+    ("assignment", "role"): "الدور", ("assignment", "assigned_date"): "تاريخ التعيين",
+    ("assignment", "relieved_date"): "تاريخ الإعفاء", ("assignment", "is_current"): "التعيين الحالي",
+    ("assignment", "notes"): "ملاحظات",
+    ("note", "entity_type"): "نوع الهدف", ("note", "target_id"): "رقم الهدف",
+    ("note", "note_text"): "نص الملاحظة", ("note", "author"): "الكاتب",
+    ("note", "note_at"): "تاريخ الملاحظة",
+}
+
+
+def field_labels(entity: str, field: dict[str, Any]) -> dict[str, Any]:
+    """One field spec with bilingual labels attached (registry convention)."""
+    out = dict(field)
+    out["label_en"] = field["label"]
+    out["label_ar"] = FIELD_LABELS_AR.get((entity, field["name"]), field["label"])
+    return out
+
+
+def entity_labels(entity: str) -> dict[str, str]:
+    label = ENTITY_SPECS[entity]["label"]
+    return {"label": label, "label_en": label,
+            "label_ar": ENTITY_LABELS_AR.get(entity, label)}
+
 
 # ---------------------------------------------------------------------------
 # field specs — the single source of truth for validation AND the UI forms

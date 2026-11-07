@@ -18,12 +18,20 @@ without touching the registry, its routes, or its locale catalogues.
 | Controlled vocabularies | `app/military/vocab.py` |
 | Naming series engine | `app/military/naming.py` |
 | Rule catalogue | `app/military/rules.py` |
-| Transactional service layer | `app/military/service.py` |
+| Transactional service layer | `app/military/service.py` (incl. bilingual `label_en`/`label_ar` specs) |
 | HTTP API | `app/military/api.py`, mounted at `/api/military` |
 | Fictional sample dataset | `app/military/seed.py` |
 | CLI verification | `app/military/cli.py` (`python -m app.military.cli verify`) |
-| Interface | `app/military/ui/`, served at `/military/` |
+| Interface | `app/static/js/views/military.js` + `app/static/css/military.css` — the **Brigade Command workspace inside the SIRAJ shell** (`#/military`), sharing its navigation, locales, themes and design language |
 | Tests | `tests/test_military.py` |
+
+The module is a first-class part of **one integrated application**: the
+workspace registers like every other shell view (`App.views`), its strings
+live in the application locale bundles under the `mil.*` namespace (EN/AR at
+parity), and its field/entity labels follow the registry's bilingual schema
+convention (`label_en`/`label_ar` in `/api/military/meta`). Only the data is
+separate (`military.db`), deliberately: the registry and the force database
+must never endanger each other.
 
 Companion documents: [DATA_MODEL](DATA_MODEL.md) (SIRAJ registry),
 [API](API.md) (SIRAJ endpoints), [OPERATIONS](OPERATIONS.md) (deployment &
@@ -392,32 +400,42 @@ delete blocks) to **409**, role denials to **403**, unknown entities/records to
 
 ---
 
-## 8. Interface
+## 8. Interface — the Brigade Command workspace inside the shell
 
-Served at **`/military/`** (self-contained: `app/military/ui/`). English and
-Arabic with a language switch (RTL layout), roles are switchable for
-demonstration, and every screen carries the fictional-data disclaimer.
+The Military Organization is **one workspace of the single application**, not a
+separate site. It appears in the sidebar (`#/military`, "Brigade Command"),
+and every screen is a normal shell view: the same navigation, breadcrumbs,
+page headers, cards, tables, badges, charts (`A.chart`), dialogs, theme
+(light/dark), language switch (EN/AR with RTL) and locale mechanism
+(`mil.*` keys in `app/static/js/locales/en.json`/`ar.json`, kept at parity
+like the rest of the bundle). Entity and field labels are bilingual through
+the API (`label_en`/`label_ar`), following the registry's schema convention.
 
-* **Brigade Command workspace** — 5 KPI cards (active units, current
-  deployments, open missions, training this year, active commanders), 3 status
-  charts (units by status / echelon / region), 5 action lists (upcoming
-  deployments, upcoming trainings, low-readiness units, unit readiness, recent
-  activity), and sample-data actions.
-* **Searchable lists** for all twelve entities, generated from the server's
-  field specs, with status badges and client-side filtering.
-* **Forms** generated from the same specs: required markers, choice
-  vocabularies, reference dropdowns (labels `docname · name`), per-field error
-  display that preserves input, read-only system fields, two-step confirm on
-  destructive actions.
-* **Force Tree / Region Tree explorers** — expand/collapse nodes, inline search
-  with auto-expand, status badges, breadcrumbs, subtree personnel (Σ), and
-  contextual links (open record, add child, force summary).
-* **Naming Series administration** — the 19 options with partitions and next
-  previews, an advisory preview tool, and admin-only counter adjustment.
-* **Audit Log** view (admin).
+Inside the workspace a chip-bar sub-navigation keeps the design record's three
+groups:
 
-The interface is read-only for the `viewer` role; writes are refused politely
-and enforced again on the server.
+* **Command** — the workspace dashboard, the **force tree** and the **region
+  tree** explorers (expand/collapse, inline search with auto-expand, status
+  badges, subtree personnel Σ, node links).
+* **Records** — searchable lists and generated forms for all twelve entities:
+  required markers, choice vocabularies, reference dropdowns (`docname ·
+  name`), per-field validation errors that preserve input, read-only system
+  fields, confirmation dialogs on destructive actions, and a **force summary**
+  page for units / **holdings** page for armament.
+* **Administration** — **naming series** (19 options with partitions, next
+  previews, advisory preview tool, admin-only inline counter adjustment) and
+  the **audit log**.
+
+The dashboard carries the design record's structure: 5 KPI cards (active
+units, current deployments, open missions, training this year, active
+commanders), 3 status charts (units by status / echelon / region), 5 action
+lists (upcoming deployments, upcoming trainings, low-readiness units, unit
+readiness, recent activity) and the fictional-sample actions. The fictional
+data disclaimer is displayed on the workspace.
+
+**Roles** are demonstrated with a selector in the workspace sub-nav (stored as
+`siraj.mil.role` and sent as `X-Military-Role`); `viewer` is read-only in the
+interface and every write is re-checked server-side regardless.
 
 ---
 
@@ -476,6 +494,9 @@ transactions).
 
 * The database is created lazily on first use (`CREATE TABLE IF NOT EXISTS`) —
   importing the module never touches disk. Timestamps are UTC ISO-8601.
+* The UI is plain shell assets (`views/military.js`, `css/military.css`): no
+  CDN, no extra dependencies — like the rest of the application it runs
+  fully offline.
 * Foreign keys are enforced (`ON DELETE RESTRICT` + service-level pre-checks);
   WAL mode, 30 s busy timeout — the same house rules as the registry
   ([DATA_MODEL](DATA_MODEL.md)).

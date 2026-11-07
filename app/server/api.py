@@ -1550,7 +1550,3 @@ def index():
 
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
-
-# Military Organization interface (self-contained; see app/military/ui/)
-MILITARY_UI = BASE / "military" / "ui"
-app.mount("/military", StaticFiles(directory=MILITARY_UI, html=True), name="military-ui")

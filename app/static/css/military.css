@@ -1,0 +1,51 @@
+/* ============================================================================
+   SIRAJ · military.css — Military Organization (Brigade Command workspace)
+   Feature styles only; everything else uses the house layers
+   (base / components / views).  Kept small and namespaced `mil-`.
+   ========================================================================== */
+
+/* workspace sub-navigation: the design record's three groups as a chip bar */
+.mil-nav {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 8px 0 14px;
+}
+.mil-nav-group {
+  flex-basis: 100%;
+  font-size: 11px; letter-spacing: .10em; text-transform: uppercase;
+  color: var(--muted); margin: 8px 2px 2px;
+}
+.mil-nav-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 999px; text-decoration: none;
+  font-size: 12.5px; color: var(--ink); background: var(--chip, #eef1f5);
+  border: 1px solid transparent;
+}
+.mil-nav-item:hover { border-color: var(--line, #d5dbe3); }
+.mil-nav-item.on {
+  background: var(--nav, #17395c); color: #fff;
+}
+[dir="rtl"] .mil-nav-group { letter-spacing: normal; text-transform: none; }
+
+/* tree explorers */
+.mil-tree ul { list-style: none; margin: 0; padding-inline-start: 20px; }
+.mil-tree > ul { padding-inline-start: 4px; }
+.mil-tree li { margin: 2px 0; }
+.mil-tree details > summary { list-style: none; cursor: pointer; }
+.mil-tree details > summary::-webkit-details-marker { display: none; }
+.mil-node {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 5px 8px; border-radius: 8px;
+}
+.mil-node:hover { background: var(--chip, #f2f5f9); }
+.mil-node a { text-decoration: none; }
+.mil-toggle {
+  width: 18px; height: 18px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: 11px; color: var(--muted);
+}
+
+/* form validation, mirroring the registry forms */
+.field.invalid input,
+.field.invalid select,
+.field.invalid textarea { border-color: var(--red, #a4302e); }
+.field .err { color: var(--red, #a4302e); font-size: 11.5px; min-height: 14px; }
+.field label .req { color: var(--red, #a4302e); }

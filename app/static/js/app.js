@@ -15,6 +15,15 @@
     { re: /^\/map$/, view: "map" },
     { re: /^\/geo$/, view: "geomap" },
     { re: /^\/desk$/, view: "desk" },
+    { re: /^\/military$/, view: "military" },
+    { re: /^\/military\/(units|regions)\/tree$/, view: "milTree", keys: ["kind"] },
+    { re: /^\/military\/units\/(\d+)\/force$/, view: "milForce", keys: ["id"] },
+    { re: /^\/military\/armaments\/(\d+)\/holdings$/, view: "milHoldings", keys: ["id"] },
+    { re: /^\/military\/naming$/, view: "milNaming" },
+    { re: /^\/military\/audit$/, view: "milAudit" },
+    { re: /^\/military\/([\w-]+)\/new$/, view: "milForm", keys: ["entity"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)$/, view: "milForm", keys: ["entity", "id"] },
+    { re: /^\/military\/([\w-]+)$/, view: "milList", keys: ["entity"] },
     { re: /^\/import$/, view: "import" },
     { re: /^\/export$/, view: "export" },
     { re: /^\/changelog$/, view: "changelog" },
@@ -108,7 +117,9 @@
       if (route.view !== "geomap" && App.geoDispose) App.geoDispose();
       const fn = App.views[route.view];
       const ent = route.params && route.params.entity;
-      if (ent && !(App.state.meta.entities || []).some(e => e.key === ent)) {
+      /* the registry owns /entity/<key> routes; /military/* has its own meta */
+      if (ent && !route.path.startsWith("/military") &&
+          !(App.state.meta.entities || []).some(e => e.key === ent)) {
         view.innerHTML = `<div class="card"><h2>${esc(t("common.error"))}</h2>
           <div class="notice">${esc(ent)} — ${esc(t("ui.unknownEntity"))}</div>
           <div class="btn-row" style="margin-top:12px">

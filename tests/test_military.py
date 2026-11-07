@@ -653,3 +653,47 @@ def test_armament_holdings_rollup(conn):
     data = service.armament_holdings(conn, rifle["id"])
     assert data["total_quantity"] == 240 + 85
     assert len(data["holdings"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# shell integration: one application, one locale mechanism
+# ---------------------------------------------------------------------------
+def test_meta_ships_bilingual_labels():
+    from app.military import api as mil_api
+    data = mil_api.meta()
+    for key, spec in data["entities"].items():
+        assert spec["label_en"] and spec["label_ar"], key
+        for field in spec["fields"]:
+            assert field["label_en"] and field["label_ar"], (key, field["name"])
+
+
+def test_locale_bundles_mil_namespace_at_parity():
+    """en.json and ar.json must carry the same mil.* keys (and nav.military)."""
+    import json as _json
+    from pathlib import Path
+    loc = Path("app/static/js/locales")
+    en = _json.loads((loc / "en.json").read_text(encoding="utf-8"))
+    ar = _json.loads((loc / "ar.json").read_text(encoding="utf-8"))
+    en_mil = {k for k in en if k.startswith("mil.") or k == "nav.military"}
+    ar_mil = {k for k in ar if k.startswith("mil.") or k == "nav.military"}
+    assert en_mil == ar_mil
+    assert len(en_mil) >= 70
+    # whole bundles stay at parity too (the house rule)
+    assert set(en) == set(ar)
+
+
+def test_military_workspace_wired_into_shell():
+    """The shell must carry the workspace: nav entry, styles, view module."""
+    from pathlib import Path
+    html = Path("app/static/index.html").read_text(encoding="utf-8")
+    assert 'data-route="military"' in html
+    assert "/static/js/views/military.js" in html
+    assert "/static/css/military.css" in html
+    js = Path("app/static/js/views/military.js").read_text(encoding="utf-8")
+    for view in ("military", "milList", "milForm", "milTree", "milForce",
+                 "milHoldings", "milNaming", "milAudit"):
+        assert f"A.views.{view}" in js, view
+    app_js = Path("app/static/js/app.js").read_text(encoding="utf-8")
+    assert "/military" in app_js
+    # the parallel standalone app is gone: one structure only
+    assert not Path("app/military/ui").exists()

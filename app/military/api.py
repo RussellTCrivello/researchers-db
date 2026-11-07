@@ -108,10 +108,10 @@ def meta() -> dict[str, Any]:
         "ok": True,
         "entities": {
             key: {
-                "label": spec["label"],
+                **service.entity_labels(key),
                 "table": spec["table"],
                 "tree": bool(spec.get("tree")),
-                "fields": spec["fields"],
+                "fields": [service.field_labels(key, f) for f in spec["fields"]],
             }
             for key, spec in ENTITY_SPECS.items()
         },

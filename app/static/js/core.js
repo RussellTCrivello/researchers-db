@@ -262,7 +262,7 @@
   /* -------------------------------------------------------------- API --- */
   async function request(method, url, body, opts) {
     opts = opts || {};
-    const headers = { "X-Actor": App.state.actor };
+    const headers = Object.assign({ "X-Actor": App.state.actor }, opts.headers || {});
     let payload;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) { headers["Content-Type"] = "application/json"; payload = JSON.stringify(body); }
@@ -423,7 +423,8 @@
     "panel-right": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
     maximize: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
     minimize: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
-    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/>'
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/>',
+    shield: '<path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-4.5"/>'
   };
   function icon(name, cls) {
     const p = PATHS[name] || PATHS.grid;
