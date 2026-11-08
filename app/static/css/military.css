@@ -143,3 +143,24 @@ table.data th.sortable[aria-sort="descending"]::after { content: " ↓"; color: 
 #milDossTabs { margin-top: 14px; }
 #milDossTabs .badge { margin-inline-start: 5px; }
 #tabBody .statcard b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+
+/* ---------------------------------------------------------------
+   Quick-add menu + saved-row flash (details-integrated creation)
+   --------------------------------------------------------------- */
+.mil-add-menu { position: relative; display: inline-block; }
+.mil-add-menu summary { list-style: none; cursor: pointer; }
+.mil-add-menu summary::-webkit-details-marker { display: none; }
+.mil-add-menu-list {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
+  display: grid; gap: 4px; min-width: 230px;
+  background: var(--card, #fff); border: 1px solid var(--line);
+  border-radius: var(--radius, 10px); padding: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+[dir="rtl"] .mil-add-menu-list { left: auto; right: 0; }
+.mil-add-menu-list .btn { justify-content: flex-start; }
+.row-flash { animation: milRowFlash 2.2s ease-out 1; }
+@keyframes milRowFlash {
+  0% { background: rgba(127, 179, 211, 0.55); }
+  100% { background: transparent; }
+}

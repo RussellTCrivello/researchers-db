@@ -132,3 +132,89 @@ def test_dossier_locales_are_complete_bilingual_and_sorted():
                 "mil.doss.structure", "mil.doss.weaponry"):
         assert en.get(key), f"missing EN key {key}"
         assert ar.get(key), f"missing AR key {key}"
+
+
+# ---------------------------------------------------------------------------
+# (dd) quick-add and quick actions, integrated in the details interface
+# ---------------------------------------------------------------------------
+
+JS_QUICK_ADD = [
+    "seedFor",                 # every add button pre-links the full record form
+    "A.forms.open(",           # reuses the shared form: dialog, combos, codes
+    'data-add=',
+    'data-relieve=',
+    "DOSSIER_TAB",             # a saved add lands on the tab it fed
+    "siraj:record-saved",
+    "NEXT_ECHELON",            # sub-unit echoes the parent, one step down
+    "mil.doss.addSubunit",
+    "mil.doss.appointCommander",
+    "row-flash",
+]
+
+NEW_DOSS_KEYS = [
+    "mil.doss.addDeployment", "mil.doss.addHolding", "mil.doss.addMission",
+    "mil.doss.addSubunit", "mil.doss.addTraining", "mil.doss.appointCommander",
+    "mil.doss.quickAddHint", "mil.doss.relieve", "mil.doss.relieveConfirm",
+]
+
+
+def test_quick_add_wiring_shipped():
+    root = Path(__file__).resolve().parents[1]
+    js = (root / "app" / "static" / "js" / "views" / "military.js").read_text(encoding="utf-8")
+    for needle in JS_QUICK_ADD:
+        assert needle in js, needle
+    rec = (root / "app" / "static" / "js" / "views" / "record.js").read_text(encoding="utf-8")
+    assert "async function buildForm(entity, rec, seed)" in rec
+    assert "params && params.seed" in rec
+    css = (root / "app" / "static" / "css" / "military.css").read_text(encoding="utf-8")
+    assert "row-flash" in css and "mil-add-menu" in css
+
+
+def test_quick_add_locales_complete():
+    root = Path(__file__).resolve().parents[1]
+    en = json.loads((root / "app" / "static" / "js" / "locales" / "en.json").read_text(encoding="utf-8"))
+    ar = json.loads((root / "app" / "static" / "js" / "locales" / "ar.json").read_text(encoding="utf-8"))
+    assert set(en) == set(ar)
+    assert list(en) == sorted(en, key=lambda k: k.encode("utf-8"))
+    assert list(ar) == sorted(ar, key=lambda k: k.encode("utf-8"))
+    for k in NEW_DOSS_KEYS:
+        assert en.get(k), k
+        assert ar.get(k), k
+
+
+def test_quick_add_api_roundtrip(client):
+    """a sub-unit inherits its parent context; relieve closes the appointment."""
+    hdrs = {"X-Military-Role": "admin"}
+    created = client.post("/api/unit", json={"name": "QA Parent"}, headers=hdrs)
+    assert created.status_code in (200, 201)
+    prec = created.json().get("record") or created.json()
+    uid = prec["id"]
+
+    sub = client.post("/api/unit", json={
+        "name": "QA Child", "parent_id": uid,
+        "division_id": prec.get("division_id"),
+        "classification_id": prec.get("classification_id"),
+    }, headers=hdrs)
+    assert sub.status_code in (200, 201)
+    srec = sub.json().get("record") or sub.json()
+    assert srec["parent_id"] == uid
+
+    cmd = client.post("/api/commander", json={"full_name": "QA Commander"}, headers=hdrs)
+    assert cmd.status_code in (200, 201)
+    cid = (cmd.json().get("record") or cmd.json())["id"]
+
+    asg = client.post("/api/assignment", json={
+        "unit_id": uid, "commander_id": cid,
+        "role": "Commanding Officer", "assigned_date": "2026-01-01", "is_current": True,
+    }, headers=hdrs)
+    assert asg.status_code in (200, 201)
+    arec = asg.json().get("record") or asg.json()
+
+    # the dossier's Relieve action: a partial PATCH closes it out
+    upd = client.patch(f"/api/assignment/{arec['id']}",
+                       json={"is_current": False, "relieved_date": "2026-11-05"},
+                       headers=hdrs)
+    assert upd.status_code == 200
+    fetched = client.get(f"/api/assignment/{arec['id']}")
+    rec2 = fetched.json().get("record") or fetched.json()
+    assert rec2["is_current"] in (0, False)

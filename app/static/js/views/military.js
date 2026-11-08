@@ -414,10 +414,29 @@
    * that answers "what is this unit?" without a single detour.
    */
   const REL_LIMIT = 10;
+  let DOSSIER_TAB = null;      /* a quick-add returns to the tab it fed */
+  let DOSSIER_FLASH = null;    /* the record that was just added */
+  const HOST_PRESET = {
+    unit: "unit_id", region: "region_id", division: "division_id",
+    classification: "classification_id", commander: "commander_id",
+    armament: "armament_id", deployment: "deployment_id"
+  };
+  const NEXT_ECHELON = { Brigade: "Battalion", Battalion: "Company",
+    Company: "Platoon", Platoon: "Squadron" };
+  const ADD_LABEL = {
+    unit: "mil.doss.addSubunit", deployment: "mil.doss.addDeployment",
+    mission: "mil.doss.addMission", holding: "mil.doss.addHolding",
+    training: "mil.doss.addTraining", assignment: "mil.doss.appointCommander"
+  };
+  const TAB_FOR = { unit: "structure", region: "structure", division: "structure",
+    classification: "structure", deployment: "operations", mission: "operations",
+    holding: "logistics", training: "training", assignment: "command",
+    commander: "command", note: "notes" };
 
-  function relHead(label, d, id) {
+  function relHead(label, d, id, addKey) {
     return `<div class="card-head"><h2>${esc(label)}</h2>
       <span class="badge slate">${fmtNum(d.total || 0)}</span>
+      ${addKey ? `<button class="btn sm primary" data-add="${esc(addKey)}">${icon("plus")} ${esc(t(ADD_LABEL[addKey] || "rec.new"))}</button>` : ""}
       ${(d.total || 0) > (d.rows || []).length ? `
         <button class="btn sm" data-relmore="${esc(d.slug)}"
           data-relfk="${esc(d.fk)}" data-relid="${id}">${esc(t("mil.dossier.showMore"))}</button>
@@ -425,10 +444,10 @@
           href="#/military/${esc(d.slug)}?${esc(d.fk)}=${id}">${esc(t("mil.dossier.seeAll"))}</a>` : ""}</div>`;
   }
 
-  function relTable(label, d, id, cols, rowFn) {
+  function relTable(label, d, id, cols, rowFn, addKey) {
     const rows = d.rows || [];
     return `<div class="card">
-      ${relHead(label, d, id)}
+      ${relHead(label, d, id, addKey)}
       ${rows.length ? `<div class="table-wrap"><table class="data">
         <thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead>
         <tbody data-relbody="${esc(d.slug)}">${rows.map(r => rowFn(r)).join("")}</tbody>
@@ -554,9 +573,40 @@
       ? `<label class="emblem-btn" title="${esc(t("mil.doss.changeEmblem"))}">${icon("upload")}
           <input type="file" accept="image/*" id="emblemFile" hidden></label>` : "";
 
+    /* quick-add: the full record form, pre-linked to this dossier's context */
+    const seedFor = (addKey) => {
+      const sh = {};
+      const preset = HOST_PRESET[entity];
+      const fields = (m.entities[addKey] && m.entities[addKey].fields) || [];
+      const has = (k) => fields.some(f => (f.name || f.key) === k);
+      if (addKey === "unit" && entity === "unit") {
+        sh.parent_id = id;                      /* a sub-unit of THIS unit */
+        if (rec.division_id) sh.division_id = rec.division_id;
+        if (rec.region_id) sh.region_id = rec.region_id;
+        if (rec.classification_id) sh.classification_id = rec.classification_id;
+        if (rec.role) sh.role = rec.role;       /* like parent, like child */
+        const ne = NEXT_ECHELON[rec.echelon];   /* Brigade → Battalion → … */
+        if (ne) sh.echelon = ne;
+      } else if (preset && has(preset)) {
+        sh[preset] = id;
+      }
+      if (addKey === "mission" && entity === "unit" && curDep && has("deployment_id")) {
+        sh.deployment_id = curDep.id;           /* missions belong to the tour */
+      }
+      return sh;
+    };
+    const menuKeys = Object.keys(ADD_LABEL)
+      .filter(k => Object.keys(seedFor(k)).length > 0);
+
     root.innerHTML = milNav("e:" + entity) +
       A.pageHead(rec.docname || "#" + id, entLabel(entity), `
         <a class="btn" href="#/military/${entity}s">${icon("undo")} ${esc(t("common.back"))}</a>
+        ${canEdit && menuKeys.length ? `<details class="mil-add-menu">
+          <summary class="btn primary">${icon("plus")} ${esc(t("rec.new"))}</summary>
+          <div class="mil-add-menu-list">
+            ${menuKeys.map(k => `<button class="btn sm" data-add="${esc(k)}">${icon("plus")} ${esc(t(ADD_LABEL[k]))}</button>`).join("")}
+            <div class="hint">${esc(t("mil.doss.quickAddHint"))}</div>
+          </div></details>` : ""}
         <a class="btn primary" href="#/military/${entity}s/${id}/edit">${icon("edit") || ""} ${esc(t("common.edit"))}</a>
         ${role() === "admin" ? `<button class="btn danger" id="milDelete">${icon("trash")} ${esc(t("common.delete"))}</button>` : ""}`) +
       `<div class="hero">
@@ -607,47 +657,49 @@
         tb.n ? ` <span class="badge slate">${fmtNum(tb.n)}</span>` : ""}</button>`).join("");
 
     /* ------------------------------------------------ row renderers ---- */
-    const childRow = (r) => `<tr>
+    const childRow = (r) => `<tr data-rid="${r.id}">
       <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
       <td><a href="#/military/units/${r.id}/show"><b>${esc(r.name || "—")}</b></a></td>
       <td>${esc(r.echelon ? String(A.optLabel(r.echelon)) : "—")}</td>
       <td>${statusOf(r)}</td>
       <td>${fmtNum(r.direct_personnel || 0)}</td>${viewBtn("units", r)}</tr>`;
-    const depRow = (r) => `<tr>
+    const depRow = (r) => `<tr data-rid="${r.id}">
       <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
       <td><a href="#/military/deployments/${r.id}/show"><b>${esc(r.name || "—")}</b></a></td>
       <td>${esc(r.deployment_type || "—")}</td>
       <td class="nowrap">${esc(r.start_date || "—")} → ${esc(r.end_date || "…")}</td>
       <td>${statusOf(r)}</td>
       <td>${esc(r.location || "—")}</td>${viewBtn("deployments", r)}</tr>`;
-    const misRow = (r) => `<tr>
+    const misRow = (r) => `<tr data-rid="${r.id}">
       <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
       <td><a href="#/military/missions/${r.id}/show"><b>${esc(r.name || "—")}</b></a></td>
       <td>${esc(r.mission_type || "—")}</td>
       <td class="nowrap">${esc(r.start_date || "—")} → ${esc(r.end_date || "…")}</td>
       <td>${statusOf(r)}</td>
       <td>${esc(r.area || "—")}</td>${viewBtn("missions", r)}</tr>`;
-    const holdRow = (r) => `<tr>
+    const holdRow = (r) => `<tr data-rid="${r.id}">
       <td><a href="#/military/armaments/${r.armament_id}/show"><b>${esc(refName("armament", r.armament_id))}</b></a></td>
       <td>${fmtNum(r.quantity || 0)}</td>
       <td>${r.condition ? chip(r.condition) : "—"}</td>
       <td>${esc(r.acquisition_year || "—")}</td>${viewBtn("holdings", r)}</tr>`;
-    const trainRow = (r) => `<tr>
+    const trainRow = (r) => `<tr data-rid="${r.id}">
       <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
       <td><a href="#/military/trainings/${r.id}/show"><b>${esc(r.exercise_name || "—")}</b></a></td>
       <td>${esc(r.training_type || "—")}</td>
       <td class="nowrap">${esc(r.start_date || "—")} → ${esc(r.end_date || "…")}</td>
       <td>${fmtNum(r.participant_count || 0)}</td>
       <td>${r.assessment ? chip(r.assessment) : "—"}</td>${viewBtn("trainings", r)}</tr>`;
-    const asgRow = (r) => `<tr>
+    const asgRow = (r) => `<tr data-rid="${r.id}">
       <td>${refLink("commander", r.commander_id)}</td>
       <td>${esc(r.role || "—")}</td>
       <td class="nowrap">${esc(r.assigned_date || "—")} → ${esc(r.relieved_date || "…")}</td>
       <td>${r.is_current
         ? `<span class="badge green">${esc(t("mil.doss.current"))}</span>`
         : `<span class="badge gray">${esc(t("mil.doss.past"))}</span>`}</td>
-      ${viewBtn("assignments", r)}</tr>`;
-    const genRow = (slug, r) => `<tr>
+      <td class="nowrap">${r.is_current && canEdit
+        ? `<button class="btn sm" data-relieve="${r.id}">${icon("undo")} ${esc(t("mil.doss.relieve"))}</button> ` : ""}
+        <a class="btn sm" href="#/military/assignments/${r.id}/show">${esc(t("common.view"))}</a></td></tr>`;
+    const genRow = (slug, r) => `<tr data-rid="${r.id}">
       <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
       <td>${esc(r.name || r.full_name || r.exercise_name || r.note_text || "—")}</td>
       <td>${statusOf(r)}</td>${viewBtn(slug, r)}</tr>`;
@@ -675,9 +727,9 @@
       units: childRow, deployments: depRow, missions: misRow,
       holdings: holdRow, trainings: trainRow, assignments: asgRow
     };
-    const relCard = (slug, label) => relTable(label || labelOf(slug), relOf(slug), id,
+    const relCard = (slug, label, addKey) => relTable(label || labelOf(slug), relOf(slug), id,
       COLS[slug] || COLS.generic,
-      ROWS[slug] ? ROWS[slug] : (r) => genRow(slug, r));
+      ROWS[slug] ? ROWS[slug] : (r) => genRow(slug, r), addKey);
 
     /* ------------------------------------------------------------ tabs body */
     const body = root.querySelector("#tabBody");
@@ -717,7 +769,7 @@
           <div class="statcard"><b>${rec.parent_id ? refName("unit", rec.parent_id) : "—"}</b>
             <span>${esc(t("mil.force.siblings"))} · ${fmtNum((relOf("units").total || 0))}</span></div>
         </div>
-        ${relCard("units", t("mil.force.children"))}`;
+        ${relCard("units", t("mil.force.children"), "unit")}`;
         return;
       }
       if (key === "operations") {
@@ -727,8 +779,8 @@
             ${curDep.status ? " · " + chip(curDep.status) : ""}
             ${curDep.location ? ` <span class="hfact">${esc(t("mil.doss.colLocation"))}: <b>${esc(curDep.location)}</b></span>` : ""}</div>
           </div>` : "") +
-          relCard("deployments", entLabel("deployment")) +
-          relCard("missions", t("mil.force.missions"));
+          relCard("deployments", entLabel("deployment"), "deployment") +
+          relCard("missions", t("mil.force.missions"), "mission");
         return;
       }
       if (key === "logistics") {
@@ -737,11 +789,11 @@
         body.innerHTML = `<div class="statgrid" style="margin-bottom:12px">
           <div class="statcard"><b>${fmtNum(d.total || 0)}</b><span>${esc(t("mil.doss.weaponry"))}</span></div>
           <div class="statcard"><b>${fmtNum(qty)}</b><span>${esc(t("mil.holdings.total"))}</span></div>
-        </div>` + relCard("holdings", t("mil.doss.weaponry"));
+        </div>` + relCard("holdings", t("mil.doss.weaponry"), "holding");
         return;
       }
       if (key === "training") {
-        body.innerHTML = relCard("trainings", t("mil.domain.training"));
+        body.innerHTML = relCard("trainings", t("mil.domain.training"), "training");
         return;
       }
       if (key === "command") {
@@ -752,6 +804,7 @@
         body.innerHTML = `<div class="card">
           <div class="card-head"><h2>${esc(t("mil.doss.commanders"))}</h2>
             <span class="badge slate">${fmtNum(d.total || 0)}</span>
+            ${canEdit ? `<button class="btn sm primary" data-add="assignment">${icon("plus")} ${esc(t("mil.doss.appointCommander"))}</button>` : ""}
             ${(d.total || 0) > rows.length ? `
               <button class="btn sm" data-relmore="${esc(d.slug)}"
                 data-relfk="${esc(d.fk)}" data-relid="${id}">${esc(t("mil.dossier.showMore"))}</button>
@@ -817,7 +870,7 @@
       }
       if (key.startsWith("rel:")) {
         const slug = key.slice(4);
-        body.innerHTML = relCard(slug);
+        body.innerHTML = relCard(slug, null, slug.replace(/s$/, ""));
         return;
       }
       body.innerHTML = "";
@@ -831,7 +884,17 @@
         paintTab(btn.dataset.tab);
       };
     });
-    paintTab(TABS[0].key);
+    const startTab = (DOSSIER_TAB && TABS.some(tb => tb.key === DOSSIER_TAB))
+      ? DOSSIER_TAB : TABS[0].key;
+    DOSSIER_TAB = null;
+    root.querySelectorAll("#milDossTabs [data-tab]")
+      .forEach(b => b.classList.toggle("active", b.dataset.tab === startTab));
+    paintTab(startTab);
+    if (DOSSIER_FLASH) {
+      const el = body.querySelector(`[data-rid="${DOSSIER_FLASH.id}"]`);
+      if (el) el.classList.add("row-flash");
+      DOSSIER_FLASH = null;
+    }
 
     /* emblem upload — the same /api/media + record write the edit form uses */
     const emblemFile = root.querySelector("#emblemFile");
@@ -883,6 +946,51 @@
       btn.disabled = false;
       if (tbody.querySelectorAll("tr").length >= (data.total || 0)) btn.remove();
     });
+
+    /* quick-add + quick actions — every panel feeds the same context */
+    root.addEventListener("click", async (ev) => {
+      const add = ev.target.closest("[data-add]");
+      if (add) {
+        const dd = add.closest("details");
+        if (dd) dd.open = false;
+        const key = add.dataset.add;
+        if (!key) return;
+        try {
+          await A.forms.open(key, null, { seed: seedFor(key) });
+        } catch (err) { toast(err.message, "err"); }
+        return;
+      }
+      const rel = ev.target.closest("[data-relieve]");
+      if (rel) {
+        const ok = await A.confirmDialog({
+          title: t("mil.doss.relieve"), message: t("mil.doss.relieveConfirm"),
+          confirmLabel: t("common.confirm")
+        });
+        if (!ok) return;
+        try {
+          await mreq("PATCH", "/assignments/" + rel.dataset.relieve, {
+            is_current: false,
+            relieved_date: new Date().toISOString().slice(0, 10)
+          });
+          toast(t("common.saved"), "ok");
+          A.rerender();
+        } catch (err) { toast(err.message, "err"); }
+      }
+    });
+
+    /* a saved quick-add lands on the tab it fed and announces itself */
+    function onRecordSaved(ev) {
+      const d = ev.detail || {};
+      if (!d.record) return;
+      d.handled = true;
+      DOSSIER_TAB = TAB_FOR[d.entity] || null;
+      DOSSIER_FLASH = { id: d.record.id };
+      A._keepScroll = true;
+      A.rerender();
+    }
+    document.addEventListener("siraj:record-saved", onRecordSaved);
+    A.views.milDossier.__dispose = () =>
+      document.removeEventListener("siraj:record-saved", onRecordSaved);
   };
 
   /* ========================================================= view: tree */

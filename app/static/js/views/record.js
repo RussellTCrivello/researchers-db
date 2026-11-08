@@ -737,7 +737,7 @@
   A.linkSource = linkSource;
 
   /* ============================================================== form === */
-  async function buildForm(entity, rec) {
+  async function buildForm(entity, rec, seed) {
     const spec = A.entitySpec(entity) || {};
     const fields = A.fieldsOf(entity);
     const isNew = !rec;
@@ -878,8 +878,11 @@
       const wrap = document.createElement("div");
       wrap.className = "field" + (f.type === "textarea" ? " span2" : "");
       wrap.dataset.field = f.key;
+      /* seed = contextual pre-link (quick-add from a dossier): the record is
+         new, but some fields already know their answer */
       let val = rec ? rec[f.key]
-        : ((f.key === "code" || f.key === "docname") ? nextCode : "");
+        : (seed && seed[f.key] !== undefined && seed[f.key] !== null && seed[f.key] !== ""
+          ? seed[f.key] : ((f.key === "code" || f.key === "docname") ? nextCode : ""));
       /* a brand-new record starts on the workflow default (draft) instead of
          showing an empty required dropdown the server would have to fix up */
       if (!rec && !val && f.key === "record_status_id") {
@@ -1851,7 +1854,7 @@
       isNew ? "" : `${t("common.code")}: ${rec.code} · v${rec.version}`) +
       `<div data-form-host></div>`;
     const host = root.querySelector("[data-form-host]");
-    const form = await buildForm(entity, rec);
+    const form = await buildForm(entity, rec, params && params.seed);
     /* another navigation may have re-rendered the view while the metadata was
        loading — drop this render instead of stacking a second form */
     if (!host.isConnected || host !== root.querySelector("[data-form-host]")) return;
@@ -1925,7 +1928,7 @@
     }
 
     /* 2 · the form itself */
-    const form = await buildForm(entity, rec);
+    const form = await buildForm(entity, rec, params && params.seed);
     if (!root.isConnected || A.state.route.view === "notFound") return;
     form.classList.add("in-dialog");
     const body = wrapFormDialog(entity, form, { isNew, rec });
