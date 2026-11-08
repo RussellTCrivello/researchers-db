@@ -176,7 +176,11 @@ def _build_specs() -> dict[str, EntitySpec]:
         _sel("role", in_list=True),
         _sel("status", in_list=True),
         _ref("commander_id", "commander", group="structure"),
-        _ref("current_deployment_id", "deployment", group="structure"),
+        # maintained by the one-current-deployment rule (service sets it when a
+        # deployment starts/ends) — displayed, never hand-edited; the service's
+        # editable field list intentionally has no such field
+        _ref("current_deployment_id", "deployment", group="structure",
+             read_only=True, in_list=True),
         F("direct_personnel", "int", group="structure", in_list=True),
         _ref("division_id", "division", group="structure", in_list=True),
         _ref("region_id", "region", group="structure", in_list=True),

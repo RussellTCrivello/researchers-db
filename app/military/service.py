@@ -9,6 +9,7 @@ in-flight state, synchronised pointer fields, and an append-only audit entry
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from typing import Any, Callable, Iterator
@@ -309,6 +310,38 @@ class ServiceError(Exception):
 # ---------------------------------------------------------------------------
 # field validation
 # ---------------------------------------------------------------------------
+# The shared date control (components/fields.js `emit()`) stores dates at the
+# precision the researcher entered: YYYY, YYYY-MM or YYYY-MM-DD, optionally
+# with [T| ]HH:MM[:SS] — and historical data carries three-digit years.  The
+# registry stores that grammar verbatim, so the military forms must accept the
+# same values the shared form produces (rejecting them was a 422 on every save
+# that used year- or month-precision).
+_DATE_VALUE_RE = re.compile(
+    r"^(\d{3,4})(?:-(\d{2})(?:-(\d{2}))?)?(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$")
+
+
+def _valid_date_value(raw: str) -> bool:
+    m = _DATE_VALUE_RE.match(raw)
+    if not m:
+        return False
+    year, mo, day, hh, mi, ss = m.groups()
+    if mo is not None and not 1 <= int(mo) <= 12:
+        return False
+    if day is not None and not 1 <= int(day) <= 31:
+        return False
+    if hh is not None and (int(hh) > 23 or int(mi) > 59
+                           or (ss is not None and int(ss) > 59)):
+        return False
+    # full four-digit dates keep strict calendar validation (2024-02-30 is not a date)
+    if mo is not None and day is not None and len(year) == 4:
+        from datetime import date as _date
+        try:
+            _date.fromisoformat(f"{year}-{mo}-{day}")
+        except ValueError:
+            return False
+    return True
+
+
 def _validate_fields(conn, entity: str, payload: dict[str, Any],
                      creating: bool) -> dict[str, Any]:
     spec = ENTITY_SPECS[entity]
@@ -338,10 +371,20 @@ def _validate_fields(conn, entity: str, payload: dict[str, Any],
         elif ftype == "bool":
             out[name] = 1 if value in (True, 1, "1", "true", "on") else 0
         elif ftype == "choice":
-            if value not in fspec["options"]:
-                raise ServiceError(422, "invalid_choice",
-                                   f"{name} must be one of {fspec['options']}", name)
-            out[name] = value
+            opts = fspec["options"]
+            if value in opts:
+                out[name] = value
+            else:
+                # the dropdowns send canonical codes, but a typed or imported
+                # value may differ only in case — normalise it instead of
+                # rejecting an obvious match ("mechanized" → "Mechanized")
+                hit = next((o for o in opts
+                            if str(o).casefold() == str(value).strip().casefold()),
+                           None)
+                if hit is None:
+                    raise ServiceError(422, "invalid_choice",
+                                       f"{name} must be one of {opts}", name)
+                out[name] = hit
         elif ftype == "select":
             # vocabulary-linked field: the value may arrive as an id, a
             # vocabulary code or an English/Arabic label — the supplementary
@@ -358,13 +401,13 @@ def _validate_fields(conn, entity: str, payload: dict[str, Any],
                                (resolved,)).fetchone()
             out[name] = row["code"] if row else str(value)
         elif ftype == "date":
-            try:
-                from datetime import date as _date
-                _date.fromisoformat(str(value))
-            except ValueError:
-                raise ServiceError(422, "invalid_date",
-                                   f"{name} must be ISO YYYY-MM-DD", name)
-            out[name] = str(value)
+            raw = str(value).strip()
+            if not _valid_date_value(raw):
+                raise ServiceError(
+                    422, "invalid_date",
+                    f"{name} must be a date: YYYY, YYYY-MM or YYYY-MM-DD, "
+                    "optionally with time", name)
+            out[name] = raw
         elif ftype == "ref":
             try:
                 out[name] = int(value)
