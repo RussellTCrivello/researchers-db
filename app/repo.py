@@ -1643,15 +1643,33 @@ def _index_record(conn, spec: EntitySpec, rec_id: int) -> None:
 # ---------------------------------------------------------------------------
 # options for pickers / filters
 # ---------------------------------------------------------------------------
-def lookup_options(conn, domain: str | None = None, include_inactive: bool = False) -> dict:
+def lookup_options(conn, domain: str | None = None, include_inactive: bool = False,
+                   parent_id: int | None = None, q: str | None = None,
+                   limit: int | None = None, offset: int = 0) -> dict:
+    """Lookup rows grouped by domain (flat when `domain` is given).
+
+    Hierarchical selection contract: pass `parent_id` to receive ONLY the direct
+    children of that unit — the server enforces the cascade, callers cannot see
+    siblings of other branches.  `q` filters code/labels; `limit`/`offset` page.
+    """
     sql = "SELECT * FROM lookup WHERE 1=1"
     params: list[Any] = []
     if domain:
         sql += " AND domain=?"
         params.append(domain)
+    if parent_id is not None:
+        sql += " AND parent_id=?"
+        params.append(int(parent_id))
+    if q:
+        sql += (" AND (lower(code) LIKE ? OR lower(label_en) LIKE ? OR lower(label_ar) LIKE ?)")
+        like = f"%{q.lower()}%"
+        params.extend([like, like, like])
     if not include_inactive:
         sql += " AND is_active=1"
     sql += " ORDER BY domain, sort_order, id"
+    if limit is not None:
+        sql += " LIMIT ? OFFSET ?"
+        params.extend([int(limit), int(offset)])
     rows = conn.execute(sql, params).fetchall()
     out: dict[str, list] = {}
     for r in rows:

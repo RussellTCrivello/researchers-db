@@ -112,10 +112,10 @@ def test_seed_mounts_full_district_tree():
 # ---------------------------------------------------------------- UI contract ---
 def test_vocabularies_screen_has_filters_paging_and_cascade():
     src = (ROOT / "app/static/js/views/admin.js").read_text(encoding="utf-8")
-    assert 'PARENT_OF = { governorate: "country", district: "governorate" }' in src
+    assert "A.ADMIN_CHAIN.slice(1).forEach" in src  # cascade chain is the real one
     assert 'id="valQ"' in src                      # value text filter
-    assert 'id="valGrand"' in src                  # country cascade (grandparent)
-    assert 'id="valParent"' in src                 # parent cascade
+    assert 'id="valSel-${dom}"' in src             # one cascading select per level
+    assert "data-admin-dom" in src
     assert 'id="valPageSize"' in src               # customizable page size
     assert 'id="valMore"' in src                   # load-more
     assert "adm.filterValues" in src

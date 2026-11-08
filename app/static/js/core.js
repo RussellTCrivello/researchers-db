@@ -332,6 +332,22 @@
   function domainOptions(domain) {
     return ((App.state.meta.lookups || {})[domain] || []);
   }
+
+  /* The geographical knowledge structure — one strict administrative chain
+     (app/geo_chain.py is the source of truth; a test enforces parity).
+     country → governorate (province) → district (region) → municipality
+     → village (neighborhood) → community (cluster).  Every hierarchical
+     selector in the UI walks this chain: a level lists ONLY the children of
+     the unit selected above it. */
+  const ADMIN_CHAIN = ["country", "governorate", "district", "municipality", "village", "community"];
+  function adminParentOf(domain) {
+    const i = ADMIN_CHAIN.indexOf(domain);
+    return i > 0 ? ADMIN_CHAIN[i - 1] : null;
+  }
+  function isAdminFieldKey(key) {
+    return typeof key === "string" && /_id$/.test(key)
+      && ADMIN_CHAIN.indexOf(key.replace(/_id$/, "")) >= 0;
+  }
   /* vocabulary VALUES shown in dropdowns (free-code choices): the value is
      data, its label is language.  Resolution order for the label:
      mil.value.<field>.<value> (a field-specific wording) → mil.value.<value>
@@ -798,6 +814,7 @@
   /* -------------------------------------------------------- bootstrap --- */
   Object.assign(App, {
     t, api, label, fieldLabel, dispTitle, domainOptions, lookupById,
+    ADMIN_CHAIN, adminParentOf, isAdminFieldKey,
     optLabel, optChoices,
     fmtDate, fmtNum, ago, esc, truncate, initials,
     toast, modal, confirmDialog, drawer,

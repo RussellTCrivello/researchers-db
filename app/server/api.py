@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from .. import db, graph, querylang, repo, reports, stats, transfer
+from .. import db, geo_chain, graph, querylang, repo, reports, stats, transfer
 from .. import settings as settings_mod
 from ..military import router as military_router
 from ..military import service as mil_service
@@ -219,6 +219,10 @@ def health(conn=Depends(conn_dep)):
 @app.get("/api/meta")
 def meta(conn=Depends(conn_dep), lang: str = "en"):
     lookups = repo.lookup_options(conn)
+    # every registered vocabulary is served even before its first value —
+    # a selector for a new domain must not silently lose its options source
+    for d in conn.execute("SELECT domain FROM lookup_domain"):
+        lookups.setdefault(d["domain"], [])
     domains = [dict(r) for r in conn.execute(
         "SELECT d.*, (SELECT COUNT(*) FROM lookup l WHERE l.domain=d.domain AND l.is_active=1) n "
         "FROM lookup_domain d ORDER BY d.sort_order")]
@@ -259,9 +263,15 @@ def meta(conn=Depends(conn_dep), lang: str = "en"):
 
 @app.get("/api/lookups")
 def lookups(domain: str | None = None, include_inactive: bool = False,
+            parent_id: int | None = None, q: str | None = None,
+            limit: int | None = None, offset: int = 0,
             conn=Depends(conn_dep)):
-    """Grouped by domain; when a domain is requested the values are returned flat."""
-    data = repo.lookup_options(conn, domain, include_inactive)
+    """Grouped by domain; when a domain is requested the values are returned flat.
+
+    Hierarchical selection: `parent_id` returns ONLY that unit's direct children
+    (server-enforced cascade); `q` filters code/labels; `limit`/`offset` page."""
+    data = repo.lookup_options(conn, domain, include_inactive,
+                               parent_id=parent_id, q=q, limit=limit, offset=offset)
     if domain:
         return data.get(domain, [])
     return data
@@ -274,6 +284,26 @@ def lookup_domains(conn=Depends(conn_dep)):
            FROM lookup_domain d ORDER BY d.sort_order""")]
 
 
+def _check_admin_parent(conn, domain: str, parent_id):
+    """Strict chain enforcement (app/geo_chain.py): an administrative unit nests
+    exactly one level — a municipality under its region, a village under its
+    municipality, and so on.  Countries sit at the top and take no parent."""
+    if not geo_chain.is_admin_domain(domain):
+        return parent_id
+    want = geo_chain.expected_parent(domain)
+    if want is None:
+        if parent_id:
+            raise HTTPException(422, f"'{domain}' is the top of the chain and cannot have a parent")
+        return None
+    if not parent_id:
+        raise HTTPException(422,
+                            f"Missing parent: a '{domain}' unit must belong to a '{want}' unit")
+    parent = conn.execute("SELECT domain FROM lookup WHERE id=?", (parent_id,)).fetchone()
+    if not parent or parent["domain"] != want:
+        raise HTTPException(422, f"Parent must be a '{want}' unit for domain '{domain}'")
+    return parent_id
+
+
 @app.post("/api/lookups")
 def lookup_create(payload: dict = Body(...), conn=Depends(conn_dep),
                   x_actor: str | None = Header(None)):
@@ -284,6 +314,7 @@ def lookup_create(payload: dict = Body(...), conn=Depends(conn_dep),
     if not conn.execute("SELECT 1 FROM lookup_domain WHERE domain=?",
                         (payload["domain"],)).fetchone():
         raise HTTPException(422, f"Unknown vocabulary domain '{payload['domain']}'")
+    parent_id = _check_admin_parent(conn, payload["domain"], payload.get("parent_id"))
     try:
         cur = conn.execute(
             """INSERT INTO lookup (domain, code, label_en, label_ar, description_en, description_ar,
@@ -291,7 +322,7 @@ def lookup_create(payload: dict = Body(...), conn=Depends(conn_dep),
                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (payload["domain"], payload["code"], payload["label_en"], payload["label_ar"],
              payload.get("description_en"), payload.get("description_ar"),
-             payload.get("parent_id"), int(payload.get("sort_order") or 100),
+             parent_id, int(payload.get("sort_order") or 100),
              payload.get("color") or "gray", db.json_dump(payload.get("meta")),
              1 if payload.get("is_active", True) else 0))
     except sqlite3.IntegrityError:
@@ -312,6 +343,8 @@ def lookup_update(lookup_id: int, payload: dict = Body(...), conn=Depends(conn_d
     before = dict(row)
     fields = [k for k in ("label_en", "label_ar", "description_en", "description_ar",
                           "sort_order", "color", "is_active", "parent_id") if k in payload]
+    if "parent_id" in fields:
+        payload["parent_id"] = _check_admin_parent(conn, row["domain"], payload.get("parent_id"))
     if fields:
         conn.execute(f"UPDATE lookup SET {', '.join(f'{k}=?' for k in fields)}, "
                      f"updated_at=? WHERE id=?",

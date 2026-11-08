@@ -901,8 +901,7 @@
       hidden.dataset.k = f.key;
       hidden.value = val === null || val === undefined ? "" : val;
 
-      const hierarchicalPlace = entity === "place"
-        && (f.key === "country_id" || f.key === "governorate_id" || f.key === "district_id");
+      const hierarchicalPlace = entity === "place" && A.isAdminFieldKey(f.key);
       if (f.type === "select" && !A.isLargeList(f) && !hierarchicalPlace) {
         const sel = document.createElement("select");
         sel.dataset.k = f.key;
@@ -930,9 +929,9 @@
             return `<option value="${esc(String(ov))}" ${match ? "selected" : ""}>
             ${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`;
           }).join("");
-        if (entity === "place" && f.key === "country_id") {
+        if (entity === "place" && A.isAdminFieldKey(f.key)) {
           sel.addEventListener("change", () => {
-            cascadeAdminUnits({ from: "country" });
+            cascadeAdminUnits({ from: f.key.replace(/_id$/, "") });
             markDirty();
           });
         }
@@ -954,15 +953,14 @@
         let placeFilters = null;
         if (entity === "place" && f.key === "parent_place_id") {
           placeFilters = { country_id: currentCountryId() };
-        } else if (entity === "place" && f.key === "governorate_id") {
-          const cid = currentCountryId();
-          placeFilters = cid ? { parent_id: cid } : { require_parent: true };
-        } else if (entity === "place" && f.key === "district_id") {
-          const gid = currentGovernorateId();
-          placeFilters = gid ? { parent_id: gid } : { require_parent: true };
+        } else if (entity === "place" && A.isAdminFieldKey(f.key)) {
+          const adom = f.key.replace(/_id$/, "");
+          const aidx = A.ADMIN_CHAIN.indexOf(adom);
+          const apid = aidx > 0 ? currentAdminId(A.ADMIN_CHAIN[aidx - 1]) : null;
+          placeFilters = (aidx > 0 && apid) ? { parent_id: apid }
+            : (aidx > 0 ? { require_parent: true } : null);
         }
-        const vocabCreate = entity === "place"
-          && (f.key === "country_id" || f.key === "governorate_id" || f.key === "district_id");
+        const vocabCreate = entity === "place" && A.isAdminFieldKey(f.key);
         const seedLabel = (!rec && entity === "event" && f.key === "place_id"
           && A.state.eventSeed && Number(A.state.eventSeed.place_id) === Number(val))
           ? (A.state.eventSeed.place_label || "") : "";
@@ -980,12 +978,8 @@
             if ((f.key === "birthplace_id" || f.key === "place_id") && form._onPlacePick) {
               form._onPlacePick(it);
             }
-            if (entity === "place" && f.key === "country_id") {
-              cascadeAdminUnits({ from: "country" });
-            } else if (entity === "place" && f.key === "governorate_id") {
-              applyGovernorateSelection(it);
-            } else if (entity === "place" && f.key === "district_id") {
-              applyDistrictSelection(it);
+            if (entity === "place" && A.isAdminFieldKey(f.key)) {
+              applyAdminSelection(f.key.replace(/_id$/, ""), it);
             }
             if (nameKey && it) {
               const nameEl = form.querySelector(`[data-k="${nameKey}"]`);
@@ -1002,10 +996,8 @@
               const nameEl = form.querySelector(`[data-k="${nameKey}"]`);
               if (nameEl) nameEl.value = "";
             }
-            if (entity === "place" && f.key === "country_id") {
-              cascadeAdminUnits({ from: "country" });
-            } else if (entity === "place" && f.key === "governorate_id") {
-              cascadeAdminUnits({ from: "governorate" });
+            if (entity === "place" && A.isAdminFieldKey(f.key)) {
+              cascadeAdminUnits({ from: f.key.replace(/_id$/, "") });
             }
             markDirty();
           }
@@ -1017,14 +1009,11 @@
         if (entity === "place" && f.key === "parent_place_id") {
           form._parentPlaceCombo = combo;
         }
-        if (entity === "place" && f.key === "country_id") {
-          form._countryCombo = combo;
-        }
-        if (entity === "place" && f.key === "governorate_id") {
-          form._governorateCombo = combo;
-        }
-        if (entity === "place" && f.key === "district_id") {
-          form._districtCombo = combo;
+        if (entity === "place" && A.isAdminFieldKey(f.key)) {
+          const regDom = f.key.replace(/_id$/, "");
+          form._adminCombos = form._adminCombos || {};
+          form._adminCombos[regDom] = combo;
+          form[`_${regDom}Combo`] = combo;
         }
         wrap.appendChild(combo);
         wrap.appendChild(hidden);
@@ -1227,16 +1216,13 @@
       const opt = (A.domainOptions(domain) || []).find(o => o.code === code);
       return opt ? String(opt.id) : "";
     }
-    function currentCountryId() {
-      const el = form.querySelector('[data-k="country_id"]');
+    function currentAdminId(domain) {
+      const el = form.querySelector(`[data-k="${domain}_id"]`);
       const v = el && el.value;
       return v ? Number(v) : null;
     }
-    function currentGovernorateId() {
-      const el = form.querySelector('[data-k="governorate_id"]');
-      const v = el && el.value;
-      return v ? Number(v) : null;
-    }
+    function currentCountryId() { return currentAdminId("country"); }
+    function currentGovernorateId() { return currentAdminId("governorate"); }
     function lookupLabel(opt) {
       if (!opt) return "";
       return A.state.lang === "ar"
@@ -1256,10 +1242,9 @@
         if (id) hidden.dataset.autofill = "1";
         else delete hidden.dataset.autofill;
       }
-      const combo = form[`_${key.replace(/_id$/, "")}Combo`]
-        || (key === "country_id" ? form._countryCombo
-          : key === "governorate_id" ? form._governorateCombo
-          : key === "district_id" ? form._districtCombo : null);
+      const cdom = key.replace(/_id$/, "");
+      const combo = (form._adminCombos && form._adminCombos[cdom])
+        || form[`_${cdom}Combo`] || null;
       if (combo && combo.setValue) {
         if (id) combo.setValue(Number(id), label || "");
         else {
@@ -1285,65 +1270,55 @@
       }
     }
     function cascadeAdminUnits({ from } = {}) {
-      const cid = currentCountryId();
-      const gid = currentGovernorateId();
+      const chain = A.ADMIN_CHAIN;
       if (form._parentPlaceCombo && form._parentPlaceCombo.setFilters) {
-        form._parentPlaceCombo.setFilters({ country_id: cid || null });
+        form._parentPlaceCombo.setFilters({ country_id: currentCountryId() || null });
       }
-      if (form._governorateCombo && form._governorateCombo.setFilters) {
-        form._governorateCombo.setFilters(
-          cid ? { parent_id: cid, require_parent: false }
-            : { parent_id: null, require_parent: true });
+      /* Hierarchical selection — the contract at every level:
+         an admin combo lists ONLY the direct children of the unit selected in
+         the level above it; with nothing selected above, it lists nothing
+         (require_parent) instead of leaking sibling branches. */
+      for (let i = 1; i < chain.length; i++) {
+        const combo = form._adminCombos && form._adminCombos[chain[i]];
+        if (!combo || !combo.setFilters) continue;
+        const pid = currentAdminId(chain[i - 1]);
+        combo.setFilters(pid ? { parent_id: pid, require_parent: false }
+          : { parent_id: null, require_parent: true });
       }
-      if (form._districtCombo && form._districtCombo.setFilters) {
-        form._districtCombo.setFilters(
-          gid ? { parent_id: gid, require_parent: false }
-            : { parent_id: null, require_parent: true });
-      }
-      if (from === "country") {
-        clearLookupIfFilteredOut("governorate_id", cid, "governorate");
-        const nextGid = currentGovernorateId();
-        clearLookupIfFilteredOut("district_id", nextGid, "district");
-        if (!nextGid) setLookupField("district_id", null, "");
-      } else if (from === "governorate") {
-        clearLookupIfFilteredOut("district_id", gid, "district");
-        if (!gid) setLookupField("district_id", null, "");
-      }
-    }
-    function applyGovernorateSelection(it) {
-      /* reverse: governorate → country */
-      if (it && it.parent_id) {
-        const country = A.lookupById(Number(it.parent_id))
-          || (A.domainOptions("country") || []).find(o => Number(o.id) === Number(it.parent_id));
-        if (country) {
-          setLookupField("country_id", country.id, lookupLabel(country), { autofill: true });
-        } else {
-          setLookupField("country_id", it.parent_id, "", { autofill: true });
-        }
-      }
-      cascadeAdminUnits({ from: "governorate" });
-    }
-    function applyDistrictSelection(it) {
-      /* reverse: district → governorate → country */
-      if (it && it.parent_id) {
-        const gov = A.lookupById(Number(it.parent_id))
-          || (A.domainOptions("governorate") || []).find(o => Number(o.id) === Number(it.parent_id));
-        if (gov) {
-          setLookupField("governorate_id", gov.id, lookupLabel(gov), { autofill: true });
-          if (gov.parent_id) {
-            const country = A.lookupById(Number(gov.parent_id))
-              || (A.domainOptions("country") || []).find(o => Number(o.id) === Number(gov.parent_id));
-            if (country) {
-              setLookupField("country_id", country.id, lookupLabel(country), { autofill: true });
-            } else {
-              setLookupField("country_id", gov.parent_id, "", { autofill: true });
-            }
+      /* A changed ancestor invalidates every descendant below it. */
+      if (from) {
+        const start = chain.indexOf(from);
+        for (let i = Math.max(start, 0) + 1; i < chain.length; i++) {
+          const parentId = currentAdminId(chain[i - 1]);
+          if (parentId) {
+            clearLookupIfFilteredOut(`${chain[i]}_id`, parentId, chain[i]);
+          } else {
+            setLookupField(`${chain[i]}_id`, null, "");
           }
-        } else {
-          setLookupField("governorate_id", it.parent_id, "", { autofill: true });
         }
       }
-      cascadeAdminUnits({ from: "governorate" });
+    }
+    function applyAdminSelection(domain, it) {
+      /* reverse: picking a deep unit implies its ancestors
+         (village → municipality → region → province → country), autofilled
+         without overwriting values the researcher typed by hand. */
+      if (it && it.parent_id) {
+        const idx = A.ADMIN_CHAIN.indexOf(domain);
+        let node = A.lookupById(Number(it.parent_id)) || null;
+        let rawId = it.parent_id;
+        for (let i = idx - 1; i >= 0; i--) {
+          const dom = A.ADMIN_CHAIN[i];
+          if (node) {
+            setLookupField(`${dom}_id`, node.id, lookupLabel(node), { autofill: true });
+            rawId = node.parent_id;
+            node = node.parent_id ? A.lookupById(Number(node.parent_id)) : null;
+          } else {
+            setLookupField(`${dom}_id`, rawId, "", { autofill: true });
+            break;
+          }
+        }
+      }
+      cascadeAdminUnits({ from: domain });
     }
     function setAutofill(el, value) {
       if (!el || value == null || value === "") return false;

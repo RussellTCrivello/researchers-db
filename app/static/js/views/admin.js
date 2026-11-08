@@ -418,54 +418,71 @@
         tr.onclick = () => { active = tr.dataset.dom; paintDomains(filter); paintValues(); };
       });
     }
-    const PARENT_OF = { governorate: "country", district: "governorate" };
+    const PARENT_OF = {};
+    A.ADMIN_CHAIN.slice(1).forEach((d, i) => { PARENT_OF[d] = A.ADMIN_CHAIN[i]; });
     function parentLabel(v) {
       if (!v.parent_id) return "—";
       const hit = A.lookupById(v.parent_id);
       if (!hit) return `#${v.parent_id}`;
       return A.state.lang === "ar" ? (hit.label_ar || hit.label_en) : (hit.label_en || hit.label_ar);
     }
-    const vState = { q: "", grand: "", parent: "", batch: 50, shown: 50 };
+    const vState = { q: "", parents: {}, batch: 50, shown: 50 };
     const vCache = {};
-    function grandIdOf(v) {
-      const hit = v.parent_id ? A.lookupById(v.parent_id) : null;
-      return hit && hit.parent_id ? hit.parent_id : null;
-    }
     async function paintValues() {
       vCache[active] = await api.get(`/api/lookups?domain=${active}&include_inactive=true`);
-      vState.q = ""; vState.grand = ""; vState.parent = ""; vState.batch = 50; vState.shown = 50;
+      vState.q = ""; vState.parents = {}; vState.batch = 50; vState.shown = 50;
       renderValues();
     }
     function renderValues() {
       const values = vCache[active] || [];
       const d = domains.find(x => x.domain === active) || {};
-      const parentDomain = PARENT_OF[active];
-      const grandDomain = parentDomain ? PARENT_OF[parentDomain] : null;
       const domLabel = (x) => A.state.lang === "ar" ? (x.label_ar || x.label_en) : (x.label_en || x.label_ar);
-      const grandOpts = grandDomain ? (A.domainOptions(grandDomain) || []) : [];
-      let parentOpts = parentDomain ? (A.domainOptions(parentDomain) || []) : [];
-      if (grandDomain && vState.grand) {
-        parentOpts = parentOpts.filter(o => String(o.parent_id) === String(vState.grand));
+      const chain = A.ADMIN_CHAIN;
+      const aIdx = chain.indexOf(active);
+      const ancestors = aIdx > 0 ? chain.slice(0, aIdx) : [];
+      const domainLabel = (dom) => {
+        const row = domains.find(x => x.domain === dom);
+        return row ? domLabel(row) : dom;
+      };
+      /* ancestor of `row` (a row of rowDomain) at level targetDom, or null */
+      function ancestorIdOfRow(row, rowDomain, targetDom) {
+        const target = chain.indexOf(targetDom);
+        let node = row, lvl = chain.indexOf(rowDomain);
+        while (node && lvl > target) {
+          node = node.parent_id ? A.lookupById(Number(node.parent_id)) : null;
+          lvl--;
+        }
+        return node && lvl === target ? node.id : null;
       }
       const q = vState.q.trim().toLowerCase();
       const rows = values.filter(v => {
-        if (vState.parent && String(v.parent_id) !== String(vState.parent)) return false;
-        if (vState.grand && String(grandIdOf(v)) !== String(vState.grand)) return false;
+        for (const dom of ancestors) {
+          const sel = vState.parents[dom];
+          if (sel && String(ancestorIdOfRow(v, active, dom)) !== String(sel)) return false;
+        }
         if (!q) return true;
         return (v.code + " " + v.label_en + " " + v.label_ar).toLowerCase().includes(q)
           || (parentLabel(v) || "").toLowerCase().includes(q);
       });
       const shown = Math.min(vState.shown, rows.length);
       const more = rows.length - shown;
-      const cascade = parentDomain ? `<div class="toolbar" style="padding-top:0">
-          ${grandDomain ? `<select id="valGrand">
-              <option value="">${esc(t("adm.allRows"))}</option>
-              ${grandOpts.map(o => `<option value="${o.id}" ${String(vState.grand) === String(o.id) ? "selected" : ""}>${esc(domLabel(o))} (${esc(o.code)})</option>`).join("")}
-            </select>` : ""}
-          <select id="valParent" title="${esc(t("adm.parent"))}">
-            <option value="">${esc(t("adm.allRows"))}</option>
-            ${parentOpts.map(o => `<option value="${o.id}" ${String(vState.parent) === String(o.id) ? "selected" : ""}>${esc(domLabel(o))} (${esc(o.code)})</option>`).join("")}
-          </select>
+      /* Hierarchical selection — one select per level above the open domain.
+         Each lists ONLY units consistent with the selections above it: pick a
+         country and its provinces appear; pick a province and its regions; and
+         so on through municipality, village and community. */
+      const cascade = ancestors.length ? `<div class="toolbar" style="padding-top:0">
+          ${ancestors.map(dom => {
+            const opts = (A.domainOptions(dom) || []).filter(o =>
+              ancestors.every(sDom => {
+                const sel = vState.parents[sDom];
+                if (!sel || sDom === dom) return true;
+                return String(ancestorIdOfRow(o, dom, sDom)) === String(sel);
+              }));
+            return `<select id="valSel-${dom}" data-admin-dom="${dom}" title="${esc(domainLabel(dom))}">
+              <option value="">${esc(t("adm.allRows"))} — ${esc(domainLabel(dom))}</option>
+              ${opts.slice(0, 2000).map(o => `<option value="${o.id}" ${String(vState.parents[dom]) === String(o.id) ? "selected" : ""}>${esc(domLabel(o))} (${esc(o.code)})</option>`).join("")}
+            </select>`;
+          }).join("")}
         </div>` : "";
       root.querySelector("#domainInfo").innerHTML = `
         <div class="card-head"><h3>${esc(domLabel(d))}</h3>
@@ -482,13 +499,13 @@
         ${cascade}
         <div class="table-wrap scroll-y"><table class="data compact"><thead><tr>
           <th>${t("adm.code")}</th><th>${t("adm.labelEn")}</th><th>${t("adm.labelAr")}</th>
-          ${parentDomain ? `<th>${esc(t("adm.parent") || "Parent")}</th>` : ""}
+          ${aIdx > 0 ? `<th>${esc(t("adm.parent") || "Parent")}</th>` : ""}
           <th class="num">${t("adm.order")}</th><th>${t("adm.active")}</th><th></th></tr></thead><tbody>
           ${rows.slice(0, shown).map(v => `<tr data-v="${v.id}">
             <td class="mono-cell">${esc(v.code)}</td>
             <td contenteditable="true" data-f="label_en">${esc(v.label_en)}</td>
             <td contenteditable="true" data-f="label_ar" dir="rtl">${esc(v.label_ar)}</td>
-            ${parentDomain ? `<td class="small">${esc(parentLabel(v))}</td>` : ""}
+            ${aIdx > 0 ? `<td class="small">${esc(parentLabel(v))}</td>` : ""}
             <td class="num" contenteditable="true" data-f="sort_order">${v.sort_order}</td>
             <td>${v.is_active ? A.badge(t("common.yes"), "green") : A.badge(t("common.no"), "gray")}</td>
             <td class="nowrap">
@@ -504,10 +521,15 @@
       if (qEl) qEl.oninput = (e) => { vState.q = e.target.value; vState.shown = vState.batch; renderValues(); };
       const psEl = root.querySelector("#valPageSize");
       if (psEl) psEl.onchange = (e) => { vState.batch = Number(e.target.value) || 50; vState.shown = vState.batch; renderValues(); };
-      const gEl = root.querySelector("#valGrand");
-      if (gEl) gEl.onchange = (e) => { vState.grand = e.target.value; vState.parent = ""; vState.shown = vState.batch; renderValues(); };
-      const pEl = root.querySelector("#valParent");
-      if (pEl) pEl.onchange = (e) => { vState.parent = e.target.value; vState.shown = vState.batch; renderValues(); };
+      root.querySelectorAll("[data-admin-dom]").forEach(sel => {
+        sel.onchange = (e) => {
+          const dom = sel.dataset.adminDom;
+          vState.parents[dom] = e.target.value || null;
+          chain.slice(chain.indexOf(dom) + 1).forEach(d2 => { delete vState.parents[d2]; });
+          vState.shown = vState.batch;
+          renderValues();
+        };
+      });
       const moreBtn = root.querySelector("#valMore");
       if (moreBtn) moreBtn.onclick = () => { vState.shown += vState.batch; renderValues(); };
       root.querySelectorAll("[data-save]").forEach(b => {
