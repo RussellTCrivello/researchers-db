@@ -332,6 +332,41 @@
   function domainOptions(domain) {
     return ((App.state.meta.lookups || {})[domain] || []);
   }
+  /* vocabulary VALUES shown in dropdowns (free-code choices): the value is
+     data, its label is language.  Resolution order for the label:
+     mil.value.<field>.<value> (a field-specific wording) → mil.value.<value>
+     (the shared wording) → the value itself.  Same convention as the
+     settings' adm.value.* labels, so any language bundle can carry them. */
+  function optLabel(value, fieldKey, lang) {
+    if (value === null || value === undefined || value === "") return "";
+    const v = String(value);
+    const bundle = App.state.messages[lang || App.state.lang] || {};
+    const en = App.state.messages.en || {};
+    const keys = fieldKey
+      ? ["mil.value." + fieldKey + "." + v, "mil.value." + v]
+      : ["mil.value." + v];
+    for (const k of keys) {
+      const hit = bundle[k] || en[k];
+      if (hit) return hit;
+    }
+    return v;
+  }
+  /* free-code option lists as bilingual option objects {id, code, label_en,
+     label_ar} — the shape every dropdown renderer already speaks.  A server
+     that grows real bilingual options keeps its own labels. */
+  function optChoices(options, fieldKey) {
+    return (options || []).map(o => {
+      const obj = (o && typeof o === "object") ? o : {};
+      const code = typeof o === "string" ? o
+        : String(obj.code != null ? obj.code : (obj.id != null ? obj.id : ""));
+      return {
+        id: code,
+        code: code,
+        label_en: obj.label_en || optLabel(code, fieldKey, "en"),
+        label_ar: obj.label_ar || optLabel(code, fieldKey, "ar"),
+      };
+    });
+  }
   function lookupById(id) {
     if (id == null || id === "") return null;
     const want = Number(id);
@@ -763,6 +798,7 @@
   /* -------------------------------------------------------- bootstrap --- */
   Object.assign(App, {
     t, api, label, fieldLabel, dispTitle, domainOptions, lookupById,
+    optLabel, optChoices,
     fmtDate, fmtNum, ago, esc, truncate, initials,
     toast, modal, confirmDialog, drawer,
     badge, statusBadge, icon, chart, setLang, setTheme, applyDir,

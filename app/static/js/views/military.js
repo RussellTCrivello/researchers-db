@@ -55,7 +55,8 @@
   };
   function chip(v) {
     if (v == null || v === "") return badge("—", "gray");
-    return badge(String(v), STATUS_COLOR[String(v)] || "gray");
+    /* the value is data, the label is language */
+    return badge(String(A.optLabel(v)), STATUS_COLOR[String(v)] || "gray");
   }
 
   const entLabel = (key) => {
@@ -607,7 +608,7 @@
           <span class="mil-toggle">${hasKids ? "\u25be" : "\u00b7"}</span>
           <a href="#/entity/${entity}/${n.id}/edit"><b>${esc(n.name)}</b></a>
           <span class="mono-cell small">${esc(n.docname)}</span>
-          ${kind === "units" ? chip(n.status) : badge(n.region_type || "\u2014", "slate")}${extra}
+          ${kind === "units" ? chip(n.status) : badge(n.region_type ? A.optLabel(n.region_type, "region_type") : "\u2014", "slate")}${extra}
         </div></summary>
         ${hasKids ? `<ul>${k.kids.map(c => nodeHtml(c, depth + 1, openAll)).join("")}</ul>` : ""}
       </details></li>`;
@@ -686,7 +687,7 @@
             <label class="viz-pick"><span>${esc(f.label)}</span>
               <select data-tree-sel="${esc(f.key)}">
                 <option value="">${esc(t("mil.tree.all"))}</option>
-                ${f.options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join("")}
+                ${f.options.map(o => `<option value="${esc(o)}">${esc(A.optLabel(o, f.key))}</option>`).join("")}
               </select>
             </label>`).join("");
           sels.querySelectorAll("[data-tree-sel]").forEach(sel => {

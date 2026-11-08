@@ -454,7 +454,7 @@
       if (!values.length) return;
       if (isDomain) {
         (A.domainOptions(opts.domain) || []).forEach(o => {
-          cache[o.id] = { id: o.id, code: o.code, label: A.state.lang === "ar" ? o.label_ar : o.label_en };
+          cache[o.id] = { id: o.id, code: o.code, label: A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar) };
         });
       } else {
         try {
@@ -596,11 +596,21 @@
         const sel = document.createElement("select");
         sel.innerHTML = `<option value="">${esc(t("common.select"))}</option>` +
           (A.domainOptions(f.domain) || []).map(o =>
-            `<option value="${o.id}">${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`).join("");
+            `<option value="${o.id}">${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`).join("");
         sel.onchange = () => { state[f.key] = sel.value ? Number(sel.value) : null; };
         box.appendChild(sel);
+      } else if (f.type === "select" && (f.options || []).length) {
+        /* free-code vocabulary (store = "code"): the allowed values ride on
+           the field — a real dropdown, labels from the locale bundles */
+        const sel = document.createElement("select");
+        sel.innerHTML = `<option value="">${esc(t("common.select"))}</option>` +
+          A.optChoices(f.options, f.key).map(o =>
+            `<option value="${esc(o.code)}">${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`).join("");
+        sel.onchange = () => { state[f.key] = sel.value || null; };
+        box.appendChild(sel);
       } else if (f.type === "select") {
-        /* free-code vocabulary (store = "code"): plain text, validated server-side */
+        /* a vocabulary select with no vocabulary behind it is an honest text
+           box — never an empty dropdown */
         const inp = document.createElement("input");
         inp.type = "text";
         inp.oninput = () => { state[f.key] = inp.value || null; };
@@ -710,7 +720,7 @@
       <div class="field"><label>${esc(A.t("ui.otherEntityType"))}</label>
         <select data-rc-etype>${entityTypes.map(x =>
           `<option value="${esc(x.code)}" ${(opts.target && opts.target.type) === x.code ? "selected" : ""}>
-            ${esc(A.state.lang === "ar" ? x.label_ar : x.label_en)}</option>`).join("")}</select></div>
+            ${esc(A.state.lang === "ar" ? (x.label_ar || x.label_en) : (x.label_en || x.label_ar))}</option>`).join("")}</select></div>
       <div class="field"><label>${esc(A.t("ui.otherRecord"))}</label>
         <div data-rc-target></div>
         ${opts.onPickRequest ? `<button type="button" class="btn ghost sm" data-rc-pick
@@ -883,7 +893,7 @@
         <div class="field"><label>${esc(t("desk.type"))}</label>
           <select data-ec-etype>${entityTypes.map(x =>
             `<option value="${esc(x.code)}" ${x.code === entity ? "selected" : ""}>
-              ${esc(A.state.lang === "ar" ? x.label_ar : x.label_en)}</option>`).join("")}</select></div>
+              ${esc(A.state.lang === "ar" ? (x.label_ar || x.label_en) : (x.label_en || x.label_ar))}</option>`).join("")}</select></div>
         <div class="grid c2" data-ec-fields></div>
         <div class="rel-composer-acts">
           <button type="button" class="btn primary sm" data-ec-save>${esc(t("common.save"))}</button>
@@ -905,10 +915,16 @@
           box.appendChild(combo);
         } else if (f.type === "select") {
           const sel = document.createElement("select");
+          let rows = A.domainOptions(f.domain) || [];
+          const freeCode = !rows.length && (f.options || []).length;
+          if (freeCode) rows = A.optChoices(f.options, f.key);
+          const storeCode = f.store === "code" || freeCode;
           sel.innerHTML = `<option value="">${esc(t("common.select"))}</option>` +
-            (A.domainOptions(f.domain) || []).map(o =>
-              `<option value="${o.id}">${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`).join("");
-          sel.onchange = () => { state[f.key] = sel.value ? Number(sel.value) : null; };
+            rows.map(o => {
+              const ov = storeCode ? o.code : o.id;
+              return `<option value="${esc(String(ov))}">${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`;
+            }).join("");
+          sel.onchange = () => { state[f.key] = storeCode ? (sel.value || null) : (sel.value ? Number(sel.value) : null); };
           box.appendChild(sel);
         } else if (f.type === "textarea") {
           const ta = document.createElement("textarea");

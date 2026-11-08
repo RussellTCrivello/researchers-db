@@ -652,7 +652,7 @@
           ? (A.domainOptions(f.domain) || []).find(o => String(o.id) === String(v)
               || (f.store === "code" && o.code === v))
           : null;
-        if (lk) v = A.state.lang === "ar" ? lk.label_ar : lk.label_en;
+        if (lk) v = A.state.lang === "ar" ? (lk.label_ar || lk.label_en) : (lk.label_en || lk.label_ar);
         else if (typeof v === "number") v = "#" + v;
       }
       return `<span class="filter-chip" title="${esc(opLabel(r.op))}">
@@ -3462,7 +3462,7 @@
       title: t("list.bulkStatus"), size: "slim",
       body: `<div class="field"><label>${t("common.status")}</label>
           <select id="bulkStatus">${options.map(o =>
-            `<option value="${o.id}">${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`).join("")}</select></div>
+            `<option value="${o.id}">${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("common.reason")}</label><input id="bulkReason"></div>`,
       buttons: [
         { label: t("common.cancel") },
@@ -3538,12 +3538,11 @@
     const body = `
       <div class="grid c2">
         <div class="field"><label>${t("exp.format")}</label>
-          <select id="exFormat"><option value="xlsx">XLSX — Excel workbook</option>
-            <option value="csv" selected>CSV — UTF-8 with BOM</option>
-            <option value="tsv">TSV</option><option value="json">JSON</option></select></div>
+          <select id="exFormat">${["csv", "xlsx", "tsv", "json"].map(v =>
+            `<option value="${v}" ${v === "csv" ? "selected" : ""}>${esc(t("exp.format." + v))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("exp.lang")}</label>
           <select id="exLang"><option value="ar">العربية</option><option value="en">English</option>
-            <option value="both">AR + EN</option></select></div>
+            <option value="both">${esc(t("exp.lang.both"))}</option></select></div>
       </div>
       <label class="check" style="margin-bottom:10px"><input type="checkbox" id="exResolve" checked> ${t("exp.resolve")}</label>
       <div class="small muted" style="margin-bottom:6px">${t("exp.columns")}</div>

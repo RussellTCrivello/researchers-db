@@ -646,7 +646,7 @@
       <div class="grid c2">
         <div class="field"><label>${A.t("ui.otherEntityType")}</label>
           <select id="relEtype">${typeOpts
-            .map(x => `<option value="${x.code}" ${preferred && x.code === preferred[0] ? "selected" : ""}>${esc(A.state.lang === "ar" ? x.label_ar : x.label_en)}</option>`).join("")}</select></div>
+            .map(x => `<option value="${x.code}" ${preferred && x.code === preferred[0] ? "selected" : ""}>${esc(A.state.lang === "ar" ? (x.label_ar || x.label_en) : (x.label_en || x.label_ar))}</option>`).join("")}</select></div>
         <div class="field"><label>${A.t("ui.otherRecord")}</label>
           <div id="relTargetHost"></div></div>
       </div>
@@ -911,11 +911,8 @@
         if (!opts.length && (f.options || []).length) {
           /* free-code vocabulary (store = "code", no lookup domain): the
              allowed values ride on the meta field — the service validates the
-             same list */
-          opts = f.options.map(o => typeof o === "string"
-            ? { id: o, code: o, label_en: o, label_ar: o }
-            : { id: o.code, code: o.code, label_en: o.label_en || o.code,
-                label_ar: o.label_ar || o.code });
+             same list, the locale bundles carry the labels */
+          opts = A.optChoices(f.options, f.key);
         }
         /* relationship endpoints cannot point at a relationship or a source */
         if (entity === "relationship" && (f.key === "entity1_type" || f.key === "entity2_type")) {
@@ -931,7 +928,7 @@
               ? selected === String(o.code)
               : selected === String(o.id);
             return `<option value="${esc(String(ov))}" ${match ? "selected" : ""}>
-            ${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`;
+            ${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`;
           }).join("");
         if (entity === "place" && f.key === "country_id") {
           sel.addEventListener("change", () => {

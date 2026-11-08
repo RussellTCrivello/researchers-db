@@ -48,7 +48,7 @@
             <select id="impLang">
               <option value="ar" ${st.lang === "ar" ? "selected" : ""}>العربية</option>
               <option value="en" ${st.lang === "en" ? "selected" : ""}>English</option>
-              <option value="both">AR + EN</option>
+              <option value="both">${esc(t("exp.lang.both"))}</option>
             </select></div>
         </div>
         <div class="notice">${t("imp.templateHint")}</div>
@@ -149,7 +149,7 @@
               </select></div>
             <div class="field"><label>${t("imp.defaultStatus")}</label>
               <select id="impStatus">${statuses.map(s =>
-                `<option value="${s.code}" ${st.status === s.code ? "selected" : ""}>${esc(A.state.lang === "ar" ? s.label_ar : s.label_en)}</option>`).join("")}</select></div>
+                `<option value="${s.code}" ${st.status === s.code ? "selected" : ""}>${esc(A.state.lang === "ar" ? (s.label_ar || s.label_en) : (s.label_en || s.label_ar))}</option>`).join("")}</select></div>
             <div class="notice">${t("imp.dryRunNote")}</div>
             <div class="btn-row" style="margin-top:12px">
               <button class="btn" id="back2">← ${t("common.back")}</button>
@@ -411,7 +411,7 @@
           <th class="num">${t("common.values")}</th></tr></thead><tbody>
           ${list.map(d => `<tr class="${d.domain === active ? "selected" : ""}" data-dom="${d.domain}" style="cursor:pointer">
             <td class="mono-cell">${esc(d.domain)}</td>
-            <td>${esc(A.state.lang === "ar" ? d.label_ar : d.label_en)}</td>
+            <td>${esc(A.state.lang === "ar" ? (d.label_ar || d.label_en) : (d.label_en || d.label_ar))}</td>
             <td class="num">${fmtNum(d.n)}</td></tr>`).join("")}
         </tbody></table></div>`;
       root.querySelectorAll("[data-dom]").forEach(tr => {
@@ -430,7 +430,7 @@
       const d = domains.find(x => x.domain === active) || {};
       const parentDomain = PARENT_OF[active];
       root.querySelector("#domainInfo").innerHTML = `
-        <div class="card-head"><h3>${esc(A.state.lang === "ar" ? d.label_ar : d.label_en)}</h3>
+        <div class="card-head"><h3>${esc(A.state.lang === "ar" ? (d.label_ar || d.label_en) : (d.label_en || d.label_ar))}</h3>
           <span class="mono-cell small muted">${esc(active)}</span></div>
         <div class="table-wrap scroll-y"><table class="data compact"><thead><tr>
           <th>${t("adm.code")}</th><th>${t("adm.labelEn")}</th><th>${t("adm.labelAr")}</th>
@@ -491,7 +491,7 @@
       const body = `<div class="grid c2">
         <div class="field"><label>${t("log.entity")}</label><select id="avDomain">
           ${domains.map(d => `<option value="${d.domain}" ${d.domain === active ? "selected" : ""}>
-            ${esc(A.state.lang === "ar" ? d.label_ar : d.label_en)}</option>`).join("")}</select></div>
+            ${esc(A.state.lang === "ar" ? (d.label_ar || d.label_en) : (d.label_en || d.label_ar))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("adm.code")}</label><input id="avCode" placeholder="my_code"></div>
         <div class="field"><label>${t("adm.labelEn")}</label><input id="avEn"></div>
         <div class="field"><label>${t("adm.labelAr")}</label><input id="avAr" dir="rtl"></div>
@@ -766,7 +766,7 @@
     if (String(value) === "true") return t("common.on");
     if (String(value) === "false") return t("common.off");
     const choice = (field.choices || []).find(c => String(c.value) === String(value));
-    if (choice) return A.state.lang === "ar" ? choice.label_ar : choice.label_en;
+    if (choice) return A.state.lang === "ar" ? (choice.label_ar || choice.label_en) : (choice.label_en || choice.label_ar);
     const key = `adm.value.${field.key.replace(/\./g, "_")}.${value}`;
     const label = t(key);
     return label === key ? String(value) : label;
@@ -790,7 +790,7 @@
       if (choices.length && groups.length) {
         const body = groups.map(g => {
           const members = choices.filter(c => c.group === g.id).map(c => option(c.value)).join("");
-          const label = A.state.lang === "ar" ? g.label_ar : g.label_en;
+          const label = A.state.lang === "ar" ? (g.label_ar || g.label_en) : (g.label_en || g.label_ar);
           return members ? `<optgroup label="${esc(label)}">${members}</optgroup>` : "";
         }).join("");
         return `<select class="ghost-select" id="${id}" data-set="${esc(f.key)}" data-kind="enum">${body}</select>`;
