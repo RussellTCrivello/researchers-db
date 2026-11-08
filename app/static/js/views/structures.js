@@ -469,6 +469,18 @@
   }
 
   /* ═══════════════════════════════════════════════════════════ the shell ═══ */
+  function srcOptions() {
+    /* grouped picker: registry dimension chains first, then the military
+       module structures (single-module hierarchies and cross-module
+       compositions) — every source stays one selectable row */
+    const groups = { registry: [], modules: [] };
+    S.sources.forEach(function (s) { (groups[s.family] || groups.registry).push(s); });
+    const opt = s => `<option value="${esc(s.id)}"\n              ${s.id === S.source ? "selected" : ""}>${esc(A.state.lang === "ar" ? s.label_ar : s.label_en)} · ${fmtNum(s.total)}</option>`;
+    const grp = (key, label) => groups[key].length
+      ? `<optgroup label="${esc(label)}">${groups[key].map(opt).join("")}</optgroup>` : "";
+    return grp("registry", t("viz.groupRegistry")) + grp("modules", t("viz.groupModules"));
+  }
+
   function shell() {
     return `
     <style>${""}</style>
@@ -482,8 +494,7 @@
         </div>
         <div class="viz-tools">
           <label class="viz-pick"><span>${esc(t("viz.source"))}</span>
-            <select data-src>${S.sources.map(s => `<option value="${esc(s.id)}"
-              ${s.id === S.source ? "selected" : ""}>${esc(A.state.lang === "ar" ? s.label_ar : s.label_en)} · ${fmtNum(s.total)}</option>`).join("")}</select>
+            <select data-src>${srcOptions()}</select>
           </label>
           <label class="viz-pick"><span>${esc(t("viz.depth"))}</span>
             <select data-depth>${[1, 2, 3].map(d => `<option value="${d}" ${d === S.depth ? "selected" : ""}>${d}</option>`).join("")}</select>
@@ -962,6 +973,10 @@
   async function loadSources() {
     const res = await api("/api/structures");
     S.sources = res.sources || [];
+    /* deep link: #/structures?source=units opens right on a module */
+    const deep = A.state && A.state.route && A.state.route.params &&
+      A.state.route.params.source;
+    if (deep && S.sources.some(s => s.id === deep)) S.source = deep;
     if (!S.sources.some(s => s.id === S.source)) S.source = S.sources.length ? S.sources[0].id : "people";
   }
 

@@ -114,7 +114,8 @@
     if (domainOfActive) {
       const extras = domainOfActive === "forces"
         ? item("#/military/units/tree", t("mil.nav.unitsTree"), "tree:units") +
-          item("#/military/regions/tree", t("mil.nav.regionsTree"), "tree:regions")
+          item("#/military/regions/tree", t("mil.nav.regionsTree"), "tree:regions") +
+          item("#/structures?source=units", t("mil.nav.structure"), "structure")
         : "";
       tier2 = `<div class="mil-nav mil-nav-sub">
         ${item("#/military/" + domainOfActive, t("mil.domain.hub"), "domain:" + domainOfActive)}
@@ -552,49 +553,152 @@
    * share it — no second tree engine can grow.  Every visible string rides the
    * locale system: switch the language and the whole tree follows.
    */
+  /**
+   * ONE hierarchy explorer for parent/child entities (military units, command
+   * regions).  The list view's "Tree" mode and the dedicated tree screens
+   * share it — no second tree engine can grow.  The primary filters live here
+   * as default "All" options: every select-backed field becomes a control, the
+   * text search refines further, and the tree keeps a match in its context by
+   * revealing ancestors and the subtree below.  Every visible string rides the
+   * locale system: switch the language and the whole tree follows.
+   */
   A.entityTree = function (host, opts) {
     const entity = (opts && opts.entity) === "region" ? "region" : "unit";
     const kind = entity === "region" ? "regions" : "units";
     const nodes = (opts && opts.tree) || [];
 
-    const nodeHtml = (n, depth) => {
-      const hasKids = n.children && n.children.length;
+    /* every node with its ancestor path — the filter reveals context through it */
+    const flat = [];
+    (function walk(ns, parents) {
+      (ns || []).forEach(n => {
+        flat.push({ n: n, parents: parents });
+        if (n.children && n.children.length) walk(n.children, parents.concat([n]));
+      });
+    })(nodes, []);
+
+    /* the default filter set: select-backed fields as "All" dropdowns, then
+       the text search.  Options come from the field metadata when the field is
+       a vocabulary; a free-choice field with no declared options offers the
+       values that actually occur (a field with a single value is no filter). */
+    let filters = [];
+    const state = { q: "", sel: {} };
+
+    const optionVals = f => {
+      const declared = (f.options || f.values || []).filter(Boolean);
+      if (declared.length >= 2) return declared;
+      const key = f.name || f.key;
+      const seen = {};
+      flat.forEach(e => {
+        const v = e.n[key];
+        if (v != null && v !== "") seen[String(v)] = true;
+      });
+      const found = Object.keys(seen).sort();
+      return found.length >= 2 ? found : [];
+    };
+
+    const nodeHtml = (k, depth, openAll) => {
+      const n = k.n;
+      const hasKids = k.kids.length > 0;
       const extra = kind === "units"
-        ? ` <span class="small muted">Σ ${fmtNum(n.subtree_personnel != null ? n.subtree_personnel : 0)} · ${esc(t("mil.tree.subtreePersonnel"))}</span>`
+        ? ` <span class="small muted">\u03a3 ${fmtNum(n.subtree_personnel != null ? n.subtree_personnel : 0)} · ${esc(t("mil.tree.subtreePersonnel"))}</span>`
         : "";
-      return `<li><details${hasKids && depth < 1 ? " open" : ""}>
+      return `<li><details${hasKids && (openAll || depth < 1) ? " open" : ""}>
         <summary><div class="mil-node">
-          <span class="mil-toggle">${hasKids ? "▾" : "·"}</span>
+          <span class="mil-toggle">${hasKids ? "\u25be" : "\u00b7"}</span>
           <a href="#/entity/${entity}/${n.id}/edit"><b>${esc(n.name)}</b></a>
           <span class="mono-cell small">${esc(n.docname)}</span>
-          ${kind === "units" ? chip(n.status) : badge(n.region_type || "—", "slate")}${extra}
+          ${kind === "units" ? chip(n.status) : badge(n.region_type || "\u2014", "slate")}${extra}
         </div></summary>
-        ${hasKids ? `<ul>${n.children.map(c => nodeHtml(c, depth + 1)).join("")}</ul>` : ""}
+        ${hasKids ? `<ul>${k.kids.map(c => nodeHtml(c, depth + 1, openAll)).join("")}</ul>` : ""}
       </details></li>`;
     };
 
-    host.innerHTML = `
-      <input data-tree-filter type="search" placeholder="${esc(t("mil.tree.filter"))}"
-        style="max-width:320px;margin-bottom:12px">
-      <div class="mil-tree">${nodes.length
-        ? `<ul>${nodes.map(n => nodeHtml(n, 0)).join("")}</ul>`
-        : `<div class="empty">${esc(t("list.noRecords"))}</div>`}</div>`;
-    const search = host.querySelector("[data-tree-filter]");
-    search.oninput = () => {
-      const q = search.value.trim().toLowerCase();
-      host.querySelectorAll(".mil-tree li").forEach(li => {
-        const match = !q || li.textContent.toLowerCase().includes(q);
-        li.style.display = match ? "" : "none";
-        if (q && match) {
-          let p = li.parentElement;
-          while (p && !p.classList.contains("mil-tree")) {
-            if (p.tagName === "DETAILS") p.open = true;
-            if (p.tagName === "LI") p.style.display = "";
-            p = p.parentElement;
-          }
-        }
+    const selfMatch = n => {
+      const q = state.q;
+      if (q) {
+        const text = [n.name, n.docname, n.code, n.role, n.headquarters, n.description]
+          .filter(Boolean).join(" ").toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return filters.every(f => {
+        const v = state.sel[f.key];
+        return !v || String(n[f.key] == null ? "" : n[f.key]) === v;
       });
     };
+
+    const subtreeHas = n => selfMatch(n) ||
+      (n.children || []).some(c => subtreeHas(c));
+
+    const draw = () => {
+      const any = state.q || filters.some(f => state.sel[f.key]);
+      let shown = 0;
+      const build = (n, matchedAbove) => {
+        const me = selfMatch(n);
+        if (!(me || matchedAbove || subtreeHas(n))) return null;
+        shown += 1;
+        const kids = (n.children || [])
+          .map(c => build(c, matchedAbove || me)).filter(Boolean);
+        return { n: n, kids: kids };
+      };
+      const kept = nodes.map(n => build(n, false)).filter(Boolean);
+      const box = host.querySelector(".mil-tree");
+      if (!box) return;
+      box.innerHTML = kept.length
+        ? `<ul>${kept.map(k => nodeHtml(k, 0, any)).join("")}</ul>`
+        : `<div class="empty">${esc(t("list.noMatch"))}</div>`;
+      const count = host.querySelector("[data-tree-count]");
+      if (count) {
+        count.textContent = t("mil.tree.showing",
+          { n: fmtNum(shown), m: fmtNum(flat.length) });
+      }
+    };
+
+    host.innerHTML = `
+      <div class="mil-tree-bar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
+        <input data-tree-filter type="search" placeholder="${esc(t("mil.tree.filter"))}"
+          style="max-width:280px">
+        <span data-tree-sels style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"></span>
+        <span class="small muted" data-tree-count></span>
+      </div>
+      <div class="mil-tree"></div>`;
+
+    const search = host.querySelector("[data-tree-filter]");
+    search.oninput = () => { state.q = search.value.trim().toLowerCase(); draw(); };
+
+    /* metadata adds the primary-filter selects beside the search */
+    (async () => {
+      try {
+        const meta = opts && opts.meta ? opts.meta : await api.get("/api/military/meta");
+        const ent = (meta.entities || {})[entity] || {};
+        filters = (ent.fields || [])
+          .filter(f => (f.type === "choice" || f.type === "select"))
+          .map(f => ({
+            key: f.name || f.key,
+            label: A.state.lang === "ar"
+              ? (f.label_ar || f.label_en || f.name)
+              : (f.label_en || f.label_ar || f.name),
+            options: optionVals(f),
+          }))
+          .filter(f => f.options.length >= 2);
+        const sels = host.querySelector("[data-tree-sels]");
+        if (sels) {
+          sels.innerHTML = filters.map(f => `
+            <label class="viz-pick"><span>${esc(f.label)}</span>
+              <select data-tree-sel="${esc(f.key)}">
+                <option value="">${esc(t("mil.tree.all"))}</option>
+                ${f.options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join("")}
+              </select>
+            </label>`).join("");
+          sels.querySelectorAll("[data-tree-sel]").forEach(sel => {
+            sel.onchange = () => {
+              state.sel[sel.getAttribute("data-tree-sel")] = sel.value;
+              draw();
+            };
+          });
+        }
+      } catch (e) { /* the search bar works on its own */ }
+      draw();
+    })();
   };
 
   A.views.milTree = async function (root, params) {

@@ -918,8 +918,10 @@ class TestVolumeUI:
     def test_tree_collapses_below_top_level(self):
         from pathlib import Path
         src = Path("app/static/js/views/military.js").read_text()
-        assert "hasKids && depth < 1" in src     # only top level renders open
-        assert "nodeHtml(c, depth + 1)" in src   # depth tracked recursively
+        # only top level renders open by default; when the primary filters are
+        # at work the kept nodes open to reveal matches in their context
+        assert "hasKids && (openAll || depth < 1)" in src
+        assert "nodeHtml(c, depth + 1, openAll)" in src   # depth tracked recursively
 
     def test_load_more_key_exists_in_both_locales(self):
         import json as _json
