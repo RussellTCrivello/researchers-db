@@ -335,7 +335,13 @@ def _governorates() -> list[dict]:
     return _load_json("governorates.json")
 
 
-DISTRICTS: list[tuple[str, str, str, str, int]] = [
+def _districts() -> list[dict]:
+    return _load_json("districts.json")
+
+
+# Stable centre rows from earlier releases: referenced by _OBSOLETE_DIST and
+# live place backfills. The full Arab-world set lives in resources/districts.json.
+LEGACY_DISTRICTS: list[tuple[str, str, str, str, int]] = [
     # code, governorate_code (ISO 3166-2), label_en, label_ar, sort
     ("IQ-NI-DW", "IQ-NI", "al-Dawwasa", "الدوّاسة", 10),
     ("IQ-BG-RS", "IQ-BG", "Rusafa", "الرصافة", 10),
@@ -479,8 +485,13 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
                WHERE domain='governorate' AND code=?""",
             (parent["id"], g["label_en"], g["label_ar"], int(g.get("sort") or 100),
              db.json_dump(meta), g["code"]))
-    # districts → parent governorate (small illustrative set; more via Vocabularies)
-    for code, gcode, en, ar, order in DISTRICTS:
+    # districts → parent governorate (Arab world via resources/districts.json)
+    district_rows = LEGACY_DISTRICTS + [
+        (d["code"], d["governorate"], d["label_en"], d["label_ar"],
+         int(d.get("sort") or 100))
+        for d in _districts()
+    ]
+    for code, gcode, en, ar, order in district_rows:
         parent = conn.execute(
             "SELECT id FROM lookup WHERE domain='governorate' AND code=?", (gcode,)).fetchone()
         if not parent:
