@@ -622,10 +622,9 @@
         ? (A.dispTitle(rec, "place") || rec.code || "")
         : ""
     };
-    const behind = `#${String(location.hash || "").replace(/^#/, "")}`
-      || `#/entity/${entity}/${rec.id}`;
-    A.state.formReturnTo = behind;
-    location.hash = "#/entity/event/new";
+    /* in place, like every add: the form opens over this screen and saving
+       keeps the reader right here */
+    A.forms.open("event", null);
   }
   A.addEvent = addEvent;
 
@@ -1900,6 +1899,22 @@
   let activeDialog = null;
 
   /**
+   * A form that opened in place closes in place: the screen is not navigated,
+   * it is refreshed where it stands.  Views may handle the save softly (the
+   * geographic view reloads its features instead of rebuilding around the
+   * reader); anything unhandled falls back to a plain re-render of the very
+   * same screen.
+   */
+  function refreshInPlace(entity, record) {
+    const detail = { entity, id: record && record.id, record, handled: false };
+    document.dispatchEvent(new CustomEvent("siraj:record-saved", { detail }));
+    if (!detail.handled) {
+      A._keepScroll = true;          // the reader's eye stays where it was
+      A.rerender();
+    }
+  }
+
+  /**
    * The same form, over the page it belongs to: a new record opens over its
    * list, an edit opens over its dossier.  Closing it puts you back exactly
    * where you were, with the hash swapped rather than pushed, so browser Back
@@ -1908,6 +1923,9 @@
   async function openFormDialog(root, entity, rec, params) {
     A.forms.close(true);                       // never stack two record forms
     const isNew = !rec;
+    /* opened from a button: the form is an overlay on the live screen — it
+       never moves the address and never repaints what is underneath */
+    const inPlace = !!(params && params.inPlace);
     /* where closing returns to: normally the list a new record joins or the
        dossier being edited — but a caller may say "bring them back to me"
        (the settings screen's "open a form" button does exactly that). */
@@ -1923,7 +1941,7 @@
            case: you clicked "New" in the list) it is left alone, so the dialog
            opens over live content instead of a re-painted copy. */
     const want = origin || (isNew ? `list:${entity}` : `record:${entity}:${rec && rec.id}`);
-    if (!origin && root.dataset.surface !== want) {
+    if (!inPlace && !origin && root.dataset.surface !== want) {
       if (isNew) await A.views.list(root, Object.assign({}, params, { dialogBehind: true }));
       else await A.views.record(root, Object.assign({}, params, { dialogBehind: true }));
     }
@@ -1974,15 +1992,22 @@
         if (andNew) {
           /* keep the surface open and start a clean draft of the same shape */
           dlg.close("saved-new");
+          if (inPlace) { openFormDialog(root, entity, null, params); return; }
           replaceRoute(`#/entity/${entity}/new`);
           return;
         }
         dlg.close("saved");
+        if (inPlace) {
+          /* stay-in-place, literally: the address never moved.  The screen is
+             refreshed where it stands so the saved record appears in it */
+          refreshInPlace(entity, record);
+          return;
+        }
         /* stay-in-place: the screen the form was opened from is redrawn with
            the saved record — no navigation away */
         replaceRoute(behind);
       },
-      onCancel: () => { dlg.close("cancel"); replaceRoute(behind); }
+      onCancel: () => { dlg.close("cancel"); if (!inPlace) replaceRoute(behind); }
     });
     if (dlg.foot) dlg.foot.appendChild(bar);
     else form.appendChild(bar);
@@ -2014,9 +2039,20 @@
      * `opts.returnTo` names the page to come back to when the form is dismissed
      * (the settings screen's "open a form" button uses it).
      */
+    /**
+     * Open a record form over the screen the person is on.  Add and edit never
+     * navigate — whatever the form-mode preference says about size and shape,
+     * the form is an overlay on the live screen and saving keeps them there.
+     * `opts` remains accepted for compatibility.
+     */
     open(entity, id, opts) {
-      if (opts && opts.returnTo) A.state.formReturnTo = opts.returnTo;
-      location.hash = id ? `#/entity/${entity}/${id}/edit` : `#/entity/${entity}/new`;
+      entity = normEntity(entity);
+      const root = document.getElementById("view") || document.body;
+      return (async () => {
+        const rec = id ? await api.get(`/api/${entity}/${id}`) : null;
+        return openFormDialog(root, entity, rec,
+          Object.assign({}, opts, { inPlace: true }));
+      })();
     }
   };
 

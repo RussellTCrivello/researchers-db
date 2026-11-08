@@ -2336,6 +2336,18 @@
       dom.readoutPos.textContent = "—";
     };
 
+    /* a record saved through an in-place form refreshes the map's features
+       where it stands — never a rebuild around the reader */
+    document.addEventListener("siraj:record-saved", onRecSaved);
+    function onRecSaved(e) {
+      if (!root.isConnected || mapState !== state) {
+        document.removeEventListener("siraj:record-saved", onRecSaved);
+        return;
+      }
+      e.detail.handled = true;
+      loadFeatures();
+    }
+
     document.addEventListener("keydown", onKey);
     function onKey(e) {
       /* a listener from a view that has since been left must not touch the map */

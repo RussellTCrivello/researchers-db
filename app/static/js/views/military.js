@@ -442,7 +442,7 @@
     root.innerHTML = milNav("e:" + entity) +
       A.pageHead(rec.docname || "#" + id, entLabel(entity), `
         <a class="btn" href="#/military/${entity}s">${icon("undo")} ${esc(t("common.back"))}</a>
-        <a class="btn primary" href="#/military/${entity}s/${id}">${icon("edit") || ""} ${esc(t("common.edit"))}</a>
+        <a class="btn primary" href="#/military/${entity}s/${id}/edit">${icon("edit") || ""} ${esc(t("common.edit"))}</a>
         ${role() === "admin" ? `<button class="btn danger" id="milDelete">${icon("trash")} ${esc(t("common.delete"))}</button>` : ""}`) +
       `<div class="card">
         <div class="card-head"><h2>${esc(t("mil.dossier.fields"))}</h2></div>
@@ -554,7 +554,7 @@
       return `<li><details${hasKids && depth < 1 ? " open" : ""}>
         <summary><div class="mil-node">
           <span class="mil-toggle">${hasKids ? "▾" : "·"}</span>
-          <a href="#/military/${entity}s/${n.id}"><b>${esc(n.name)}</b></a>
+          <a href="#/military/${entity}s/${n.id}/edit"><b>${esc(n.name)}</b></a>
           <span class="mono-cell small">${esc(n.docname)}</span>
           ${kind === "units" ? chip(n.status) : badge(n.region_type || "—", "slate")}${extra}
         </div></summary>

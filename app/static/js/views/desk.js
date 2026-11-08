@@ -1583,7 +1583,8 @@
       if (ev.key === "m") { setGrid(false); return; }
       if (ev.key === "f") { root.querySelector("[data-desk-fit]").click(); return; }
       if (ev.key === "e" && D.node) {
-        A.go(`/entity/${D.node.type}/${D.node.record_id}/edit`); return;
+        /* in place: edit overlays the desk, saving keeps us here */
+        A.forms.open(D.node.type, D.node.record_id); return;
       }
       if (ev.key === "r") { openDeskRelationshipComposer(); return; }
       if (ev.key === "n") { openDeskEntityComposer(); return; }

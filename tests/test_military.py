@@ -1042,6 +1042,53 @@ class TestSharedFormForMilitary:
         assert "ctx.backTo" in rec
 
 
+class TestInPlaceForms:
+    """Add and edit never navigate — for any reason whatsoever.  Clicking an
+    add/edit button opens the shared record form as an overlay on the current
+    screen (the address never moves), and saving closes the overlay and
+    refreshes that screen where it stands, with the record appearing in it."""
+
+    def test_forms_open_never_navigates(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/record.js").read_text()
+        i = src.index("open(entity, id, opts)")
+        window = src[i:i + 700]
+        assert "location.hash" not in window          # zero navigation …
+        assert "inPlace: true" in window              # … it is an overlay
+        # saving refreshes the screen in place — no route change at all
+        assert "refreshInPlace(entity, record)" in src
+        assert "siraj:record-saved" in src
+        assert "A._keepScroll = true" in src
+
+    def test_add_and_edit_buttons_are_intercepted(self):
+        from pathlib import Path
+        app = Path("app/static/js/app.js").read_text()
+        assert "App.forms.open(m[1]" in app           # plain clicks open the overlay
+        assert 'href^="#/"' in app
+        # modified clicks keep their link semantics (new tab, copy address)
+        assert "e.defaultPrevented || e.button !== 0" in app
+
+    def test_add_event_stays_on_the_screen(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/record.js").read_text()
+        body = src[src.index("function addEvent"):src.index("A.addEvent = addEvent")]
+        assert "location.hash" not in body
+        assert 'A.forms.open("event"' in body
+
+    def test_military_entry_points_open_the_overlay(self):
+        from pathlib import Path
+        mil = Path("app/static/js/views/military.js").read_text()
+        assert '/edit">' in mil                       # edit links interceptable
+        app = Path("app/static/js/app.js").read_text()
+        assert 're: /^\\/military\\/([\\w-]+)\\/(\\d+)\\/edit$/, view: "recordEdit"' in app
+
+    def test_geographic_view_saves_without_rebuilding(self):
+        from pathlib import Path
+        geo = Path("app/static/js/views/geomap.js").read_text()
+        assert "siraj:record-saved" in geo            # soft refresh …
+        assert "loadFeatures();" in geo               # … reload features, keep the camera
+
+
 class TestListViewTools:
     def test_sort_filter_export_wiring(self):
         from pathlib import Path

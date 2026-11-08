@@ -24,6 +24,7 @@
     { re: /^\/military\/naming$/, view: "milNaming" },
     { re: /^\/military\/audit$/, view: "milAudit" },
     { re: /^\/military\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)\/edit$/, view: "recordEdit", keys: ["entity", "id"] },
     { re: /^\/military\/([\w-]+)\/(\d+)$/, view: "recordEdit", keys: ["entity", "id"] },
     { re: /^\/military\/([\w-]+)$/, view: "milList", keys: ["entity"] },
     { re: /^\/import$/, view: "import" },
@@ -76,8 +77,10 @@
     const openForm = App.forms && App.forms.active && App.forms.active();
     if (openForm) {
       const here = "#" + String(location.hash || "").replace(/^#/, "");
-      const belongs = (route.view === "recordNew" || route.view === "recordEdit") &&
-        openForm.back.dataset.formRoute === here;
+      /* the form "belongs" on the screen it was opened over — an in-place
+         overlay or a route dialog alike.  Its opening address is recorded on
+         its backdrop; only a real navigation outlives the form */
+      const belongs = openForm.back.dataset.formRoute === here;
       if (!belongs) {
         if (App.forms.dirty && App.forms.dirty()) {
           const discard = await App.confirmDialog({
@@ -144,7 +147,9 @@
       await fn(view, route.params, route);
       App._dispose = typeof fn.__dispose === "function" ? fn.__dispose : null;
       hydrateIcons(view);
-      window.scrollTo({ top: 0, behavior: "auto" });
+      /* an in-place form refresh keeps the reader's eye where it was */
+      if (App._keepScroll) App._keepScroll = false;
+      else window.scrollTo({ top: 0, behavior: "auto" });
       if (shellFullscreen()) notifyLayout();
     } catch (err) {
       console.error(err);
@@ -413,6 +418,22 @@
     document.getElementById("footStats").textContent = `SQLite · ${size} KB · schema 1.0.0`;
     measureChrome();
     window.addEventListener("resize", measureChrome);
+    /* Add and edit buttons never navigate.  A plain click on a form link opens
+       the shared record form as an overlay on the current screen; modified
+       clicks keep their link semantics (new tab, new window). */
+    document.addEventListener("click", (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey
+          || e.shiftKey || e.altKey) return;
+      const a = e.target && e.target.closest && e.target.closest('a[href^="#/"]');
+      if (!a || (a.target && a.target !== "_self")) return;
+      const href = a.getAttribute("href") || "";
+      const m = href.match(/^#\/entity\/([\w-]+)\/(?:new|(\d+)\/edit)$/)
+        || href.match(/^#\/military\/([\w-]+)\/(?:new|(\d+)\/edit)$/);
+      if (!m) return;
+      e.preventDefault();
+      Promise.resolve(App.forms.open(m[1], m[2] ? Number(m[2]) : null))
+        .catch(err => console.error(err));
+    });
     if (!location.hash) location.hash = "#/dashboard";
     window.addEventListener("hashchange", render);
     render();
