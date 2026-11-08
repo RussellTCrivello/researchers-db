@@ -36,16 +36,16 @@
         <div class="card-head"><h3>1 · ${t("imp.step1")}</h3></div>
         <div class="grid c2">
           <div class="field"><label>${t("exp.entity")}</label>
-            <select id="impEntity">${entities.map(e =>
+            <select id="impEntity" class="select-ctl">${entities.map(e =>
               `<option value="${e.key}" ${st.entity === e.key ? "selected" : ""}>${esc(A.state.lang === "ar" ? e.plural_ar : e.plural_en)}</option>`).join("")}</select></div>
           <div class="field"><label>${t("exp.format")}</label>
-            <select id="impFormat">
+            <select id="impFormat" class="select-ctl">
               <option value="xlsx" ${st.format === "xlsx" ? "selected" : ""}>XLSX</option>
               <option value="csv" ${st.format === "csv" ? "selected" : ""}>CSV</option>
               <option value="json" ${st.format === "json" ? "selected" : ""}>JSON</option>
             </select></div>
           <div class="field"><label>${t("exp.lang")}</label>
-            <select id="impLang">
+            <select id="impLang" class="select-ctl">
               <option value="ar" ${st.lang === "ar" ? "selected" : ""}>العربية</option>
               <option value="en" ${st.lang === "en" ? "selected" : ""}>English</option>
               <option value="both">${esc(t("exp.lang.both"))}</option>
@@ -470,7 +470,7 @@
          Each lists ONLY units consistent with the selections above it: pick a
          country and its provinces appear; pick a province and its regions; and
          so on through municipality, village and community. */
-      const cascade = ancestors.length ? `<div class="toolbar" style="padding-top:0">
+      const cascade = ancestors.length ? `<div class="toolbar as-grid" style="padding-top:0">
           ${ancestors.map(dom => {
             const opts = (A.domainOptions(dom) || []).filter(o =>
               ancestors.every(sDom => {
@@ -478,23 +478,25 @@
                 if (!sel || sDom === dom) return true;
                 return String(ancestorIdOfRow(o, dom, sDom)) === String(sel);
               }));
-            return `<select id="valSel-${dom}" data-admin-dom="${dom}" title="${esc(domainLabel(dom))}">
-              <option value="">${esc(t("adm.allRows"))} — ${esc(domainLabel(dom))}</option>
-              ${opts.slice(0, 2000).map(o => `<option value="${o.id}" ${String(vState.parents[dom]) === String(o.id) ? "selected" : ""}>${esc(domLabel(o))} (${esc(o.code)})</option>`).join("")}
-            </select>`;
+            return `<label class="field-ctl"><span class="cap">${esc(domainLabel(dom))}</span>
+              <select id="valSel-${dom}" class="select-ctl${vState.parents[dom] ? " is-set" : ""}" data-admin-dom="${dom}" title="${esc(domainLabel(dom))}">
+                <option value="">${esc(t("adm.allRows"))}</option>
+                ${opts.slice(0, 2000).map(o => `<option value="${o.id}" ${String(vState.parents[dom]) === String(o.id) ? "selected" : ""}>${esc(domLabel(o))} (${esc(o.code)})</option>`).join("")}
+              </select></label>`;
           }).join("")}
         </div>` : "";
       root.querySelector("#domainInfo").innerHTML = `
         <div class="card-head"><h3>${esc(domLabel(d))}</h3>
           <span class="mono-cell small muted">${esc(active)}</span></div>
         <div class="toolbar">
-          <div class="search-box" style="max-width:260px">${icon("search")}
+          <div class="search-box">${icon("search")}
             <input id="valQ" placeholder="${t("adm.filterValues")}" value="${esc(vState.q)}"></div>
           <span class="spacer"></span>
           <span class="small muted">${t("adm.showingOf", { a: fmtNum(shown), b: fmtNum(rows.length) })}</span>
-          <select id="valPageSize" title="${t("adm.pageRows")}" style="width:auto">
-            ${[25, 50, 100, 250, 500].map(n => `<option value="${n}" ${vState.batch === n ? "selected" : ""}>${n}</option>`).join("")}
-          </select>
+          <label class="field-ctl inline"><span class="cap">${esc(t("adm.pageRows"))}</span>
+            <select id="valPageSize" class="select-ctl sm" title="${esc(t("adm.pageRows"))}">
+              ${[25, 50, 100, 250, 500].map(n => `<option value="${n}" ${vState.batch === n ? "selected" : ""}>${n}</option>`).join("")}
+            </select></label>
         </div>
         ${cascade}
         <div class="table-wrap scroll-y"><table class="data compact"><thead><tr>
@@ -525,6 +527,7 @@
         sel.onchange = (e) => {
           const dom = sel.dataset.adminDom;
           vState.parents[dom] = e.target.value || null;
+          sel.classList.toggle("is-set", !!e.target.value);
           chain.slice(chain.indexOf(dom) + 1).forEach(d2 => { delete vState.parents[d2]; });
           vState.shown = vState.batch;
           renderValues();

@@ -170,6 +170,78 @@ table.data.compact th, table.data.compact td { padding:6px 9px; }
   border:1px solid var(--border); border-radius:999px; padding:3px 10px; font-size:.76rem; }
 .filter-chip b { font-weight:650; }
 
+/* --------------------------------------------------------- toolbar controls
+   One polished language for every select, search field and labeled filter
+   control in toolbars, filter bars and pagers: consistent 34px height and
+   9px radius (with .btn), a custom theme-aware chevron instead of the native
+   arrow, three interaction states (hover / focus-visible / is-set) and full
+   RTL support — the locale flip moves the chevron with the text. */
+.select-ctl, select.select-ctl {
+  appearance: none; -webkit-appearance: none;
+  height: 34px;
+  padding-inline: 11px 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 15px 15px;
+  color: var(--text);
+  font: inherit; font-size: .82rem; font-weight: 500;
+  cursor: pointer;
+  max-width: 100%;
+  transition: border-color .13s ease, background-color .13s ease, box-shadow .13s ease;
+}
+[dir="rtl"] .select-ctl, [dir="rtl"] select.select-ctl { background-position: left 9px center; }
+[data-theme="dark"] .select-ctl, [data-theme="dark"] select.select-ctl {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b9aa7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.select-ctl:hover { border-color: var(--ink-300); }
+.select-ctl:focus-visible {
+  outline: 2px solid var(--ink-400); outline-offset: 1px;
+  border-color: var(--ink-400);
+}
+/* a filter that is actually narrowing the view says so before you read it */
+.select-ctl.is-set {
+  border-color: var(--ink-400);
+  background-color: var(--ink-50);
+  box-shadow: inset 0 0 0 1px var(--ink-300);
+}
+.select-ctl.is-set:hover { border-color: var(--ink-500); }
+.select-ctl[disabled] { opacity:.55; cursor:not-allowed; }
+.select-ctl.sm, select.select-ctl.sm {
+  height: 29px; padding-inline: 9px 26px;
+  background-size: 13px 13px; background-position: right 7px center;
+  font-size: .78rem;
+}
+[dir="rtl"] .select-ctl.sm, [dir="rtl"] select.select-ctl.sm { background-position: left 7px center; }
+
+/* a labeled field: small caption over its control — filter grids, cascades */
+.field-ctl { display:inline-flex; flex-direction:column; gap:4px; min-width:0; }
+.field-ctl > .cap {
+  font-size:.72rem; font-weight:650; color:var(--text-3); line-height:1.25;
+}
+.field-ctl > .select-ctl { width:100%; min-width:172px; max-width:240px; }
+/* caption beside the control — toolbars and pagers */
+.field-ctl.inline { flex-direction:row; align-items:center; gap:8px; }
+.field-ctl.inline > .cap { font-size:.78rem; font-weight:550; white-space:nowrap; }
+.field-ctl.inline > .select-ctl { width:auto; min-width:74px; max-width:none; }
+
+/* a grid of labeled filters inside a toolbar: captions align, controls wrap */
+.toolbar.as-grid { align-items:start; gap:12px 14px; }
+
+/* the toolbar search field speaks the same language as the controls */
+.toolbar .search-box, .mil-tree-bar .search-box {
+  flex:1 1 220px; max-width:300px;
+  border-radius:9px; background:var(--surface); border-color:var(--border-strong);
+}
+.toolbar .search-box:hover, .mil-tree-bar .search-box:hover { border-color:var(--ink-300); }
+.toolbar .search-box:focus-within, .mil-tree-bar .search-box:focus-within {
+  border-color:var(--ink-400); box-shadow:0 0 0 3px rgba(92,139,182,.15);
+}
+.toolbar .search-box input, .mil-tree-bar .search-box input { padding:8px 8px; }
+
 /* filter panel */
 .filters { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
 .filter-row {

@@ -655,13 +655,14 @@
     };
 
     host.innerHTML = `
-      <div class="mil-tree-bar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
-        <input data-tree-filter type="search" placeholder="${esc(t("mil.tree.filter"))}"
-          style="max-width:280px">
-        <span data-tree-sels style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"></span>
+      <div class="mil-tree-bar">
+        <div class="search-box">${icon("search")}
+          <input data-tree-filter type="search" placeholder="${esc(t("mil.tree.filter"))}"></div>
+        <span data-tree-sels></span>
         <span class="small muted" data-tree-count></span>
       </div>
       <div class="mil-tree"></div>`;
+    hydrateIcons(host);
 
     const search = host.querySelector("[data-tree-filter]");
     search.oninput = () => { state.q = search.value.trim().toLowerCase(); draw(); };
@@ -684,8 +685,8 @@
         const sels = host.querySelector("[data-tree-sels]");
         if (sels) {
           sels.innerHTML = filters.map(f => `
-            <label class="viz-pick"><span>${esc(f.label)}</span>
-              <select data-tree-sel="${esc(f.key)}">
+            <label class="field-ctl"><span class="cap">${esc(f.label)}</span>
+              <select class="select-ctl sm" data-tree-sel="${esc(f.key)}">
                 <option value="">${esc(t("mil.tree.all"))}</option>
                 ${f.options.map(o => `<option value="${esc(o)}">${esc(A.optLabel(o, f.key))}</option>`).join("")}
               </select>
@@ -693,6 +694,7 @@
           sels.querySelectorAll("[data-tree-sel]").forEach(sel => {
             sel.onchange = () => {
               state.sel[sel.getAttribute("data-tree-sel")] = sel.value;
+              sel.classList.toggle("is-set", !!sel.value);
               draw();
             };
           });

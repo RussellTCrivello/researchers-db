@@ -27,6 +27,14 @@
 [dir="rtl"] .mil-nav-group { letter-spacing: normal; text-transform: none; }
 
 /* tree explorers */
+.mil-tree-bar {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; margin-bottom: 12px;
+}
+.mil-tree-bar [data-tree-sels] {
+  display: flex; flex-wrap: wrap; gap: 12px 14px;
+  align-items: start;
+}
 .mil-tree ul { list-style: none; margin: 0; padding-inline-start: 20px; }
 .mil-tree > ul { padding-inline-start: 4px; }
 .mil-tree li { margin: 2px 0; }

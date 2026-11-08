@@ -686,8 +686,9 @@
       <span class="info"><b>${fmtNum(shown)}</b> / ${fmtNum(total)}
         ${st.only_deleted ? (t("common.trash") || "deleted") : t("common.records")}</span>
       <div class="load-progress" title="${pct}%"><span style="width:${pct}%"></span></div>
-      <select class="ghost-select" data-pagesize>${[10, 25, 50, 100, 200].map(n =>
-        `<option value="${n}" ${st.page_size === n ? "selected" : ""}>${n} / ${t("common.page")}</option>`).join("")}</select>
+      <label class="field-ctl inline"><span class="cap">${esc(t("list.pageSize"))}</span>
+        <select class="select-ctl sm" data-pagesize title="${esc(t("list.pageSize"))}">${[10, 25, 50, 100, 200].map(n =>
+        `<option value="${n}" ${st.page_size === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <span class="spacer"></span>
       ${hasMore ? `<button class="btn sm primary" data-load-more>
         ${icon("plus")} ${A.t("ui.loadMore")}
@@ -3221,16 +3222,16 @@
 
     const body = `<div class="grid c2">
         <div class="field"><label>${A.t("ui.imageField")}</label>
-          <select id="lyImage"><option value="">—</option>
+          <select id="lyImage" class="select-ctl sm"><option value="">—</option>
             ${reg.filter(f => f.type === "url" || f.key === "image_url").map(f => opt(f, st.layout.imageField)).join("")}
           </select>
           <div class="field-note">${A.t("ui.rendersAnIllustratedCardWhenAUrlIsPres")}</div></div>
         <div class="field"><label>${A.t("ui.titleField")}</label>
-          <select id="lyTitle">${textish.map(f => opt(f, st.layout.titleField)).join("")}</select></div>
+          <select id="lyTitle" class="select-ctl sm">${textish.map(f => opt(f, st.layout.titleField)).join("")}</select></div>
         <div class="field"><label>${A.t("ui.subtitleField")}</label>
-          <select id="lySub"><option value="">—</option>${textish.map(f => opt(f, st.layout.subtitleField)).join("")}</select></div>
+          <select id="lySub" class="select-ctl sm"><option value="">—</option>${textish.map(f => opt(f, st.layout.subtitleField)).join("")}</select></div>
         <div class="field"><label>${A.t("ui.badgeField")}</label>
-          <select id="lyBadge"><option value="">—</option>${selectish.map(f => opt(f, st.layout.badgeField)).join("")}</select></div>
+          <select id="lyBadge" class="select-ctl sm"><option value="">—</option>${selectish.map(f => opt(f, st.layout.badgeField)).join("")}</select></div>
       </div>
       <div class="sectionlabel">${A.t("ui.factLinesUpTo4")}</div>
       <div class="layout-grid">${reg.map(f => `<label class="check"><input type="checkbox" data-fact="${f.key}"
@@ -3380,7 +3381,7 @@
     };
     const body = `<div class="notice warn">${A.t("ui.thePrimaryRecordIsKeptRelationshipsCit")}</div>
       <div class="field"><label>${A.t("ui.primaryRecord")}</label>
-        <select id="mgKeep">${[keepId].concat(mergeIds).map(id =>
+        <select id="mgKeep" class="select-ctl">${[keepId].concat(mergeIds).map(id =>
           `<option value="${id}">${describe(id)}</option>`).join("")}</select></div>
       <div class="field"><label>${t("common.reason")}</label><input id="mgReason" value="duplicate merge"></div>
       <div data-plan></div>`;
@@ -3461,7 +3462,7 @@
     A.modal({
       title: t("list.bulkStatus"), size: "slim",
       body: `<div class="field"><label>${t("common.status")}</label>
-          <select id="bulkStatus">${options.map(o =>
+          <select id="bulkStatus" class="select-ctl">${options.map(o =>
             `<option value="${o.id}">${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("common.reason")}</label><input id="bulkReason"></div>`,
       buttons: [
@@ -3538,10 +3539,10 @@
     const body = `
       <div class="grid c2">
         <div class="field"><label>${t("exp.format")}</label>
-          <select id="exFormat">${["csv", "xlsx", "tsv", "json"].map(v =>
+          <select id="exFormat" class="select-ctl">${["csv", "xlsx", "tsv", "json"].map(v =>
             `<option value="${v}" ${v === "csv" ? "selected" : ""}>${esc(t("exp.format." + v))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("exp.lang")}</label>
-          <select id="exLang"><option value="ar">العربية</option><option value="en">English</option>
+          <select id="exLang" class="select-ctl"><option value="ar">العربية</option><option value="en">English</option>
             <option value="both">${esc(t("exp.lang.both"))}</option></select></div>
       </div>
       <label class="check" style="margin-bottom:10px"><input type="checkbox" id="exResolve" checked> ${t("exp.resolve")}</label>
