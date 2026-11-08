@@ -818,7 +818,7 @@
                     data-partition="${esc(s.partition)}" data-label="${esc(s.label)}">
                   <button class="btn sm" data-adjust="${s.id}">${esc(t("mil.action.adjust"))}</button>
                 </span>` : ""}</td>
-            </tr>`).join("")}`).join("")}
+            </tr>`)}`).join("")}
       </div>
       <div class="card" style="margin-top:18px">
         <div class="card-head"><h3>${esc(t("mil.naming.history"))}</h3>

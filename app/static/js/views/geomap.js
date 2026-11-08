@@ -1366,6 +1366,18 @@
         renderLeft();
         renderPins();
       } catch (err) {
+        /* a remembered selection that no longer exists in this database (a fresh
+           install, a deleted record) is forgotten here — otherwise every future map
+           open re-requests a record that will never answer (the stale `place:9`
+           404 on a fresh install) */
+        if (err && err.status === 404 && state.selected &&
+            state.selected.id === feature.id &&
+            state.selected.entity_type === feature.entity_type) {
+          state.selected = null;
+          state.selectedDoc = null;
+          A.setPref(SEL_KEY, "default");
+          renderRight();
+        }
         toast(err.message, "err", 5000);
       }
     }
