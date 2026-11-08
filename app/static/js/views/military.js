@@ -341,11 +341,11 @@
   A.views.milList = async function (root, params) {
     const entity = entityKey(params.entity);
     if (!entity) { location.hash = "#/military"; return; }
-    const isTree = entity === "unit" || entity === "region";
+    /* units and regions offer the hierarchy tree right in the list's own view
+       switcher — the tree is a view of the same screen, not a trip elsewhere */
     root.innerHTML = milNav("e:" + entity) +
       `<div class="toolbar" style="margin:10px 0">
         <a class="btn sm" href="#/military/${DOMAIN_OF[entity]}">${icon("undo")} ${esc(t("common.back"))}</a>
-        ${isTree ? `<a class="btn sm" href="#/military/${entity}s/tree">${icon("share")} ${esc(t("mil.view.tree"))}</a>` : ""}
         <span class="spacer"></span>
         <button class="btn sm" id="milImportBtn">${icon("upload")} ${esc(t("mil.import.button"))}</button>
       </div>
@@ -538,13 +538,17 @@
   };
 
   /* ========================================================= view: tree */
-  A.views.milTree = async function (root, params) {
-    const kind = params.kind === "regions" ? "regions" : "units";
-    const entity = kind === "units" ? "unit" : "region";
-    await meta();
-    A.crumbs([{ label: t("nav.military"), href: "#/military" },
-      { label: kind === "units" ? t("mil.nav.unitsTree") : t("mil.nav.regionsTree") }]);
-    const data = await mreq("GET", "/" + kind + "/tree");
+  /* ============================================ shared: hierarchy tree --- */
+  /**
+   * ONE hierarchy explorer for parent/child entities (military units, command
+   * regions).  The list view's "Tree" mode and the dedicated tree screens
+   * share it — no second tree engine can grow.  Every visible string rides the
+   * locale system: switch the language and the whole tree follows.
+   */
+  A.entityTree = function (host, opts) {
+    const entity = (opts && opts.entity) === "region" ? "region" : "unit";
+    const kind = entity === "region" ? "regions" : "units";
+    const nodes = (opts && opts.tree) || [];
 
     const nodeHtml = (n, depth) => {
       const hasKids = n.children && n.children.length;
@@ -554,7 +558,7 @@
       return `<li><details${hasKids && depth < 1 ? " open" : ""}>
         <summary><div class="mil-node">
           <span class="mil-toggle">${hasKids ? "▾" : "·"}</span>
-          <a href="#/military/${entity}s/${n.id}/edit"><b>${esc(n.name)}</b></a>
+          <a href="#/entity/${entity}/${n.id}/edit"><b>${esc(n.name)}</b></a>
           <span class="mono-cell small">${esc(n.docname)}</span>
           ${kind === "units" ? chip(n.status) : badge(n.region_type || "—", "slate")}${extra}
         </div></summary>
@@ -562,20 +566,16 @@
       </details></li>`;
     };
 
-    root.innerHTML = milNav("tree:" + kind) +
-      A.pageHead(kind === "units" ? t("mil.nav.unitsTree") : t("mil.nav.regionsTree"),
-        t("mil.tree.subtitle"), `
-        <a class="btn primary" href="#/military/${entity}s/new">${icon("plus")} ${esc(t("common.new"))}</a>`) +
-      `<div class="card">
-        <input id="milTreeSearch" type="search" placeholder="${esc(t("mil.tree.filter"))}"
-          style="max-width:320px;margin-bottom:12px">
-        <div class="mil-tree"><ul>${data.tree.map(n => nodeHtml(n, 0)).join("")}</ul></div>
-      </div>`;
-    bindChrome(root);
-    const search = root.querySelector("#milTreeSearch");
+    host.innerHTML = `
+      <input data-tree-filter type="search" placeholder="${esc(t("mil.tree.filter"))}"
+        style="max-width:320px;margin-bottom:12px">
+      <div class="mil-tree">${nodes.length
+        ? `<ul>${nodes.map(n => nodeHtml(n, 0)).join("")}</ul>`
+        : `<div class="empty">${esc(t("list.noRecords"))}</div>`}</div>`;
+    const search = host.querySelector("[data-tree-filter]");
     search.oninput = () => {
       const q = search.value.trim().toLowerCase();
-      root.querySelectorAll(".mil-tree li").forEach(li => {
+      host.querySelectorAll(".mil-tree li").forEach(li => {
         const match = !q || li.textContent.toLowerCase().includes(q);
         li.style.display = match ? "" : "none";
         if (q && match) {
@@ -588,6 +588,24 @@
         }
       });
     };
+  };
+
+  A.views.milTree = async function (root, params) {
+    const kind = params.kind === "regions" ? "regions" : "units";
+    const entity = kind === "units" ? "unit" : "region";
+    await meta();
+    A.crumbs([{ label: t("nav.military"), href: "#/military" },
+      { label: kind === "units" ? t("mil.nav.unitsTree") : t("mil.nav.regionsTree") }]);
+    const data = await mreq("GET", "/" + kind + "/tree");
+
+    root.innerHTML = milNav("tree:" + kind) +
+      A.pageHead(kind === "units" ? t("mil.nav.unitsTree") : t("mil.nav.regionsTree"),
+        t("mil.tree.subtitle"), `
+        <a class="btn primary" href="#/military/${entity}s/new">${icon("plus")} ${esc(t("common.new"))}</a>`) +
+      `<div class="card"><div data-tree-host></div></div>`;
+    bindChrome(root);
+    A.entityTree(root.querySelector("[data-tree-host]"),
+      { entity, tree: data.tree || [] });
   };
 
   /* ==================================================== view: force sum */

@@ -1089,6 +1089,57 @@ class TestInPlaceForms:
         assert "loadFeatures();" in geo               # … reload features, keep the camera
 
 
+class TestTreeViewOption:
+    """Units (military hierarchy) and Regions (command regions) browse as a
+    tree right alongside their existing view — a mode in the same view
+    switcher as table/cards/gallery/rows, not a trip to a screen elsewhere.
+    Everything visible rides the locale system: every element translates."""
+
+    def test_tree_is_a_view_mode_for_units_and_regions(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/list.js").read_text()
+        assert 'TREE_ENTITIES = new Set(["unit", "region"])' in src
+        assert 'out.concat("tree")' in src             # offered in the switcher …
+        assert 'st.view === "tree"' in src             # … and rendered in place
+        assert "mountListTree" in src
+        # the switcher label is keyed, never a bare word
+        assert 't("view." + v) || v' in src
+
+    def test_one_tree_engine_for_every_surface(self):
+        from pathlib import Path
+        mil = Path("app/static/js/views/military.js").read_text()
+        lst = Path("app/static/js/views/list.js").read_text()
+        assert mil.count("A.entityTree = function") == 1   # one renderer …
+        assert "A.entityTree(root.querySelector" in mil    # … used by the tree screen
+        assert "A.entityTree(host," in lst                 # … and by the list mode
+        # the tree node engine exists nowhere else (list.js has its own,
+        # unrelated graph nodes) — its markup markers stay put
+        assert "mil-node" not in lst
+        assert "data-tree-filter" not in lst
+        assert mil.count("mil.tree.filter") == 1           # one filter, one label
+
+    def test_every_tree_element_is_translated(self):
+        import json
+        from pathlib import Path
+        en = json.loads(Path("app/static/js/locales/en.json").read_text(encoding="utf-8"))
+        ar = json.loads(Path("app/static/js/locales/ar.json").read_text(encoding="utf-8"))
+        assert set(en) == set(ar)                        # full parity, every key
+        for key in ("view.tree", "mil.tree.filter", "mil.tree.subtreePersonnel",
+                    "mil.tree.subtitle", "list.noRecords", "common.loading"):
+            assert en.get(key) and ar.get(key), key      # both languages, non-empty
+        mil = Path("app/static/js/views/military.js").read_text()
+        # the renderer itself holds no untranslated visible strings
+        for key in ("mil.tree.filter", "mil.tree.subtreePersonnel", "list.noRecords"):
+            assert f't("{key}")' in mil, key
+
+    def test_tree_endpoints_serve_both_hierarchies(self, client):
+        for kind in ("units", "regions"):
+            r = client.get(f"/api/military/{kind}/tree")
+            assert r.status_code == 200, (kind, r.text)
+            body = r.json()
+            assert isinstance(body.get("tree"), list), kind
+
+
 class TestListViewTools:
     def test_sort_filter_export_wiring(self):
         from pathlib import Path
@@ -1342,10 +1393,12 @@ class TestViewModes:
         assert 'siraj.view." + entity' in lst  # mode persisted per entity
 
     def test_tree_mode_link_for_hierarchy_entities(self):
+        """The hierarchies — units and command regions — are exactly the ones
+        that offer the tree, in the same screen's view switcher."""
         from pathlib import Path
-        src = Path("app/static/js/views/military.js").read_text()
-        assert 'entity === "unit" || entity === "region"' in src
-        assert "mil.view.tree" in src
+        src = Path("app/static/js/views/list.js").read_text()
+        assert 'TREE_ENTITIES = new Set(["unit", "region"])' in src
+        assert 'out.concat("tree")' in src
 
 
 class TestImportExport:

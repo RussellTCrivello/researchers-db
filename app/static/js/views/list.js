@@ -32,10 +32,14 @@
      carry their own advanced tabs. */
   const INSPECT_ENTITIES = new Set(["person", "institution", "place",
                                     "relationship", "source", "event"]);
+  /* parent/child hierarchies — units and command regions — also browse as a
+     tree, right in this screen's view switcher */
+  const TREE_ENTITIES = new Set(["unit", "region"]);
   function canInspect(entity) { return INSPECT_ENTITIES.has(entity); }
   function viewsFor(entity) {
     const base = ["table", "cards", "gallery", "list"];
-    return MAP_ENTITIES.has(entity) ? base.concat("map") : base;
+    let out = MAP_ENTITIES.has(entity) ? base.concat("map") : base;
+    return TREE_ENTITIES.has(entity) ? out.concat("tree") : out;
   }
 
   /* ------------------------------------------------------------ state --- */
@@ -541,7 +545,7 @@
           <div class="viewswitch" data-viewswitch>
             ${viewsFor(entity).map(v => `
               <button data-view="${v}" class="${st.view === v ? "active" : ""}" title="${t("view." + v) || v}">
-                ${icon({ table: "list", cards: "grid", gallery: "columns", list: "file", map: "map-pin" }[v])}
+                ${icon({ table: "list", cards: "grid", gallery: "columns", list: "file", map: "map-pin", tree: "share" }[v])}
                 <span class="hide-sm">${t("view." + v) || v}</span></button>`).join("")}
           </div>
           <button class="btn sm" data-layout>${icon("sliders")} ${t("view.layout") || "Layout"}</button>
@@ -574,6 +578,9 @@
     fitShell();
     if (st.view === "map" && MAP_ENTITIES.has(entity)) {
       requestAnimationFrame(() => mountListMap(entity));
+    }
+    if (st.view === "tree" && TREE_ENTITIES.has(entity)) {
+      requestAnimationFrame(() => mountListTree(entity));
     }
     if (inspectOpen) fillInspect(entity, st.inspectId);
   }
@@ -711,6 +718,9 @@
     if (st.view === "map" && MAP_ENTITIES.has(entity)) {
       return mapViewShell(entity, data);
     }
+    if (st.view === "tree" && TREE_ENTITIES.has(entity)) {
+      return treeViewShell(entity);
+    }
     if (!data.items.length) {
       return `<div class="empty"><div class="big">🗂</div>
         <div>${st.q || st.where.length ? t("list.noMatch") : t("list.noRecords")}</div>
@@ -753,6 +763,28 @@
       <div class="list-map-canvas" data-map-canvas></div>
       <div class="list-map-card" data-map-card hidden></div>
     </div>`;
+  }
+
+  /** Hierarchy mode: the shared tree explorer under the list's own toolbar. */
+  function treeViewShell(entity) {
+    return `<div class="list-tree" data-list-tree>
+      <div class="empty small">${esc(t("common.loading"))}</div>
+    </div>`;
+  }
+
+  async function mountListTree(entity) {
+    const st = state[entity];
+    const host = document.querySelector("[data-list-tree]");
+    if (!host || !A.entityTree) return;
+    try {
+      const kind = entity === "region" ? "regions" : "units";
+      const res = await api.get(`/api/military/${kind}/tree`);
+      if (st.view !== "tree") return;
+      host.innerHTML = "";
+      A.entityTree(host, { entity, tree: res.tree || [] });
+    } catch (err) {
+      host.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
+    }
   }
 
   /** The base map's own attribution, as its terms require — kept under any map
