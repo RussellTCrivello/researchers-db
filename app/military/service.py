@@ -591,16 +591,28 @@ def get_record(conn, entity: str, record_id: int) -> dict[str, Any] | None:
 def _constraint_error(exc: sqlite3.IntegrityError) -> ServiceError:
     """Translate DB constraint failures into clean client errors (never 500)."""
     msg = str(exc)
+    field = None
+    m = re.search(r"constraint failed: [\w.]+\.(\w+)", msg)
+    if m:
+        field = m.group(1)
     if "UNIQUE" in msg:
         return ServiceError(409, "duplicate",
-                            "a record with the same unique value already exists")
-    return ServiceError(422, "constraint", msg)
+                            "a record with the same unique value already exists",
+                            field)
+    return ServiceError(422, "constraint", msg, field)
 
 
 def create(conn, entity: str, payload: dict[str, Any], actor: str) -> dict[str, Any]:
     spec = ENTITY_SPECS[entity]
     fields = _validate_fields(conn, entity, payload, creating=True)
-    merged = {**_defaults(entity), **fields}
+    # an explicit null is the shared form's "blank": on create a blank falls
+    # back to the field's default instead of writing NULL over it.  The form
+    # sends every field of the record, so without this fallback the defaults
+    # never applied and NOT NULL columns (echelon, status, direct_personnel,
+    # region_type …) rejected the insert with a bare constraint error on
+    # every save that left them blank.
+    filled = {k: v for k, v in fields.items() if v is not None}
+    merged = {**_defaults(entity), **filled}
     if spec.get("tree"):
         rules.check_tree_parent(conn, spec["table"], None, merged.get("parent_id"))
     hook = _HOOKS.get(entity)

@@ -118,6 +118,31 @@ def test_every_rendered_field_is_known_to_the_service(client):
             f"{key}: meta renders {sorted(rendered - known)} the service rejects")
 
 
+def test_blank_form_fields_fall_back_to_defaults(client):
+    """The shared form sends EVERY field — a blank control is an explicit null.
+
+    On create a blank must fall back to the field default; without that, the
+    defaults never applied and NOT NULL columns (echelon, status,
+    direct_personnel, region_type …) rejected the insert with a bare
+    constraint 422 on every save that left them blank.
+    """
+    region = _create(client, "/api/region", {
+        "name": "Blank Region", "region_type": None,
+        "parent_id": None, "country": None, "description": None,
+    })
+    assert region["region_type"] == "Region"
+    rec = _create(client, "/api/unit", {
+        "code": None, "name": "Blank Unit", "echelon": None,
+        "parent_id": None, "classification_id": None, "role": None,
+        "status": None, "commander_id": None, "direct_personnel": None,
+        "division_id": None, "region_id": None, "formation_date": None,
+        "headquarters": None, "notes": None,
+    })
+    assert rec["echelon"] == "Brigade"
+    assert rec["status"] == "Active"
+    assert rec["direct_personnel"] == 0
+
+
 def test_generic_form_payload_round_trip(client):
     """The exact shape the shared record form collects (form._collect)."""
     region = _region_id(client)
