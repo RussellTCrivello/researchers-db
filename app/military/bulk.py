@@ -74,6 +74,7 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
     """Load ~`scale` fictional records in dependency order (rule-clean)."""
     if scale < 200:
         scale = 200
+    seed.ensure_country_vocab(conn)   # country fields link to the vocabulary
     rng = random.Random(20261107)
     counts: dict[str, int] = {}
     profiles: dict[str, int] = {}

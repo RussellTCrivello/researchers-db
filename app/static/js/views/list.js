@@ -646,10 +646,14 @@
       let v = r.value;
       if (Array.isArray(v)) v = v.length > 2 ? `${v.length} ${t("common.values")}` : v.join(" – ");
       else if (v && typeof v === "object") v = v.label || "";
-      if (typeof v === "number" && f && (f.type === "select" || f.type === "fk")) {
-        const lk = f.type === "select" ? A.domainOptions(f.domain).find(o => o.id === v) : null;
+      if (v != null && f && (f.type === "select" || f.type === "fk")
+          && (typeof v === "number" || (f.type === "select" && f.store === "code"))) {
+        const lk = f.type === "select"
+          ? (A.domainOptions(f.domain) || []).find(o => String(o.id) === String(v)
+              || (f.store === "code" && o.code === v))
+          : null;
         if (lk) v = A.state.lang === "ar" ? lk.label_ar : lk.label_en;
-        else v = "#" + v;
+        else if (typeof v === "number") v = "#" + v;
       }
       return `<span class="filter-chip" title="${esc(opLabel(r.op))}">
         <b>${esc(A.regLabel(f))}</b> ${esc(opLabel(r.op))} ${esc(v === null || v === undefined ? "" : v)}</span>`;

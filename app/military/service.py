@@ -134,7 +134,7 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("name", "text", "Region Name", required=True),
             _f("region_type", "choice", "Type", options=REGION_TYPES, default="Region"),
             _f("parent_id", "ref", "Parent Region", entity="region"),
-            _f("country", "text", "Country"),
+            _f("country", "select", "Country", domain="country"),
             _f("description", "textarea", "Description"),
         ],
     },
@@ -227,7 +227,7 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("name", "text", "Armament Name", required=True),
             _f("category", "choice", "Category", options=ARMAMENT_CATEGORIES),
             _f("specification", "textarea", "Specification"),
-            _f("origin_country", "text", "Origin Country"),
+            _f("origin_country", "select", "Origin Country", domain="country"),
             _f("description", "textarea", "Description"),
         ],
     },
@@ -309,7 +309,8 @@ class ServiceError(Exception):
 # ---------------------------------------------------------------------------
 # field validation
 # ---------------------------------------------------------------------------
-def _validate_fields(entity: str, payload: dict[str, Any], creating: bool) -> dict[str, Any]:
+def _validate_fields(conn, entity: str, payload: dict[str, Any],
+                     creating: bool) -> dict[str, Any]:
     spec = ENTITY_SPECS[entity]
     known = {f["name"]: f for f in spec["fields"]}
     out: dict[str, Any] = {}
@@ -341,6 +342,21 @@ def _validate_fields(entity: str, payload: dict[str, Any], creating: bool) -> di
                 raise ServiceError(422, "invalid_choice",
                                    f"{name} must be one of {fspec['options']}", name)
             out[name] = value
+        elif ftype == "select":
+            # vocabulary-linked field: the value may arrive as an id, a
+            # vocabulary code or an English/Arabic label — the supplementary
+            # table is the single source of truth and the canonical code is
+            # what gets stored
+            from ..repo import resolve_lookup_value
+            resolved = resolve_lookup_value(conn, fspec.get("domain") or "", value)
+            if resolved is None:
+                raise ServiceError(
+                    422, "invalid_choice",
+                    f"{name} must be a value from the "
+                    f"'{fspec.get('domain')}' vocabulary", name)
+            row = conn.execute("SELECT code FROM lookup WHERE id=?",
+                               (resolved,)).fetchone()
+            out[name] = row["code"] if row else str(value)
         elif ftype == "date":
             try:
                 from datetime import date as _date
@@ -540,7 +556,7 @@ def _constraint_error(exc: sqlite3.IntegrityError) -> ServiceError:
 
 def create(conn, entity: str, payload: dict[str, Any], actor: str) -> dict[str, Any]:
     spec = ENTITY_SPECS[entity]
-    fields = _validate_fields(entity, payload, creating=True)
+    fields = _validate_fields(conn, entity, payload, creating=True)
     merged = {**_defaults(entity), **fields}
     if spec.get("tree"):
         rules.check_tree_parent(conn, spec["table"], None, merged.get("parent_id"))
@@ -584,7 +600,7 @@ def update(conn, entity: str, record_id: int, payload: dict[str, Any],
     if not old:
         raise ServiceError(404, "not_found", f"{spec['label']} {record_id} not found")
     old_d = dict(old)
-    fields = _validate_fields(entity, payload, creating=False)
+    fields = _validate_fields(conn, entity, payload, creating=False)
     merged = {**old_d, **fields}
 
     if spec.get("tree"):

@@ -380,6 +380,13 @@
       const r = (refMap[f.entity] || {})[v];
       return esc(r ? refLabelOf(f.entity, r) : "#" + v);
     }
+    /* vocabulary-linked values display as their bilingual label */
+    if (f.type === "select" && f.domain) {
+      const o = (A.domainOptions(f.domain) || [])
+        .find(x => x.code === v || String(x.id) === String(v));
+      if (o) return esc(A.state.lang === "ar"
+        ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar));
+    }
     return esc(String(v));
   }
 

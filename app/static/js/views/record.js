@@ -869,6 +869,12 @@
 
     /* -------------------------------------------------------- fieldEl --- */
     function fieldEl(f) {
+      /* a vocabulary select with no vocabulary behind it is an honest text
+         box — never an empty dropdown */
+      if (f.type === "select" && !(f.options || []).length
+          && !(f.domain && (A.domainOptions(f.domain) || []).length)) {
+        f = Object.assign({}, f, { type: "text" });
+      }
       const wrap = document.createElement("div");
       wrap.className = "field" + (f.type === "textarea" ? " span2" : "");
       wrap.dataset.field = f.key;

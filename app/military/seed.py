@@ -25,6 +25,42 @@ def _date(year: int, month: int, day: int) -> str:
     return f"{year:04d}-{month:02d}-{day:02d}"
 
 
+# The fictional demo world's country — a vocabulary entry like any other, so
+# country fields link to the supplementary table exactly as real countries do.
+FICTIONAL_COUNTRY = {
+    "code": "XX",
+    "label_en": "Republic of Aldervale (fictional)",
+    "label_ar": "جمهورية ألدرفال (خيالية)",
+}
+
+
+def ensure_country_vocab(conn) -> str:
+    """Ensure the fictional country exists in the ``country`` vocabulary and
+    map legacy free-text country values onto its code.  Idempotent."""
+    row = conn.execute("SELECT id FROM lookup WHERE domain='country' AND code=?",
+                       (FICTIONAL_COUNTRY["code"],)).fetchone()
+    if not conn.execute("SELECT 1 FROM lookup_domain WHERE domain='country'").fetchone():
+        conn.execute(
+            "INSERT INTO lookup_domain (domain, label_en, label_ar, sort_order,"
+            " is_system) VALUES ('country', 'Country', 'البلد', 50, 1)")
+    if not row:
+        conn.execute(
+            "INSERT INTO lookup (domain, code, label_en, label_ar, sort_order,"
+            " color, meta, is_active, is_system, created_at, updated_at)"
+            " VALUES (?,?,?,?,?,?,?,?,0,?,?)",
+            ("country", FICTIONAL_COUNTRY["code"], FICTIONAL_COUNTRY["label_en"],
+             FICTIONAL_COUNTRY["label_ar"], 9999, "slate",
+             '{"fictional": true, "iso2": "XX"}', 1,
+             now_iso(), now_iso()))
+    # rows written before the fields linked to the vocabulary kept free text
+    for table, col in (("region", "country"), ("armament", "origin_country")):
+        conn.execute(
+            f"UPDATE {table} SET {col}=? WHERE {col} IN (?, ?)",
+            (FICTIONAL_COUNTRY["code"], FICTIONAL_COUNTRY["label_en"],
+             "Aldervale (fictional)"))
+    return FICTIONAL_COUNTRY["code"]
+
+
 def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict[str, Any]:
     """Load the fictional dataset through the real service layer (idempotent)."""
     from . import service  # late import: service imports seed only via api
@@ -36,6 +72,8 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
                 "message": "sample data already loaded; pass force=true to reset"}
     if marker and force:
         clear_sample(conn, actor, keep_marker=True)
+
+    ensure_country_vocab(conn)
 
     counts: dict[str, int] = {}
 
@@ -163,16 +201,16 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
     # --- armament + unit holdings (UNIQUE unit+armament, quantity > 0) ------
     rifle = add("armament", name="MK-4 Service Rifle (fictional)",
                 category="Weapons", specification="5.56 mm, fictional pattern",
-                origin_country="Aldervale (fictional)")
+                origin_country="Republic of Aldervale (fictional)")
     apc = add("armament", name="GV-7 Armored Carrier (fictional)",
               category="Vehicles", specification="8x8 wheeled carrier (fictional)",
-              origin_country="Aldervale (fictional)")
+              origin_country="Republic of Aldervale (fictional)")
     mortar = add("armament", name="TR-120 Mortar System (fictional)",
                  category="Artillery", specification="120 mm mortar (fictional)",
-                 origin_country="Aldervale (fictional)")
+                 origin_country="Republic of Aldervale (fictional)")
     radio = add("armament", name="FR-9 Field Radio (fictional)",
                 category="Communications", specification="Encrypted VHF set (fictional)",
-                origin_country="Aldervale (fictional)")
+                origin_country="Republic of Aldervale (fictional)")
 
     add("holding", unit_id=brigade["id"], armament_id=rifle["id"], quantity=240,
         condition="Serviceable", acquisition_year=2019)

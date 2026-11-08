@@ -23,6 +23,14 @@ def tmp_db(tmp_path, monkeypatch):
     db_path = tmp_path / "registry.db"
     monkeypatch.setattr(db, "DB_PATH", db_path)
     monkeypatch.setattr(dbm, "_initialised", False)
+    # the unified deployment carries the registry schema (lookup vocabularies
+    # included) under the military tables — model that, not a bare fragment
+    conn = db.connect()
+    try:
+        conn.executescript(db.SCHEMA_PATH.read_text(encoding="utf-8"))
+        conn.commit()
+    finally:
+        conn.close()
     return db_path
 
 
@@ -1138,6 +1146,114 @@ class TestTreeViewOption:
             assert r.status_code == 200, (kind, r.text)
             body = r.json()
             assert isinstance(body.get("tree"), list), kind
+
+
+class TestLinkedVocabularies:
+    """Fields that have a supplementary table behind them link to it — the
+    country and language vocabularies (bilingual, admin-managed) drive proper
+    linked controls instead of free-text boxes.  Vocabulary values display and
+    export as their bilingual labels; the canonical code is what is stored."""
+
+    def test_country_fields_link_to_the_vocabulary(self, client):
+        meta = client.get("/api/meta").json()
+        for ent, key in (("region", "country"), ("armament", "origin_country")):
+            f = next(x for x in meta["fields"][ent] if x["key"] == key)
+            assert f["type"] == "select", (ent, key)
+            assert f["domain"] == "country", (ent, key)
+        # rank and command role have fixed lists — dropdown material, not text
+        for ent, key in (("commander", "rank_title"), ("assignment", "role")):
+            f = next(x for x in meta["fields"][ent] if x["key"] == key)
+            assert f["type"] == "select", (ent, key)
+            assert f.get("options"), (ent, key)
+
+    def test_language_fields_link_to_the_vocabulary(self, client):
+        meta = client.get("/api/meta").json()
+        for ent, key in (("source", "language"),
+                         ("person", "name_original_lang"),
+                         ("place", "name_original_lang"),
+                         ("institution", "name_original_lang")):
+            f = next(x for x in meta["fields"][ent] if x["key"] == key)
+            assert f["type"] == "select" and f["domain"] == "language", (ent, key)
+            assert f["store"] == "code", (ent, key)
+
+    def test_service_stores_the_canonical_code(self, tmp_db):
+        from app.military import seed, service
+        with service.transaction() as conn:
+            seed.ensure_country_vocab(conn)
+            # the code is accepted directly …
+            r1 = service.create(conn, "region",
+                                {"name": "Code Region", "country": "XX"}, actor="t")
+            # … and a (fictional) country name resolves to it
+            r2 = service.create(conn, "region", {
+                "name": "Label Region",
+                "country": "Republic of Aldervale (fictional)"}, actor="t")
+            assert r1["country"] == "XX" and r2["country"] == "XX"
+            # unknown countries are refused — the table is the source of truth
+            try:
+                service.create(conn, "region",
+                               {"name": "Nowhere", "country": "Narnia"}, actor="t")
+                raise AssertionError("expected invalid_choice")
+            except service.ServiceError as e:
+                assert e.code == "invalid_choice"
+
+    def test_vocab_entry_is_bilingual_and_idempotent(self, tmp_db):
+        from app.military import seed, service
+        with service.transaction() as conn:
+            seed.ensure_country_vocab(conn)
+            seed.ensure_country_vocab(conn)
+            rows = conn.execute(
+                "SELECT label_en, label_ar FROM lookup"
+                " WHERE domain='country' AND code='XX'").fetchall()
+            assert len(rows) == 1
+            assert rows[0]["label_en"] and rows[0]["label_ar"]  # both languages
+            # rows written before the field linked to the vocabulary kept free
+            # text; the ensure step maps them onto the code
+            service.create(conn, "armament",
+                           {"name": "Legacy Arms", "category": "Weapons"},
+                           actor="t")
+            conn.execute(
+                "UPDATE armament SET origin_country='Aldervale (fictional)'"
+                " WHERE name='Legacy Arms'")
+            seed.ensure_country_vocab(conn)
+            got = conn.execute(
+                "SELECT origin_country FROM armament WHERE name='Legacy Arms'").fetchone()
+            assert got["origin_country"] == "XX"
+
+    def test_registry_language_values_resolve_and_display(self, client):
+        res = client.post("/api/person", json={
+            "name_ar": "اختبار ربط اللغة", "name_original_lang": "English"})
+        assert res.status_code in (200, 201), res.text
+        body = res.json()
+        rec = body.get("record") or body
+        assert rec["name_original_lang"] == "en"   # label resolved to the code
+        q = client.post("/api/person/query", json={"page_size": 50}).json()
+        item = next(i for i in q["items"] if i["id"] == rec["id"])
+        assert item["_labels"]["name_original_lang"]["en"] == "English"
+
+    def test_list_and_export_show_labels_not_codes(self, tmp_db):
+        from app import repo
+        from app.military import seed, service
+        from app.military.specs import MIL_SPECS
+        with service.transaction() as conn:
+            seed.ensure_country_vocab(conn)
+            service.create(conn, "region",
+                           {"name": "Labelled Region", "country": "XX"}, actor="t")
+            # the very path lists and exports read through decorates codes
+            out = repo.list_records(conn, MIL_SPECS["region"], {"page_size": 5})
+            item = out["items"][0]
+            lab = (item.get("_labels") or {}).get("country")
+            assert lab and lab["en"] and lab["ar"]
+
+    def test_form_never_renders_an_empty_dropdown(self):
+        """A vocabulary select with no vocabulary behind it (military unit role)
+        is an honest text box — never an empty dropdown."""
+        from pathlib import Path
+        src = Path("app/static/js/views/record.js").read_text()
+        assert "never an empty dropdown" in src
+        assert 'f = Object.assign({}, f, { type: "text" })' in src
+        mil = Path("app/static/js/views/military.js").read_text()
+        # the dossier resolves vocabulary codes to bilingual labels
+        assert 'f.type === "select" && f.domain' in mil
 
 
 class TestListViewTools:
