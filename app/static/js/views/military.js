@@ -407,6 +407,38 @@
     training: [], holding: [], assignment: [], note: []
   };
 
+  /**
+   * The unit dossier — the workspace's flagship profile.  Emblem, identity,
+   * structure, operations, logistics, training, the command roster (past and
+   * current) and notes, tabbed like the registry's person profile: one screen
+   * that answers "what is this unit?" without a single detour.
+   */
+  const REL_LIMIT = 10;
+
+  function relHead(label, d, id) {
+    return `<div class="card-head"><h2>${esc(label)}</h2>
+      <span class="badge slate">${fmtNum(d.total || 0)}</span>
+      ${(d.total || 0) > (d.rows || []).length ? `
+        <button class="btn sm" data-relmore="${esc(d.slug)}"
+          data-relfk="${esc(d.fk)}" data-relid="${id}">${esc(t("mil.dossier.showMore"))}</button>
+        <a class="btn sm" style="margin-left:6px"
+          href="#/military/${esc(d.slug)}?${esc(d.fk)}=${id}">${esc(t("mil.dossier.seeAll"))}</a>` : ""}</div>`;
+  }
+
+  function relTable(label, d, id, cols, rowFn) {
+    const rows = d.rows || [];
+    return `<div class="card">
+      ${relHead(label, d, id)}
+      ${rows.length ? `<div class="table-wrap"><table class="data">
+        <thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead>
+        <tbody data-relbody="${esc(d.slug)}">${rows.map(r => rowFn(r)).join("")}</tbody>
+      </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
+    </div>`;
+  }
+
+  const viewBtn = (slug, r) => `<td class="nowrap">
+    <a class="btn sm" href="#/military/${esc(slug.replace(/s$/, ""))}s/${r.id}/show">${esc(t("common.view"))}</a></td>`;
+
   A.views.milDossier = async function (root, params) {
     const entity = entityKey(params.entity);
     const id = Number(params.id);
@@ -426,81 +458,399 @@
         rows.forEach(r => { refMap[f.entity][r.id] = r; });
       }
     }));
+    /* related rows name their own links: commanders on assignments,
+       armament on holdings */
+    for (const e of ["commander", "armament"]) {
+      if (!refMap[e]) {
+        const rows = await refOptions(e);
+        refMap[e] = {};
+        rows.forEach(r => { refMap[e][r.id] = r; });
+      }
+    }
+    const refName = (e, rid) => {
+      const r = (refMap[e] || {})[rid];
+      return esc(r ? refLabelOf(e, r) : (rid ? "#" + rid : "—"));
+    };
+    const refLink = (e, rid) => rid
+      ? `<a href="#/military/${esc(e)}s/${rid}/show"><b>${refName(e, rid)}</b></a>` : "—";
 
     const relData = await Promise.all((RELATED[entity] || []).map(async ([slug, fk]) => {
-      const data = await mreq("GET", "/" + slug + "?limit=10&sort=id&direction=desc&"
-        + fk + "=" + id);
+      const data = await mreq("GET", "/" + slug + "?limit=" + REL_LIMIT
+        + "&sort=id&direction=desc&" + fk + "=" + id);
       return { slug, fk, rows: data.records || [], total: data.total || 0 };
     }));
-    const relLimit = 10;
+    const relBy = {};
+    relData.forEach(d => { relBy[d.slug] = d; });
+    const relOf = (slug) => relBy[slug] || {
+      slug, fk: "unit_id", rows: [], total: 0
+    };
+
     /* a note does not collect notes about itself */
     const notes = entity === "note" ? { records: [], total: 0 } : await mreq("GET",
       "/notes?limit=50&sort=id&direction=desc&entity_type=" + entity + "&target_id=" + id);
 
+    /* hero stats — the force rollup answers "how big is this command?" */
+    let subtree = null, curDep = null, topArm = [];
+    if (entity === "unit") {
+      try {
+        const fs = await mreq("GET", "/units/" + id + "/force-summary");
+        subtree = fs.subtree_personnel;
+        curDep = fs.current_deployment || null;
+        topArm = fs.armament_top || [];
+      } catch (e) { /* the dossier still renders without the rollup */ }
+    }
+
     const labelOf = (slug) => entLabel(slug.replace(/s$/, ""));
-    const relRow = (slug, r) => `
-      <tr>
-        <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
-        <td>${esc(r.name || r.full_name || r.exercise_name || r.note_text || "—")}</td>
-        <td>${r.status ? chip(r.status) : (r.start_date ? esc(r.start_date) : "—")}</td>
-        <td class="nowrap">
-          <a class="btn sm" href="#/military/${slug.replace(/s$/, "")}s/${r.id}/show">${esc(t("common.view"))}</a>
-        </td>
-      </tr>`;
+    const statusOf = (r) => r.status ? chip(r.status) : (r.start_date ? esc(r.start_date) : "—");
+
+    /* -- hero facts: the handful of values that identify the unit -------- */
+    let facts = "";
+    const fl = (n) => {
+      const f = spec.fields.find(x => x.name === n);
+      return f ? fieldLabel(f) : n;
+    };
+    if (entity === "unit") {
+      const F = [
+        [fl("classification_id"), refLink("classification", rec.classification_id)],
+        [fl("parent_id"), refLink("unit", rec.parent_id)],
+        [fl("division_id"), refLink("division", rec.division_id)],
+        [fl("region_id"), refLink("region", rec.region_id)],
+        [fl("commander_id"), refLink("commander", rec.commander_id)],
+        [fl("role"), rec.role ? esc(rec.role) : ""],
+        [fl("headquarters"), rec.headquarters ? esc(rec.headquarters) : ""],
+        [fl("formation_date"), rec.formation_date ? esc(rec.formation_date) : ""]
+      ];
+      facts = F.filter(([k, v]) => k && v && v !== "—")
+        .map(([k, v]) => `<span class="hfact">${esc(k)}: <b>${v}</b></span>`).join("");
+    } else {
+      facts = spec.fields
+        .filter(f => f.type !== "textarea" && rec[f.name] != null && rec[f.name] !== "")
+        .slice(0, 5)
+        .map(f => `<span class="hfact">${esc(fieldLabel(f))}: <b>${cell(rec, f, refMap)}</b></span>`)
+        .join("");
+    }
+
+    const stat = (b, s) => `<div><b>${b}</b><span>${esc(s)}</span></div>`;
+    const relCount = (slug) => fmtNum(relOf(slug).total || 0);
+    let stats = "";
+    if (entity === "unit") {
+      stats = stat(fmtNum(rec.direct_personnel || 0), t("mil.force.direct")) +
+        (subtree != null ? stat(fmtNum(subtree), t("mil.tree.subtreePersonnel")) : "") +
+        stat(relCount("units"), t("mil.force.children")) +
+        stat(relCount("deployments"), entLabel("deployment")) +
+        stat(relCount("missions"), t("mil.force.missions")) +
+        stat(relCount("holdings"), entLabel("holding")) +
+        stat(relCount("trainings"), entLabel("training")) +
+        stat(relCount("assignments"), t("mil.doss.commanders"));
+    } else {
+      stats = relData.map(d => stat(fmtNum(d.total || 0), labelOf(d.slug))).join("");
+    }
+
+    const portrait = rec.image_url
+      ? `<img src="${esc(rec.image_url)}" alt="${esc(rec.image_alt || rec.name || rec.docname || "")}">`
+      : esc(A.initials(rec.name || rec.full_name || rec.exercise_name || rec.docname || "?"));
+    const canEdit = role() !== "viewer";
+    const emblemBtn = (entity === "unit" && canEdit)
+      ? `<label class="emblem-btn" title="${esc(t("mil.doss.changeEmblem"))}">${icon("upload")}
+          <input type="file" accept="image/*" id="emblemFile" hidden></label>` : "";
 
     root.innerHTML = milNav("e:" + entity) +
       A.pageHead(rec.docname || "#" + id, entLabel(entity), `
         <a class="btn" href="#/military/${entity}s">${icon("undo")} ${esc(t("common.back"))}</a>
         <a class="btn primary" href="#/military/${entity}s/${id}/edit">${icon("edit") || ""} ${esc(t("common.edit"))}</a>
         ${role() === "admin" ? `<button class="btn danger" id="milDelete">${icon("trash")} ${esc(t("common.delete"))}</button>` : ""}`) +
-      `<div class="card">
-        <div class="card-head"><h2>${esc(t("mil.dossier.fields"))}</h2></div>
-        <dl class="dossier-grid">
-          ${spec.fields.map(f => `
-            <div class="dfield"><dt>${esc(fieldLabel(f))}</dt>
-              <dd>${cell(rec, f, refMap)}</dd></div>`).join("")}
-          <div class="dfield"><dt>${esc(t("mil.form.created"))}</dt>
-            <dd>${esc(rec.created_at || "—")} · ${esc(rec.created_by || "—")}</dd></div>
-          <div class="dfield"><dt>${esc(t("mil.form.modified"))}</dt>
-            <dd>${esc(rec.modified_at || "—")} · ${esc(rec.modified_by || "—")}</dd></div>
-        </dl>
+      `<div class="hero">
+        <div class="portrait" id="milPortrait">${portrait}${emblemBtn}</div>
+        <div>
+          <div class="htitle">
+            <h1>${esc(rec.name || rec.full_name || rec.exercise_name || rec.docname || "#" + id)}</h1>
+            ${rec.docname ? `<span class="badge mono">${esc(rec.docname)}</span>` : ""}
+            ${statusOf(rec)}
+            ${rec.echelon ? `<span class="badge slate">${esc(String(A.optLabel(rec.echelon)))}</span>` : ""}
+          </div>
+          <div class="hmeta">
+            <span>${esc(entLabel(entity))}</span>
+            ${rec.code ? `<span>${esc(rec.code)}</span>` : ""}
+            ${rec.modified_at ? `<span>${esc(t("mil.form.modified"))}: ${esc(rec.modified_at)}</span>` : ""}
+            ${curDep ? `<span>${esc(t("mil.force.currentDeployment"))}: ${esc(curDep.name || curDep.docname || "")}</span>` : ""}
+          </div>
+          <div class="hfacts">${facts}</div>
+        </div>
+        <div class="hero-side"><div class="hstats">${stats}</div></div>
       </div>
-      ${relData.filter(d => d.rows.length || d.total).map(d => `
-      <div class="card">
-        <div class="card-head"><h2>${esc(labelOf(d.slug))}</h2>
-          <span class="badge slate" data-relcount="${esc(d.slug)}">${fmtNum(d.total)}</span>
-          ${d.total > d.rows.length ? `
-            <button class="btn sm" data-relmore="${esc(d.slug)}"
-              data-relfk="${esc(d.fk)}" data-relid="${id}">${esc(t("mil.dossier.showMore"))}</button>
-            <a class="btn sm" style="margin-left:6px"
-              href="#/military/${d.slug}?${esc(d.fk)}=${id}">${esc(t("mil.dossier.seeAll"))}</a>` : ""}</div>
-        <div class="table-wrap"><table class="data">
-          <thead><tr><th>${esc(t("mil.form.docname"))}</th><th>${esc(t("mil.dossier.name"))}</th>
-            <th>${esc(t("mil.dossier.status"))}</th><th>${esc(t("common.actions"))}</th></tr></thead>
-          <tbody data-relbody="${esc(d.slug)}">${d.rows.map(r => relRow(d.slug, r)).join("")}</tbody>
-        </table></div>
-      </div>`).join("")}
-      ${entity === "note" ? "" : `
-      <div class="card" id="milNotesCard">
-        <div class="card-head"><h2>${esc(t("mil.dossier.notes"))}</h2>
-          <span class="badge slate">${fmtNum(notes.total || (notes.records || []).length)}</span></div>
-        ${role() === "viewer" ? "" : `
-        <div class="btn-row" style="margin-bottom:12px">
-          <input id="milNoteText" class="grow" placeholder="${esc(t("mil.dossier.notePlaceholder"))}">
-          <button class="btn primary" id="milNoteAdd">${icon("plus")} ${esc(t("mil.dossier.addNote"))}</button>
-        </div>`}
-        ${(notes.records || []).length ? `
-        <div class="table-wrap"><table class="data">
-          <thead><tr><th>${esc(t("mil.form.docname"))}</th><th>${esc(t("mil.dossier.noteText"))}</th>
-            <th>${esc(t("mil.form.author"))}</th><th>${esc(t("mil.form.date"))}</th></tr></thead>
-          <tbody>${(notes.records || []).map(n => `
-            <tr><td class="mono-cell">${esc(n.docname || "")}</td>
-              <td>${esc(n.note_text || "")}</td>
-              <td>${esc(n.author || "—")}</td>
-              <td>${esc(n.note_at || "—")}</td></tr>`).join("")}</tbody>
-        </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
-      </div>`}`;
+      <div class="tabs" id="milDossTabs"></div>
+      <div id="tabBody"></div>`;
+
+    /* ---------------------------------------------------------- tabs --- */
+    const TABS = [{ key: "overview", label: t("mil.domain.hub") }];
+    if (entity === "unit") {
+      TABS.push({ key: "structure", label: t("mil.doss.structure"), n: relOf("units").total });
+      TABS.push({ key: "operations", label: t("mil.doss.operations"),
+        n: (relOf("deployments").total || 0) + (relOf("missions").total || 0) });
+      TABS.push({ key: "logistics", label: t("mil.doss.logistics"), n: relOf("holdings").total });
+      TABS.push({ key: "training", label: t("mil.domain.training"), n: relOf("trainings").total });
+      TABS.push({ key: "command", label: t("mil.domain.command"), n: relOf("assignments").total });
+    } else {
+      (RELATED[entity] || []).forEach(([slug]) => {
+        const d = relOf(slug);
+        TABS.push({ key: "rel:" + slug, label: labelOf(slug), n: d.total });
+      });
+    }
+    if (entity !== "note") {
+      TABS.push({ key: "notes", label: t("mil.dossier.notes"),
+        n: notes.total || (notes.records || []).length });
+    }
+    TABS.push({ key: "history", label: t("rec.history") });
+
+    root.querySelector("#milDossTabs").innerHTML = TABS.map((tb, i) =>
+      `<button data-tab="${esc(tb.key)}" class="${i === 0 ? "active" : ""}">${esc(tb.label)}${
+        tb.n ? ` <span class="badge slate">${fmtNum(tb.n)}</span>` : ""}</button>`).join("");
+
+    /* ------------------------------------------------ row renderers ---- */
+    const childRow = (r) => `<tr>
+      <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
+      <td><a href="#/military/units/${r.id}/show"><b>${esc(r.name || "—")}</b></a></td>
+      <td>${esc(r.echelon ? String(A.optLabel(r.echelon)) : "—")}</td>
+      <td>${statusOf(r)}</td>
+      <td>${fmtNum(r.direct_personnel || 0)}</td>${viewBtn("units", r)}</tr>`;
+    const depRow = (r) => `<tr>
+      <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
+      <td><a href="#/military/deployments/${r.id}/show"><b>${esc(r.name || "—")}</b></a></td>
+      <td>${esc(r.deployment_type || "—")}</td>
+      <td class="nowrap">${esc(r.start_date || "—")} → ${esc(r.end_date || "…")}</td>
+      <td>${statusOf(r)}</td>
+      <td>${esc(r.location || "—")}</td>${viewBtn("deployments", r)}</tr>`;
+    const misRow = (r) => `<tr>
+      <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
+      <td><a href="#/military/missions/${r.id}/show"><b>${esc(r.name || "—")}</b></a></td>
+      <td>${esc(r.mission_type || "—")}</td>
+      <td class="nowrap">${esc(r.start_date || "—")} → ${esc(r.end_date || "…")}</td>
+      <td>${statusOf(r)}</td>
+      <td>${esc(r.area || "—")}</td>${viewBtn("missions", r)}</tr>`;
+    const holdRow = (r) => `<tr>
+      <td><a href="#/military/armaments/${r.armament_id}/show"><b>${esc(refName("armament", r.armament_id))}</b></a></td>
+      <td>${fmtNum(r.quantity || 0)}</td>
+      <td>${r.condition ? chip(r.condition) : "—"}</td>
+      <td>${esc(r.acquisition_year || "—")}</td>${viewBtn("holdings", r)}</tr>`;
+    const trainRow = (r) => `<tr>
+      <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
+      <td><a href="#/military/trainings/${r.id}/show"><b>${esc(r.exercise_name || "—")}</b></a></td>
+      <td>${esc(r.training_type || "—")}</td>
+      <td class="nowrap">${esc(r.start_date || "—")} → ${esc(r.end_date || "…")}</td>
+      <td>${fmtNum(r.participant_count || 0)}</td>
+      <td>${r.assessment ? chip(r.assessment) : "—"}</td>${viewBtn("trainings", r)}</tr>`;
+    const asgRow = (r) => `<tr>
+      <td>${refLink("commander", r.commander_id)}</td>
+      <td>${esc(r.role || "—")}</td>
+      <td class="nowrap">${esc(r.assigned_date || "—")} → ${esc(r.relieved_date || "…")}</td>
+      <td>${r.is_current
+        ? `<span class="badge green">${esc(t("mil.doss.current"))}</span>`
+        : `<span class="badge gray">${esc(t("mil.doss.past"))}</span>`}</td>
+      ${viewBtn("assignments", r)}</tr>`;
+    const genRow = (slug, r) => `<tr>
+      <td class="mono-cell">${esc(r.docname || "#" + r.id)}</td>
+      <td>${esc(r.name || r.full_name || r.exercise_name || r.note_text || "—")}</td>
+      <td>${statusOf(r)}</td>${viewBtn(slug, r)}</tr>`;
+
+    const COLS = {
+      units: [t("mil.form.docname"), t("mil.dossier.name"), t("mil.doss.colType"),
+        t("mil.dossier.status"), t("mil.col.personnel"), t("mil.col.action")],
+      deployments: [t("mil.form.docname"), t("mil.dossier.name"), t("mil.doss.colType"),
+        t("mil.col.dates"), t("mil.dossier.status"), t("mil.doss.colLocation"),
+        t("mil.col.action")],
+      missions: [t("mil.form.docname"), t("mil.dossier.name"), t("mil.doss.colType"),
+        t("mil.col.dates"), t("mil.dossier.status"), t("mil.doss.colLocation"),
+        t("mil.col.action")],
+      holdings: [t("mil.dossier.name"), t("mil.col.quantity"), t("mil.col.condition"),
+        t("mil.col.acquired"), t("mil.col.action")],
+      trainings: [t("mil.form.docname"), t("mil.col.exercise"), t("mil.doss.colType"),
+        t("mil.col.dates"), t("mil.col.participants"), t("mil.col.readiness"),
+        t("mil.col.action")],
+      assignments: [t("mil.doss.colCommander"), t("mil.doss.colRole"), t("mil.col.dates"),
+        t("mil.dossier.status"), t("mil.col.action")],
+      generic: [t("mil.form.docname"), t("mil.dossier.name"), t("mil.dossier.status"),
+        t("mil.col.action")]
+    };
+    const ROWS = {
+      units: childRow, deployments: depRow, missions: misRow,
+      holdings: holdRow, trainings: trainRow, assignments: asgRow
+    };
+    const relCard = (slug, label) => relTable(label || labelOf(slug), relOf(slug), id,
+      COLS[slug] || COLS.generic,
+      ROWS[slug] ? ROWS[slug] : (r) => genRow(slug, r));
+
+    /* ------------------------------------------------------------ tabs body */
+    const body = root.querySelector("#tabBody");
+
+    function paintTab(key) {
+      if (key === "overview") {
+        body.innerHTML = `<div class="card">
+          <div class="card-head"><h2>${esc(t("mil.dossier.fields"))}</h2></div>
+          <dl class="dossier-grid">
+            ${spec.fields.map(f => `
+              <div class="dfield"><dt>${esc(fieldLabel(f))}</dt>
+                <dd>${cell(rec, f, refMap)}</dd></div>`).join("")}
+          </dl>
+        </div>
+        ${entity === "unit" && topArm.length ? `<div class="card">
+          <div class="card-head"><h2>${esc(t("mil.force.armament"))}</h2></div>
+          <div class="table-wrap"><table class="data">
+            <thead><tr><th>${esc(t("mil.dossier.name"))}</th><th>${esc(t("mil.doss.colType"))}</th>
+              <th>${esc(t("mil.col.quantity"))}</th><th>${esc(t("mil.col.condition"))}</th></tr></thead>
+            <tbody>${topArm.map(a => `<tr><td>${esc(a.name || "—")}</td>
+              <td>${esc(a.category || "—")}</td><td>${fmtNum(a.quantity || 0)}</td>
+              <td>${a.condition ? chip(a.condition) : "—"}</td></tr>`).join("")}</tbody>
+          </table></div>
+        </div>` : ""}`;
+        return;
+      }
+      if (key === "structure") {
+        const d = relOf("units");
+        body.innerHTML = `<div class="statgrid" style="margin-bottom:12px">
+          <div class="statcard"><b>${fmtNum(d.total || 0)}</b><span>${esc(t("mil.force.children"))}</span></div>
+          <div class="statcard"><b>${fmtNum(subtree != null ? subtree : (rec.direct_personnel || 0))}</b>
+            <span>${esc(t("mil.tree.subtreePersonnel"))}</span></div>
+          <div class="statcard"><b>${refName("division", rec.division_id)}</b><span>${esc(entLabel("division"))}</span></div>
+          <div class="statcard"><b>${refName("region", rec.region_id)}</b><span>${esc(entLabel("region"))}</span></div>
+          <div class="statcard"><b>${refName("classification", rec.classification_id)}</b>
+            <span>${esc(t("mil.col.classification"))}</span></div>
+          <div class="statcard"><b>${rec.parent_id ? refName("unit", rec.parent_id) : "—"}</b>
+            <span>${esc(t("mil.force.siblings"))} · ${fmtNum((relOf("units").total || 0))}</span></div>
+        </div>
+        ${relCard("units", t("mil.force.children"))}`;
+        return;
+      }
+      if (key === "operations") {
+        body.innerHTML =
+          (curDep ? `<div class="card"><div class="card-head"><h2>${esc(t("mil.force.currentDeployment"))}</h2></div>
+            <div style="padding:4px 2px"><a href="#/military/deployments/${curDep.id}/show"><b>${esc(curDep.name || curDep.docname || "#" + curDep.id)}</b></a>
+            ${curDep.status ? " · " + chip(curDep.status) : ""}
+            ${curDep.location ? ` <span class="hfact">${esc(t("mil.doss.colLocation"))}: <b>${esc(curDep.location)}</b></span>` : ""}</div>
+          </div>` : "") +
+          relCard("deployments", entLabel("deployment")) +
+          relCard("missions", t("mil.force.missions"));
+        return;
+      }
+      if (key === "logistics") {
+        const d = relOf("holdings");
+        const qty = (d.rows || []).reduce((s, r) => s + (r.quantity || 0), 0);
+        body.innerHTML = `<div class="statgrid" style="margin-bottom:12px">
+          <div class="statcard"><b>${fmtNum(d.total || 0)}</b><span>${esc(t("mil.doss.weaponry"))}</span></div>
+          <div class="statcard"><b>${fmtNum(qty)}</b><span>${esc(t("mil.holdings.total"))}</span></div>
+        </div>` + relCard("holdings", t("mil.doss.weaponry"));
+        return;
+      }
+      if (key === "training") {
+        body.innerHTML = relCard("trainings", t("mil.domain.training"));
+        return;
+      }
+      if (key === "command") {
+        const d = relOf("assignments");
+        const rows = (d.rows || []).slice().sort((a, b) =>
+          (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0)
+          || String(b.assigned_date || "").localeCompare(String(a.assigned_date || "")));
+        body.innerHTML = `<div class="card">
+          <div class="card-head"><h2>${esc(t("mil.doss.commanders"))}</h2>
+            <span class="badge slate">${fmtNum(d.total || 0)}</span>
+            ${(d.total || 0) > rows.length ? `
+              <button class="btn sm" data-relmore="${esc(d.slug)}"
+                data-relfk="${esc(d.fk)}" data-relid="${id}">${esc(t("mil.dossier.showMore"))}</button>
+              <a class="btn sm" style="margin-left:6px"
+                href="#/military/${esc(d.slug)}?${esc(d.fk)}=${id}">${esc(t("mil.dossier.seeAll"))}</a>` : ""}</div>
+          <div style="padding:2px 2px 10px">${esc(t("mil.doss.colCommander"))}:
+            ${refLink("commander", rec.commander_id)}</div>
+          ${rows.length ? `<div class="table-wrap"><table class="data">
+            <thead><tr>${COLS.assignments.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead>
+            <tbody data-relbody="assignments">${rows.map(asgRow).join("")}</tbody>
+          </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
+        </div>`;
+        return;
+      }
+      if (key === "notes") {
+        body.innerHTML = `<div class="card" id="milNotesCard">
+          <div class="card-head"><h2>${esc(t("mil.dossier.notes"))}</h2>
+            <span class="badge slate">${fmtNum(notes.total || (notes.records || []).length)}</span></div>
+          ${role() === "viewer" ? "" : `
+          <div class="btn-row" style="margin-bottom:12px">
+            <input id="milNoteText" class="grow" placeholder="${esc(t("mil.dossier.notePlaceholder"))}">
+            <button class="btn primary" id="milNoteAdd">${icon("plus")} ${esc(t("mil.dossier.addNote"))}</button>
+          </div>`}
+          ${(notes.records || []).length ? `
+          <div class="table-wrap"><table class="data">
+            <thead><tr><th>${esc(t("mil.form.docname"))}</th><th>${esc(t("mil.dossier.noteText"))}</th>
+              <th>${esc(t("mil.form.author"))}</th><th>${esc(t("mil.form.date"))}</th></tr></thead>
+            <tbody>${(notes.records || []).map(n => `
+              <tr><td class="mono-cell">${esc(n.docname || "")}</td>
+                <td>${esc(n.note_text || "")}</td>
+                <td>${esc(n.author || "—")}</td>
+                <td>${esc(n.note_at || "—")}</td></tr>`).join("")}</tbody>
+          </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
+        </div>`;
+        const addBtn = body.querySelector("#milNoteAdd");
+        if (addBtn) addBtn.onclick = async () => {
+          const text = body.querySelector("#milNoteText").value.trim();
+          if (!text) return;
+          try {
+            await mreq("POST", "/notes", {
+              entity_type: entity, target_id: id,
+              note_text: text + FICTIONAL_SUFFIX, author: "app-user"
+            });
+            toast(t("common.saved"), "ok");
+            A.rerender();
+          } catch (err) { toast(err.message, "err"); }
+        };
+        return;
+      }
+      if (key === "history") {
+        body.innerHTML = `<div class="card">
+          <div class="card-head"><h2>${esc(t("rec.history"))}</h2></div>
+          <dl class="dossier-grid">
+            <div class="dfield"><dt>${esc(t("mil.form.created"))}</dt>
+              <dd>${esc(rec.created_at || "—")} · ${esc(rec.created_by || "—")}</dd></div>
+            <div class="dfield"><dt>${esc(t("mil.form.modified"))}</dt>
+              <dd>${esc(rec.modified_at || "—")} · ${esc(rec.modified_by || "—")}</dd></div>
+            <div class="dfield"><dt>${esc(t("mil.form.docname"))}</dt>
+              <dd><span class="mono-cell">${esc(rec.docname || "—")}</span></dd></div>
+          </dl>
+        </div>`;
+        return;
+      }
+      if (key.startsWith("rel:")) {
+        const slug = key.slice(4);
+        body.innerHTML = relCard(slug);
+        return;
+      }
+      body.innerHTML = "";
+    }
+
     bindChrome(root);
+    root.querySelectorAll("#milDossTabs [data-tab]").forEach(btn => {
+      btn.onclick = () => {
+        root.querySelectorAll("#milDossTabs [data-tab]")
+          .forEach(b => b.classList.toggle("active", b === btn));
+        paintTab(btn.dataset.tab);
+      };
+    });
+    paintTab(TABS[0].key);
+
+    /* emblem upload — the same /api/media + record write the edit form uses */
+    const emblemFile = root.querySelector("#emblemFile");
+    if (emblemFile) emblemFile.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await api.upload("/api/media", fd);
+        await api.raw("PUT", `/api/${entity}/${id}`, {
+          image_url: res.url,
+          image_alt: rec.image_alt || file.name.replace(/\.[^.]+$/, "")
+        }, { headers: { "X-Military-Role": role() } });
+        toast(t("common.saved"), "ok");
+        A.rerender();
+      } catch (err) { toast(err.message, "err"); }
+    };
+
     /* delete lives on the record view, as on the registry record page */
     const delBtn = root.querySelector("#milDelete");
     if (delBtn) delBtn.onclick = async () => {
@@ -515,35 +865,24 @@
         location.hash = "#/military/" + entity + "s";
       } catch (err) { toast(err.message, "err"); }
     };
-    /* show more — append the next page of a related panel */
-    root.querySelectorAll("[data-relmore]").forEach(btn => {
-      btn.onclick = async () => {
-        const slug = btn.dataset.relmore;
-        const fk = btn.dataset.relfk;
-        const tbody = root.querySelector(`tbody[data-relbody="${slug}"]`);
-        const loaded = tbody.querySelectorAll("tr").length;
-        btn.disabled = true;
-        const data = await mreq("GET", "/" + slug + "?limit=" + relLimit
-          + "&offset=" + loaded + "&sort=id&direction=desc&" + fk + "=" + btn.dataset.relid);
-        tbody.insertAdjacentHTML("beforeend",
-          (data.records || []).map(r => relRow(slug, r)).join(""));
-        btn.disabled = false;
-        if (tbody.querySelectorAll("tr").length >= (data.total || 0)) btn.remove();
-      };
+    /* show more — append the next page of a related table (any tab) */
+    body.addEventListener("click", async (ev) => {
+      const btn = ev.target.closest("[data-relmore]");
+      if (!btn) return;
+      const slug = btn.dataset.relmore;
+      const fk = btn.dataset.relfk;
+      const tbody = body.querySelector(`tbody[data-relbody="${slug}"]`);
+      if (!tbody) return;
+      const loaded = tbody.querySelectorAll("tr").length;
+      btn.disabled = true;
+      const data = await mreq("GET", "/" + slug + "?limit=" + REL_LIMIT
+        + "&offset=" + loaded + "&sort=id&direction=desc&" + fk + "=" + btn.dataset.relid);
+      const rowFn = ROWS[slug] ? ROWS[slug] : (r) => genRow(slug, r);
+      tbody.insertAdjacentHTML("beforeend",
+        (data.records || []).map(r => rowFn(r)).join(""));
+      btn.disabled = false;
+      if (tbody.querySelectorAll("tr").length >= (data.total || 0)) btn.remove();
     });
-    const addBtn = root.querySelector("#milNoteAdd");
-    if (addBtn) addBtn.onclick = async () => {
-      const text = root.querySelector("#milNoteText").value.trim();
-      if (!text) return;
-      try {
-        await mreq("POST", "/notes", {
-          entity_type: entity, target_id: id,
-          note_text: text + FICTIONAL_SUFFIX, author: "app-user"
-        });
-        toast(t("common.saved"), "ok");
-        A.rerender();
-      } catch (err) { toast(err.message, "err"); }
-    };
   };
 
   /* ========================================================= view: tree */

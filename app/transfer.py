@@ -552,9 +552,11 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
                     payload["record_status_id"] = default_status_id
                 if code:
                     payload["code"] = code
-                repo.create_record(conn, spec, payload, actor=actor,
-                                   reason=reason or "bulk import", commit=False)
+                created = repo.create_record(conn, spec, payload, actor=actor,
+                                             reason=reason or "bulk import", commit=False)
                 report["created"] += 1
+                if not code:
+                    code = (created or {}).get("code") or code
             conn.execute("RELEASE SAVEPOINT imp_row")
             _register_written(resolvers, spec, conn, code, values)
         except Exception as exc:  # repo/SQL errors and service RuleViolation alike

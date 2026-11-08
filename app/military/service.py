@@ -188,6 +188,8 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("direct_personnel", "int", "Direct Personnel", min=0, default=0),
             _f("formation_date", "date", "Formation Date"),
             _f("headquarters", "text", "Headquarters"),
+            _f("image_url", "url", "Emblem URL"),
+            _f("image_alt", "text", "Emblem Description"),
             _f("notes", "textarea", "Notes"),
         ],
     },

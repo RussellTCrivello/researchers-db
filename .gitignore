@@ -42,3 +42,7 @@ desktop.ini
 
 # Arena session scratch
 .arena/
+
+# generated import test fixtures (bulk data)
+import-test-data/
+.fixture-seed/

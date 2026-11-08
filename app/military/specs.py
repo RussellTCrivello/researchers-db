@@ -66,6 +66,7 @@ FIELD_AR = {
     "relieved_date": "تاريخ الإعفاء", "entity_type": "نوع الكيان",
     "target_id": "السجل المستهدف", "note_text": "نص الملاحظة", "author": "الكاتب",
     "note_at": "تاريخ الملاحظة", "path": "المسار", "depth": "العمق",
+    "image_url": "رابط الشعار", "image_alt": "الوصف البديل للشعار",
     "created_at": "تاريخ الإنشاء", "created_by": "أنشأه",
     "modified_at": "آخر تحديث", "modified_by": "حدّثه",
 }
@@ -186,6 +187,8 @@ def _build_specs() -> dict[str, EntitySpec]:
         _ref("region_id", "region", group="structure", in_list=True),
         F("formation_date", "date", group="structure"),
         F("headquarters", "text", group="structure"),
+        F("image_url", "url", group="identity", in_list=False),
+        F("image_alt", "text", group="identity", in_list=False),
         F("notes", "textarea", group="main"),
         *_audit_fields(),
     ], "shield")

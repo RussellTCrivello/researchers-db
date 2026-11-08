@@ -45,6 +45,17 @@ def _military_present(conn: sqlite3.Connection) -> bool:
 def init_db(conn: sqlite3.Connection) -> None:
     """Apply the military migration to a connection (idempotent)."""
     conn.executescript(MIGRATION_FILE.read_text(encoding="utf-8"))
+    _ensure_emblem_columns(conn)
+
+
+def _ensure_emblem_columns(conn: sqlite3.Connection) -> None:
+    """Idempotent 017: the unit emblem columns (the lazy path runs no ledger)."""
+    if not _military_present(conn):
+        return
+    have = {r["name"] for r in conn.execute("PRAGMA table_info(military_unit)")}
+    for name in ("image_url", "image_alt"):
+        if name not in have:
+            conn.execute(f"ALTER TABLE military_unit ADD COLUMN {name} TEXT")
 
 
 def ensure() -> None:
@@ -59,7 +70,8 @@ def ensure() -> None:
         try:
             if not _military_present(conn):
                 init_db(conn)
-                conn.commit()
+            _ensure_emblem_columns(conn)   # pre-017 databases gain the columns
+            conn.commit()
         finally:
             conn.close()
         _initialised = True

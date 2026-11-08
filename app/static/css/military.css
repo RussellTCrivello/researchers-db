@@ -128,3 +128,18 @@ table.data th.sortable[aria-sort="descending"]::after { content: " ↓"; color: 
   background: var(--chip, #f2f5f9); border: 1px dashed var(--line, #d5dbe3);
 }
 .card.inner { box-shadow: none; border: 1px solid var(--line, #d5dbe3); }
+
+/* ---------- unit dossier: emblem + profile polish ---------- */
+.hero .portrait { position: relative; }
+.hero .portrait .emblem-btn {
+  position: absolute; inset-block-end: 5px; inset-inline-end: 5px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border: 1px solid var(--border, #d5dbe3); border-radius: 8px;
+  padding: 3px 5px; cursor: pointer; display: flex; line-height: 0;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, .12));
+}
+.hero .portrait .emblem-btn svg { width: 15px; height: 15px; }
+.hero .portrait .emblem-btn:hover { background: var(--surface-2, #eef2f7); }
+#milDossTabs { margin-top: 14px; }
+#milDossTabs .badge { margin-inline-start: 5px; }
+#tabBody .statcard b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
