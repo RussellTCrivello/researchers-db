@@ -12,9 +12,9 @@
   const A = window.App;
   const { t, api, esc, icon, hydrateIcons, toast, fmtNum } = A;
 
-  const GROUP_ORDER = ["identity", "life", "career", "location", "geo", "timing", "link",
-    "detail", "people", "profile", "content", "assessment", "research", "history",
-    "contact", "meta", "system"];
+  const GROUP_ORDER = ["identity", "structure", "life", "career", "location", "geo",
+    "timing", "link", "detail", "main", "people", "profile", "content", "assessment",
+    "research", "history", "contact", "meta", "system"];
 
   const NAME_FIELD = { person: "name_ar", institution: "name_ar", place: "name_ar",
     source: "title", event: "title_ar", relationship: "description" };
@@ -791,7 +791,11 @@
     const groups = {};
     fields.filter(f => !f.system).forEach(f => { (groups[f.group] = groups[f.group] || []).push(f); });
 
-    GROUP_ORDER.filter(g => groups[g]).forEach(g => {
+    const ordered = GROUP_ORDER.filter(g => groups[g]);
+    /* groups the catalogue does not know yet (e.g. military structure/main)
+       still render, in spec order, after the known ones */
+    Object.keys(groups).filter(g => !GROUP_ORDER.includes(g)).forEach(g => ordered.push(g));
+    ordered.forEach(g => {
       const fs = document.createElement("fieldset");
       fs.className = "field-group";
       fs.innerHTML = `<legend>${esc(t("form.groups." + g) || g)}</legend>
@@ -869,7 +873,8 @@
       const wrap = document.createElement("div");
       wrap.className = "field" + (f.type === "textarea" ? " span2" : "");
       wrap.dataset.field = f.key;
-      let val = rec ? rec[f.key] : (f.key === "code" ? nextCode : "");
+      let val = rec ? rec[f.key]
+        : ((f.key === "code" || f.key === "docname") ? nextCode : "");
       /* a brand-new record starts on the workflow default (draft) instead of
          showing an empty required dropdown the server would have to fix up */
       if (!rec && !val && f.key === "record_status_id") {
@@ -898,6 +903,15 @@
         sel.dataset.k = f.key;
         const storeCode = f.store === "code";
         let opts = A.domainOptions(f.domain) || [];
+        if (!opts.length && (f.options || []).length) {
+          /* free-code vocabulary (store = "code", no lookup domain): the
+             allowed values ride on the meta field — the service validates the
+             same list */
+          opts = f.options.map(o => typeof o === "string"
+            ? { id: o, code: o, label_en: o, label_ar: o }
+            : { id: o.code, code: o.code, label_en: o.label_en || o.code,
+                label_ar: o.label_ar || o.code });
+        }
         /* relationship endpoints cannot point at a relationship or a source */
         if (entity === "relationship" && (f.key === "entity1_type" || f.key === "entity2_type")) {
           opts = opts.filter(o => o.code !== "relationship" && o.code !== "source");
@@ -1487,10 +1501,38 @@
         .map(r => ({ entity_type: r.entity_type, entity_id: r.entity_id }));
     }
 
+    /* live numbering preview: the auto-generated document name follows what is
+       typed (year partitions, choice fields) — advisory, never reserved */
+    const docEl = form.querySelector('.field[data-field="docname"] [data-k]');
+    if (isNew && docEl && docEl.disabled) {
+      let nameTimer;
+      const refreshName = async () => {
+        const ctx = new URLSearchParams();
+        form.querySelectorAll("select[data-k]").forEach(sel => {
+          if (sel.value) ctx.set(sel.dataset.k, sel.value);
+        });
+        try {
+          const res = await api.get(`/api/${entity}/next-code?${ctx}`);
+          if (res.code && docEl.isConnected) docEl.value = res.code;
+        } catch (e) { /* advisory only — never block the form */ }
+      };
+      form.addEventListener("input", () => {
+        clearTimeout(nameTimer);
+        nameTimer = setTimeout(refreshName, 400);
+      });
+      form.addEventListener("change", () => {
+        clearTimeout(nameTimer);
+        nameTimer = setTimeout(refreshName, 150);
+      });
+    }
+
     form._collect = () => {
       const data = {};
       form.querySelectorAll("[data-k]").forEach(el => {
         const key = el.dataset.k;
+        /* read-only controls (system-maintained values like docname) display
+           state, they never contribute to the payload */
+        if (el.disabled) return;
         if (el.type === "checkbox") data[key] = el.checked;
         else if (el.value === "") data[key] = null;
         else data[key] = el.value;
@@ -1743,11 +1785,12 @@
   function formActions(form, ctx) {
     const { entity, rec } = ctx;
     const isNew = !rec;
+    const backTo = ctx.backTo || (isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`);
     const bar = document.createElement("div");
     bar.className = "formbar no-print" + (ctx.mode === "dialog" ? " in-dialog" : "");
     bar.innerHTML = `<button type="button" class="btn primary" data-save>${icon("save")} ${t("common.save")}</button>
       ${isNew ? `<button type="button" class="btn" data-save-new>${t("common.save")} + ${t("common.new")}</button>` : ""}
-      <a class="btn ghost" href="${isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`}"
+      <a class="btn ghost" href="${backTo}"
          data-cancel>${t("common.cancel")}</a>
       <span class="dirty" data-dirty></span>
       <span class="spacer"></span>
@@ -1838,11 +1881,15 @@
     host.appendChild(form);
     hydrateIcons(root);
 
+    /* stay-in-place: the form was opened *from* a screen — save and cancel
+       return to it (redrawn with the saved record) instead of navigating on */
+    const backTo = A.state.formReturnTo || A.state.formOrigin || `#/entity/${entity}`;
+    A.state.formReturnTo = null;
     const { bar } = formActions(form, {
-      entity, rec, mode: "page",
+      entity, rec, mode: "page", backTo,
       onSaved: (record, andNew) => {
         if (andNew) return renderForm(root, entity, null, params);
-        location.hash = `#/entity/${entity}/${record.id}`;
+        replaceRoute(backTo);
       }
     });
     form.appendChild(bar);
@@ -1866,14 +1913,17 @@
        (the settings screen's "open a form" button does exactly that). */
     const returnTo = A.state.formReturnTo;
     A.state.formReturnTo = null;
-    const behind = returnTo || (isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`);
+    /* stay-in-place: return to the screen the form was opened from (an explicit
+       returnTo, or the last non-form screen) — not merely "the list" */
+    const origin = returnTo || A.state.formOrigin;
+    const behind = origin || (isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`);
 
     /* 1 · the page behind the dialog — the list a new record will join, or the
            dossier being edited.  If that page is already on screen (the usual
            case: you clicked "New" in the list) it is left alone, so the dialog
            opens over live content instead of a re-painted copy. */
-    const want = returnTo || (isNew ? `list:${entity}` : `record:${entity}:${rec && rec.id}`);
-    if (!returnTo && root.dataset.surface !== want) {
+    const want = origin || (isNew ? `list:${entity}` : `record:${entity}:${rec && rec.id}`);
+    if (!origin && root.dataset.surface !== want) {
       if (isNew) await A.views.list(root, Object.assign({}, params, { dialogBehind: true }));
       else await A.views.record(root, Object.assign({}, params, { dialogBehind: true }));
     }
@@ -1928,7 +1978,9 @@
           return;
         }
         dlg.close("saved");
-        replaceRoute(`#/entity/${entity}/${record.id}`);
+        /* stay-in-place: the screen the form was opened from is redrawn with
+           the saved record — no navigation away */
+        replaceRoute(behind);
       },
       onCancel: () => { dlg.close("cancel"); replaceRoute(behind); }
     });
@@ -1968,14 +2020,23 @@
     }
   };
 
+  /** Canonical entity key — routes may carry plural military slugs ("units"). */
+  function normEntity(key) {
+    const ents = (A.state.meta.entities || []).map(e => e.key);
+    if (ents.includes(key)) return key;
+    const single = key && key.endsWith("s") ? key.slice(0, -1) : key;
+    return ents.includes(single) ? single : key;
+  }
+
   A.views.recordNew = async function (root, params) {
-    if (A.formMode() === "dialog") return openFormDialog(root, params.entity, null, params);
-    await renderForm(root, params.entity, null, params);
+    const entity = normEntity(params.entity);
+    if (A.formMode() === "dialog") return openFormDialog(root, entity, null, params);
+    await renderForm(root, entity, null, params);
   };
 
   A.views.recordEdit = async function (root, params) {
-    const { entity, id } = params;
-    const rec = await api.get(`/api/${entity}/${id}`);
+    const entity = normEntity(params.entity);
+    const rec = await api.get(`/api/${entity}/${params.id}`);
     if (A.formMode() === "dialog") return openFormDialog(root, entity, rec, params);
     await renderForm(root, entity, rec, params);
   };

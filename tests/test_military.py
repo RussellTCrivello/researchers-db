@@ -690,9 +690,12 @@ def test_military_workspace_wired_into_shell():
     assert "/static/js/views/military.js" in html
     assert "/static/css/military.css" in html
     js = Path("app/static/js/views/military.js").read_text(encoding="utf-8")
-    for view in ("military", "milList", "milForm", "milTree", "milForce",
-                 "milHoldings", "milNaming", "milAudit"):
+    for view in ("military", "milList", "milTree", "milForce",
+                 "milHoldings", "milNaming", "milAudit", "milDossier"):
         assert f"A.views.{view}" in js, view
+    # the duplicate military form is gone: add/edit ride the ONE shared record
+    # form (record.js), exactly like places, people and organizations
+    assert "A.views.milForm" not in js
     app_js = Path("app/static/js/app.js").read_text(encoding="utf-8")
     assert "/military" in app_js
     # the parallel standalone app is gone: one structure only
@@ -925,14 +928,15 @@ class TestVolumeUI:
 class TestLinkedFieldCombobox:
     def test_ref_fields_render_searchable_combobox(self):
         """Linked fields ride the SHARED searchable combobox (A.combobox) with
-        quick-create enabled — and the one-time combobox engine is gone, so the
-        application can never grow a second, duplicate one."""
+        quick-create enabled — in the one shared record form, which now also
+        serves the military entities.  The one-time combobox engine is gone, so
+        the application can never grow a second, duplicate one."""
         from pathlib import Path
-        src = Path("app/static/js/views/military.js").read_text()
+        src = Path("app/static/js/views/record.js").read_text()
         assert "A.combobox(" in src                    # shared engine, not a local copy
-        assert "allowCreate: true" in src              # linked fields are addable
-        assert 'hidden.name = f.name' in src           # form reads it like any field
-        assert "ref-mount" in src
+        assert 'allowCreate: f.type === "fk" || vocabCreate' in src   # linked fields addable
+        assert 'hidden.dataset.k = f.key' in src       # form reads it like any field
+        assert 'entity: f.type === "fk" ? fkEntity : undefined' in src
         assert "function refCombo(" not in src         # no duplicate combobox engine
         assert "bindRefCombos" not in src
 
@@ -956,12 +960,17 @@ class TestLinkedFieldCombobox:
 
 
 class TestNumberingControl:
-    def test_naming_preview_chip_in_new_form(self):
+    def test_numbering_preview_lives_in_the_shared_form(self):
+        """The numbering control (preview chip) of the old military form is now
+        the shared form's live document-name preview: the read-only name field
+        shows the next value and refreshes as the person types."""
         from pathlib import Path
-        src = Path("app/static/js/views/military.js").read_text()
-        assert "milNameChip" in src
-        assert '"/naming/preview"' in src
-        assert "mil.naming.preview" in src
+        src = Path("app/static/js/views/record.js").read_text()
+        assert 'data-field="docname"' in src            # the named field
+        assert "/next-code" in src                      # live preview endpoint
+        assert "f.key === \"code\" || f.key === \"docname\"" in src  # both name systems
+        mil = Path("app/static/js/views/military.js").read_text()
+        assert "milNameChip" not in mil                 # no second numbering UI
 
     def test_preview_is_advisory_and_shape_stable(self, tmp_db):
         from app.military import naming, service
@@ -970,6 +979,67 @@ class TestNumberingControl:
         assert res["reserved"] is False
         assert res["next"].startswith("MIL-UNIT-")
         assert res["next_value"] >= 1
+
+
+class TestSharedFormForMilitary:
+    """One form system for the whole application: military add/edit use the
+    same advanced record form (record.js) as places, people and organizations —
+    settings-integrated (form mode page/dialog, language, density) and
+    stay-in-place: the form never navigates the person away from the screen it
+    was opened from."""
+
+    def test_meta_carries_vocabulary_options_for_military_selects(self, client):
+        """Free-code vocabulary fields expose their allowed values in the
+        unified meta, so the shared form renders real dropdowns — and the
+        service validates the very same list."""
+        from app.military import service as svc
+        r = client.get("/api/meta")
+        assert r.status_code == 200
+        fields = r.json()["fields"]
+        checked = 0
+        for ent, rows in fields.items():
+            if ent not in svc.ENTITY_SPECS:
+                continue
+            legacy = {f["name"]: f for f in svc.ENTITY_SPECS[ent]["fields"]}
+            for d in rows:
+                want = (legacy.get(d["key"]) or {}).get("options")
+                if want:
+                    assert d.get("options") == list(want), (ent, d["key"])
+                    checked += 1
+        assert checked >= 6, checked   # the vocabularies are actually wired
+
+    def test_next_code_returns_the_document_name_preview(self, client):
+        """The generic next-code endpoint speaks document names for military
+        entities (the numbering control's preview), not bare numbers."""
+        r = client.get("/api/unit/next-code")
+        assert r.status_code == 200
+        code = r.json()["code"]
+        assert code.startswith("MIL-UNIT-"), code
+        # context params narrow the naming partition; the call is advisory
+        r2 = client.get("/api/unit/next-code", params={"year": "2031"})
+        assert r2.status_code == 200
+
+    def test_form_hygiene_and_group_order(self):
+        from pathlib import Path
+        src = Path("app/static/js/views/record.js").read_text()
+        # read-only values (system-maintained docname) are never sent back
+        assert "if (el.disabled) return;" in src
+        # every spec group renders: known groups ordered, unknown ones appended
+        assert '"structure"' in src and '"main"' in src
+        assert "!GROUP_ORDER.includes(g)" in src
+        # free-code vocabularies render as dropdowns from meta options
+        assert "f.options" in src
+
+    def test_stay_in_place_after_save(self):
+        from pathlib import Path
+        rec = Path("app/static/js/views/record.js").read_text()
+        app = Path("app/static/js/app.js").read_text()
+        # the screen a form was opened from is remembered …
+        assert "formOrigin" in app
+        # … and save/cancel return to it instead of navigating away
+        assert "replaceRoute(backTo)" in rec
+        assert "replaceRoute(behind)" in rec
+        assert "ctx.backTo" in rec
 
 
 class TestListViewTools:
@@ -1573,10 +1643,15 @@ class TestUnifiedWiring:
         assert "A.milImport" not in mil        # import is the shared wizard now
         assert "entityKey(" in mil
 
-    def test_generic_entity_routes_alias_to_military_views(self):
+    def test_military_add_edit_ride_the_shared_form_routes(self):
+        """Add and edit are the ONE shared form (recordNew/recordEdit) for
+        every entity, military included — only the record *dossier* keeps its
+        military layout."""
         from pathlib import Path
         app = Path("app/static/js/app.js").read_text()
-        assert 'view: "milForm", keys: ["entity"]' in app
+        assert 're: /^\\/military\\/([\\w-]+)\\/new$/, view: "recordNew"' in app
+        assert 're: /^\\/military\\/([\\w-]+)\\/(\\d+)$/, view: "recordEdit"' in app
+        assert 'view: "milForm"' not in app
         assert 'view: "milDossier", keys: ["entity", "id"]' in app
 
     def test_every_request_carries_the_role_header(self):

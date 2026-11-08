@@ -18,7 +18,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -122,6 +122,24 @@ def spec_of_any(entity: str) -> Any:
     return spec_of(entity)
 
 
+def _mil_fields_meta(spec: Any) -> list[dict]:
+    """Shared field metadata plus the military vocabulary options.
+
+    Military select fields store free codes (``store="code"``, no lookup
+    domain); the allowed values live in the service's field specs.  Attaching
+    them here lets every generic form render the same dropdowns the service
+    validates against — one meta contract, no military-only form."""
+    from ..military import service as mil_service
+
+    rows = fields_meta(spec)
+    legacy = {f["name"]: f for f in mil_service.ENTITY_SPECS[spec.key]["fields"]}
+    for d in rows:
+        opts = (legacy.get(d["key"]) or {}).get("options")
+        if opts:
+            d["options"] = list(opts)
+    return rows
+
+
 def _mil_role(x_military_role: str | None) -> str:
     role = (x_military_role or "").strip().lower()
     # mirrors app.military.api._role_of: an unknown/absent role defaults to admin
@@ -219,7 +237,7 @@ def meta(conn=Depends(conn_dep), lang: str = "en"):
         "app": {"name": "SIRAJ", "version": "1.0.0", "schema_version": "1.0.0"},
         "entities": entity_meta(lang) + mil_entity_meta(),
         "fields": {**{k: fields_meta(v) for k, v in ENTITIES.items()},
-                   **{k: fields_meta(v) for k, v in MIL_SPECS.items()}},
+                   **{k: _mil_fields_meta(v) for k, v in MIL_SPECS.items()}},
         "derived": {**{k: derived_meta(k) for k in ENTITIES},
                     **{k: [] for k in MIL_SPECS}},
         "view_modes": ["table", "cards", "gallery", "list"],
@@ -1620,13 +1638,16 @@ def entity_list(entity: str, q: str | None = None, page: int = 1, page_size: int
 
 
 @app.get("/api/{entity}/next-code")
-def entity_next_code(entity: str, conn=Depends(conn_dep)):
+def entity_next_code(entity: str, request: Request, conn=Depends(conn_dep)):
     if is_mil(entity):
         from ..military import naming
         from ..military.naming import NamingError
         try:
-            preview = naming.preview(conn, entity, {})
-            return {"entity": entity, "code": preview["next_value"]}
+            # query params carry the naming context (year + choice fields), so
+            # the preview tracks what is being typed — advisory, never reserved
+            ctx = {k: v for k, v in request.query_params.items() if v}
+            preview = naming.preview(conn, entity, ctx)
+            return {"entity": entity, "code": preview["next"]}
         except NamingError:
             return {"entity": entity, "code": ""}
     spec_of(entity)

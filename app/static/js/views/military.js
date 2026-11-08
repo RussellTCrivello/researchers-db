@@ -383,175 +383,6 @@
     return esc(String(v));
   }
 
-  /* ========================================================= view: form */
-  A.views.milForm = async function (root, params) {
-    const entity = entityKey(params.entity), id = params.id ? Number(params.id) : null;
-    const m = await meta();
-    const spec = m.entities[entity];
-    if (!spec) { location.hash = "#/military"; return; }
-    A.crumbs([{ label: t("nav.military"), href: "#/military" },
-      { label: entLabel(entity), href: "#/military/" + entity + "s" },
-      { label: id ? "#" + id : t("common.new") }]);
-    const record = id ? (await mreq("GET", "/" + entity + "s/" + id)).record : {};
-
-    const fieldsHtml = spec.fields.map(f => {
-      const v = record[f.name];
-      const req = f.required ? ` <span class="req">*</span>` : "";
-      let control;
-      if (f.type === "choice") {
-        control = `<select name="${f.name}"><option value=""></option>${f.options.map(o =>
-          `<option value="${esc(o)}"${String(v) === o ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
-      } else if (f.type === "ref") {
-        /* linked field = the shared searchable, addable combobox (A.combobox,
-           quick-create included) mounted behind a hidden input named for the
-           form — one combobox engine for the whole application */
-        control = `<div class="ref-mount" data-ref="${f.name}" data-entity="${f.entity}"></div>`;
-      } else if (f.type === "textarea") {
-        control = `<textarea name="${f.name}" rows="3">${esc(v || "")}</textarea>`;
-      } else if (f.type === "bool") {
-        control = `<select name="${f.name}">
-          <option value="1"${v ? " selected" : ""}>${esc(t("common.yes"))}</option>
-          <option value="0"${v ? "" : " selected"}>${esc(t("common.no"))}</option></select>`;
-      } else {
-        const type = f.type === "date" ? "date" : f.type === "int" ? "number" : "text";
-        control = `<input type="${type}" name="${f.name}" value="${esc(v == null ? "" : v)}"
-          ${f.min != null ? `min="${f.min}"` : ""}>`;
-      }
-      return `<div class="field" data-field="${f.name}">
-        <label>${esc(fieldLabel(f))}${req}</label>${control}
-        <div class="err"></div></div>`;
-    }).join("");
-
-    root.innerHTML = milNav("e:" + entity) +
-      A.pageHead((id ? t("common.edit") : t("common.new")) + " — " + entLabel(entity),
-        record.docname || "", `
-        <a class="btn" href="#/military/${entity}s">${icon("undo")} ${esc(t("common.back"))}</a>
-        ${id ? `<button class="btn" id="milDelete">${icon("trash")} ${esc(t("common.delete"))}</button>` : ""}`) +
-      `<div class="card">${id ? "" : `
-        <div class="name-preview" id="milNamePreview">
-          <span class="chip violet" id="milNameChip">${esc(t("mil.naming.preview"))} —</span>
-          <span class="small muted">${esc(t("mil.naming.previewHint"))}</span>
-        </div>`}
-        <form id="milForm" class="form-grid">${fieldsHtml}</form>
-        ${id ? `<hr class="hr-soft"><div class="small muted">
-          ${esc(t("mil.form.created"))}: ${esc(record.created_at || "—")} · ${esc(record.created_by || "—")} ·
-          ${esc(t("mil.form.modified"))}: ${esc(record.modified_at || "—")} · ${esc(record.modified_by || "—")}
-        </div>` : ""}
-        <div class="btn-row" style="margin-top:16px">
-          <button class="btn primary" id="milSave">${icon("save")} ${esc(t("common.save"))}</button>
-          <a class="btn" href="#/military/${entity}s">${esc(t("common.cancel"))}</a>
-        </div>
-      </div>`;
-
-    if (id) {
-      root.querySelector(".card .btn-row").insertAdjacentHTML("beforeend",
-        `<a class="btn" href="#/military/${entity}s/${id}/show">${icon("eye")} ${esc(t("common.view"))}</a>`);
-    }
-    if (entity === "unit" && id) {
-      root.querySelector(".card .btn-row").insertAdjacentHTML("beforeend",
-        `<a class="btn" href="#/military/units/${id}/force">${icon("activity")} ${esc(t("mil.force.title"))}</a>`);
-    }
-    bindChrome(root);
-    const form = root.querySelector("#milForm");
-    spec.fields.filter(f => f.type === "ref").forEach(f => {
-      const mount = form.querySelector(`.ref-mount[data-ref="${f.name}"]`);
-      if (!mount) return;
-      const hidden = document.createElement("input");
-      hidden.type = "hidden";
-      hidden.name = f.name;
-      hidden.value = record[f.name] == null || record[f.name] === "" ? "" : Number(record[f.name]);
-      const combo = A.combobox({
-        entity: f.entity, value: hidden.value ? Number(hidden.value) : null,
-        size: "sm", allowCreate: true,
-        placeholder: t("mil.combo.search"),
-        onSelect: (it) => { hidden.value = it ? it.id : ""; },
-        onClear: () => { hidden.value = ""; }
-      });
-      mount.appendChild(combo);
-      mount.appendChild(hidden);
-    });
-
-    /* live advisory document-name preview (automated numbering control) */
-    if (!id) {
-      const chip = root.querySelector("#milNameChip");
-      let timer;
-      const refreshPreview = async () => {
-        const payload = { entity };
-        spec.fields.forEach(f => {
-          if (f.type === "choice") {
-            const el = form.elements[f.name];
-            if (el && el.value) payload[f.name] = el.value;
-          }
-        });
-        try {
-          const res = await mreq("POST", "/naming/preview", payload);
-          chip.textContent = t("mil.naming.preview") + ": " + res.next;
-        } catch (e) { /* advisory only — never block the form */ }
-      };
-      form.addEventListener("input", () => {
-        clearTimeout(timer);
-        timer = setTimeout(refreshPreview, 400);
-      });
-      form.addEventListener("change", () => {
-        clearTimeout(timer);
-        timer = setTimeout(refreshPreview, 150);
-      });
-      refreshPreview();
-    }
-
-    const clearErrors = () => form.querySelectorAll(".field").forEach(el => {
-      el.classList.remove("invalid");
-      const e = el.querySelector(".err");
-      if (e) e.textContent = "";
-    });
-    const showErrors = (err) => {
-      clearErrors();
-      if (err.field) {
-        const el = form.querySelector(`.field[data-field="${err.field}"]`);
-        if (el) {
-          el.classList.add("invalid");
-          el.querySelector(".err").textContent = err.message;
-        }
-      }
-      toast(err.message, "err");
-    };
-    root.querySelector("#milSave").onclick = async () => {
-      if (role() === "viewer") { toast(t("mil.role.viewerBlocked"), "err"); return; }
-      clearErrors();
-      const payload = {};
-      spec.fields.forEach(f => {
-        const el = form.elements[f.name];
-        if (!el) return;
-        let v = el.value;
-        if (f.type === "int" && v !== "") v = Number(v);
-        if (f.type === "bool") v = el.value === "1";
-        if (f.type === "ref" && v !== "") v = Number(v);
-        payload[f.name] = v === "" ? null : v;
-      });
-      try {
-        const res = id
-          ? await mreq("PATCH", "/" + entity + "s/" + id, payload)
-          : await mreq("POST", "/" + entity + "s", payload);
-        toast(t("common.saved"), "ok");
-        location.hash = "#/military/" + entity + "s/" + res.record.id;
-      } catch (err) { showErrors(err); }
-    };
-    const del = root.querySelector("#milDelete");
-    if (del) del.onclick = async () => {
-      if (role() !== "admin") { toast(t("mil.role.viewerBlocked"), "err"); return; }
-      const ok = await A.confirmDialog({
-        title: t("common.delete"), message: t("mil.action.confirmDelete"),
-        confirmLabel: t("common.confirm")
-      });
-      if (!ok) return;
-      try {
-        await mreq("DELETE", "/" + entity + "s/" + id);
-        toast(t("common.deleted"), "ok");
-        location.hash = "#/military/" + entity + "s";
-      } catch (err) { toast(err.message, "err"); }
-    };
-  };
-
   /* ====================================================== view: dossier */
   const FICTIONAL_SUFFIX = " (fictional note)";
   const RELATED = {
@@ -611,7 +442,8 @@
     root.innerHTML = milNav("e:" + entity) +
       A.pageHead(rec.docname || "#" + id, entLabel(entity), `
         <a class="btn" href="#/military/${entity}s">${icon("undo")} ${esc(t("common.back"))}</a>
-        <a class="btn primary" href="#/military/${entity}s/${id}">${icon("edit") || ""} ${esc(t("common.edit"))}</a>`) +
+        <a class="btn primary" href="#/military/${entity}s/${id}">${icon("edit") || ""} ${esc(t("common.edit"))}</a>
+        ${role() === "admin" ? `<button class="btn danger" id="milDelete">${icon("trash")} ${esc(t("common.delete"))}</button>` : ""}`) +
       `<div class="card">
         <div class="card-head"><h2>${esc(t("mil.dossier.fields"))}</h2></div>
         <dl class="dossier-grid">
@@ -660,6 +492,20 @@
         </table></div>` : `<div class="empty">${esc(t("mil.dossier.noRelated"))}</div>`}
       </div>`}`;
     bindChrome(root);
+    /* delete lives on the record view, as on the registry record page */
+    const delBtn = root.querySelector("#milDelete");
+    if (delBtn) delBtn.onclick = async () => {
+      const ok = await A.confirmDialog({
+        title: t("common.delete"), message: t("mil.action.confirmDelete"),
+        confirmLabel: t("common.confirm")
+      });
+      if (!ok) return;
+      try {
+        await mreq("DELETE", "/" + entity + "s/" + id);
+        toast(t("common.deleted"), "ok");
+        location.hash = "#/military/" + entity + "s";
+      } catch (err) { toast(err.message, "err"); }
+    };
     /* show more — append the next page of a related panel */
     root.querySelectorAll("[data-relmore]").forEach(btn => {
       btn.onclick = async () => {

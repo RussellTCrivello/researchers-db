@@ -23,8 +23,8 @@
     { re: /^\/military\/armaments\/(\d+)\/holdings$/, view: "milHoldings", keys: ["id"] },
     { re: /^\/military\/naming$/, view: "milNaming" },
     { re: /^\/military\/audit$/, view: "milAudit" },
-    { re: /^\/military\/([\w-]+)\/new$/, view: "milForm", keys: ["entity"] },
-    { re: /^\/military\/([\w-]+)\/(\d+)$/, view: "milForm", keys: ["entity", "id"] },
+    { re: /^\/military\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)$/, view: "recordEdit", keys: ["entity", "id"] },
     { re: /^\/military\/([\w-]+)$/, view: "milList", keys: ["entity"] },
     { re: /^\/import$/, view: "import" },
     { re: /^\/export$/, view: "export" },
@@ -33,10 +33,8 @@
     { re: /^\/numbering$/, view: "numbering" },
     { re: /^\/settings$/, view: "settings" },
     { re: /^\/maintenance$/, view: "maintenance" },
-    /* military entities share the unified list engine but keep their own
-       forms and dossiers: alias the generic /entity/ routes first */
-    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/new$/, view: "milForm", keys: ["entity"] },
-    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/(\d+)\/edit$/, view: "milForm", keys: ["entity", "id"] },
+    /* military entities share the unified list engine, form engine and
+       settings; only the record *dossier* keeps its military layout */
     { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/(\d+)$/, view: "milDossier", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)\/edit$/, view: "recordEdit", keys: ["entity", "id"] },
@@ -65,6 +63,12 @@
   async function render() {
     const route = parseHash();
     App.state.route = route;
+    /* stay-in-place: remember the screen a record form was opened from — the
+       shared record forms return to it after save/cancel, they do not
+       navigate the person away */
+    if (!/\/(new|edit)$/.test(location.hash || "")) {
+      App.state.formOrigin = location.hash || "";
+    }
     syncShellChrome();
     /* A record form may live in a dialog.  Any navigation that is not *that*
        form closes it, so a dialog can never float over somebody else's page —
