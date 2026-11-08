@@ -140,7 +140,7 @@ def test_new_locale_keys_exist_in_both_bundles():
     ar = json.loads((LOCALES / "ar.json").read_text(encoding="utf-8"))
     assert set(en) == set(ar)
     for key in ("adm.filterValues", "adm.allRows", "adm.loadMore",
-                "adm.pageRows", "adm.showingOf"):
+                "adm.pageRows", "adm.showingOf", "adm.historical"):
         assert key in en and key in ar, key
         assert en[key] and ar[key], key
         assert ar[key] != en[key], f"echo in {key}"

@@ -184,3 +184,41 @@ def test_place_carries_the_full_chain():
     db.run_migrations(conn)
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(place)")}
     assert {"municipality_id", "village_id", "community_id"} <= cols
+
+# ------------------------------------------------- 6. depth data + history ---
+def test_admin_units_nest_three_deep():
+    import json
+
+    rows = json.loads((ROOT / "app/resources/admin_units.json").read_text(encoding="utf-8"))
+    assert rows, "admin_units.json must not be empty"
+    dists = {r["code"] for r in json.loads((ROOT / "app/resources/districts.json").read_text(encoding="utf-8"))}
+    own = {r["code"] for r in rows}
+    for r in rows:
+        assert r["level"] in ("municipality", "village", "community"), r
+        assert r["parent"] in dists or r["parent"] in own, r
+        assert r["label_en"] and r["label_ar"], r
+        assert r["label_ar"] != r["label_en"], r
+        # strict nesting: a village's parent is a municipality, a community's a village
+        parent_level = {"village": "municipality", "community": "village"}.get(r["level"])
+        if parent_level:
+            assert any(u["code"] == r["parent"] and u["level"] == parent_level for u in rows), r
+
+
+def test_seed_mounts_admin_units_and_history(tmp_db):
+    from app import db
+
+    conn = db.connect()
+    try:
+        for level in ("municipality", "village", "community"):
+            n = conn.execute("SELECT COUNT(*) c FROM lookup WHERE domain=?", (level,)).fetchone()["c"]
+            assert n > 0, level
+        su = conn.execute("SELECT * FROM lookup WHERE domain='country' AND code='SU'").fetchone()
+        assert su is not None
+        meta = db.json_load(su["meta"], {})
+        assert meta.get("historical") is True
+        assert meta.get("valid_from") and meta.get("valid_to")
+        assert "RU" in meta.get("successors", [])
+        sa = conn.execute("SELECT meta FROM lookup WHERE domain='country' AND code='SA'").fetchone()
+        assert "flag" in db.json_load(sa["meta"], {})
+    finally:
+        conn.close()

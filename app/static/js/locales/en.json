@@ -69,6 +69,7 @@
   "adm.formModeTryButton": "Open a form",
   "adm.formModeTryHint": "Opens a real new-record form in the chosen surface, without saving anything.",
   "adm.formModeYourOverride": "you currently override it",
+  "adm.historical": "Historical",
   "adm.inUse": "In use",
   "adm.labelAr": "Label (Arabic)",
   "adm.labelEn": "Label (English)",

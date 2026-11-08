@@ -502,8 +502,8 @@
           ${aIdx > 0 ? `<th>${esc(t("adm.parent") || "Parent")}</th>` : ""}
           <th class="num">${t("adm.order")}</th><th>${t("adm.active")}</th><th></th></tr></thead><tbody>
           ${rows.slice(0, shown).map(v => `<tr data-v="${v.id}">
-            <td class="mono-cell">${esc(v.code)}</td>
-            <td contenteditable="true" data-f="label_en">${esc(v.label_en)}</td>
+            <td class="mono-cell">${v.meta && v.meta.flag ? esc(v.meta.flag) + " " : ""}${esc(v.code)}</td>
+            <td contenteditable="true" data-f="label_en">${esc(v.label_en)}${v.meta && v.meta.historical ? " " + A.badge(t("adm.historical"), "slate") : ""}</td>
             <td contenteditable="true" data-f="label_ar" dir="rtl">${esc(v.label_ar)}</td>
             ${aIdx > 0 ? `<td class="small">${esc(parentLabel(v))}</td>` : ""}
             <td class="num" contenteditable="true" data-f="sort_order">${v.sort_order}</td>

@@ -1,0 +1,642 @@
+[
+ {
+  "code": "SY-DI-DM-DM",
+  "level": "municipality",
+  "parent": "SY-DI-DM",
+  "label_en": "Greater Damascus",
+  "label_ar": "دمشق الكبرى",
+  "sort": 10
+ },
+ {
+  "code": "SY-DI-DM-DM-MD",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Al-Midan",
+  "label_ar": "الميدان",
+  "sort": 10
+ },
+ {
+  "code": "SY-DI-DM-DM-MZ",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Al-Mazzah",
+  "label_ar": "المزة",
+  "sort": 20
+ },
+ {
+  "code": "SY-DI-DM-DM-BZ",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Barzeh",
+  "label_ar": "برزة",
+  "sort": 30
+ },
+ {
+  "code": "SY-DI-DM-DM-QB",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Qaboun",
+  "label_ar": "القابون",
+  "sort": 40
+ },
+ {
+  "code": "SY-DI-DM-DM-JB",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Jobar",
+  "label_ar": "الجوبر",
+  "sort": 50
+ },
+ {
+  "code": "SY-DI-DM-DM-RD",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Rukn al-Din",
+  "label_ar": "ركن الدين",
+  "sort": 60
+ },
+ {
+  "code": "SY-DI-DM-DM-SJ",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Sarouja",
+  "label_ar": "ساروجة",
+  "sort": 70
+ },
+ {
+  "code": "SY-DI-DM-DM-AM",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Al-Amara",
+  "label_ar": "العمارة",
+  "sort": 80
+ },
+ {
+  "code": "SY-DI-DM-DM-QN",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Al-Qanawat",
+  "label_ar": "القنوات",
+  "sort": 90
+ },
+ {
+  "code": "SY-DI-DM-DM-SH",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Al-Shaghour",
+  "label_ar": "الشاغور",
+  "sort": 100
+ },
+ {
+  "code": "SY-DI-DM-DM-SL",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Al-Salihiyah",
+  "label_ar": "الصالحية",
+  "sort": 110
+ },
+ {
+  "code": "SY-DI-DM-DM-AR",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Abu Rummaneh",
+  "label_ar": "أبو رمانة",
+  "sort": 120
+ },
+ {
+  "code": "SY-DI-DM-DM-KS",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Kafr Sousa",
+  "label_ar": "كفرسوسة",
+  "sort": 130
+ },
+ {
+  "code": "SY-DI-DM-DM-YK",
+  "level": "village",
+  "parent": "SY-DI-DM-DM",
+  "label_en": "Al-Yarmouk",
+  "label_ar": "اليرموك",
+  "sort": 140
+ },
+ {
+  "code": "SY-DI-DM-DM-YK-YC",
+  "level": "community",
+  "parent": "SY-DI-DM-DM-YK",
+  "label_en": "Yarmouk Camp",
+  "label_ar": "مخيّم اليرموك",
+  "sort": 10
+ },
+ {
+  "code": "JO-AM-AM-AM",
+  "level": "municipality",
+  "parent": "JO-AM-AM",
+  "label_en": "Greater Amman",
+  "label_ar": "أمانة عمّان الكبرى",
+  "sort": 10
+ },
+ {
+  "code": "JO-AM-AM-AM-JA",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Jabal Amman",
+  "label_ar": "جبل عمّان",
+  "sort": 10
+ },
+ {
+  "code": "JO-AM-AM-AM-JL",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Jabal al-Lweibdeh",
+  "label_ar": "جبل اللويبدة",
+  "sort": 20
+ },
+ {
+  "code": "JO-AM-AM-AM-AB",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Abdoun",
+  "label_ar": "عبدون",
+  "sort": 30
+ },
+ {
+  "code": "JO-AM-AM-AM-SW",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Sweifieh",
+  "label_ar": "الصويفية",
+  "sort": 40
+ },
+ {
+  "code": "JO-AM-AM-AM-KH",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Khalda",
+  "label_ar": "خلدا",
+  "sort": 50
+ },
+ {
+  "code": "JO-AM-AM-AM-SH",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Shmeisani",
+  "label_ar": "الشميساني",
+  "sort": 60
+ },
+ {
+  "code": "JO-AM-AM-AM-JH",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Jabal al-Hussein",
+  "label_ar": "جبل الحسين",
+  "sort": 70
+ },
+ {
+  "code": "JO-AM-AM-AM-AD",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Abdali",
+  "label_ar": "العبدلي",
+  "sort": 80
+ },
+ {
+  "code": "JO-AM-AM-AM-TA",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Tla al-Ali",
+  "label_ar": "طلعة علي",
+  "sort": 90
+ },
+ {
+  "code": "JO-AM-AM-AM-DB",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Dabouq",
+  "label_ar": "دابوق",
+  "sort": 100
+ },
+ {
+  "code": "JO-AM-AM-AM-JB",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Jubeiha",
+  "label_ar": "الجبيهة",
+  "sort": 110
+ },
+ {
+  "code": "JO-AM-AM-AM-SL",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Sweileh",
+  "label_ar": "الصويلح",
+  "sort": 120
+ },
+ {
+  "code": "JO-AM-AM-AM-UU",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Um Uthaina",
+  "label_ar": "أم أثينة",
+  "sort": 130
+ },
+ {
+  "code": "JO-AM-AM-AM-WS",
+  "level": "village",
+  "parent": "JO-AM-AM-AM",
+  "label_en": "Wadi Seer",
+  "label_ar": "وادي السير",
+  "sort": 140
+ },
+ {
+  "code": "SA-01-RY-RY",
+  "level": "municipality",
+  "parent": "SA-01-RY",
+  "label_en": "Riyadh Municipality",
+  "label_ar": "أمانة منطقة الرياض",
+  "sort": 10
+ },
+ {
+  "code": "SA-01-RY-RY-OL",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Olaya",
+  "label_ar": "العليا",
+  "sort": 10
+ },
+ {
+  "code": "SA-01-RY-RY-MZ",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Malaz",
+  "label_ar": "الملز",
+  "sort": 20
+ },
+ {
+  "code": "SA-01-RY-RY-NS",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Naseem",
+  "label_ar": "النسيم",
+  "sort": 30
+ },
+ {
+  "code": "SA-01-RY-RY-YK",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Yarmouk",
+  "label_ar": "اليرموك",
+  "sort": 40
+ },
+ {
+  "code": "SA-01-RY-RY-IR",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Irqah",
+  "label_ar": "عرقة",
+  "sort": 50
+ },
+ {
+  "code": "SA-01-RY-RY-MB",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Murabba",
+  "label_ar": "المربع",
+  "sort": 60
+ },
+ {
+  "code": "SA-01-RY-RY-SH",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Shifa",
+  "label_ar": "الشفا",
+  "sort": 70
+ },
+ {
+  "code": "SA-01-RY-RY-RD",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Rawdah",
+  "label_ar": "الروضة",
+  "sort": 80
+ },
+ {
+  "code": "SA-01-RY-RY-SW",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Suwaidi",
+  "label_ar": "السويدي",
+  "sort": 90
+ },
+ {
+  "code": "SA-01-RY-RY-MN",
+  "level": "village",
+  "parent": "SA-01-RY-RY",
+  "label_en": "Al-Mansoura",
+  "label_ar": "المنصورة",
+  "sort": 100
+ },
+ {
+  "code": "SA-02-JD-JD",
+  "level": "municipality",
+  "parent": "SA-02-JD",
+  "label_en": "Jeddah Municipality",
+  "label_ar": "أمانة جدة",
+  "sort": 10
+ },
+ {
+  "code": "SA-02-JD-JD-BL",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Balad",
+  "label_ar": "البلد",
+  "sort": 10
+ },
+ {
+  "code": "SA-02-JD-JD-RD",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Rawdah",
+  "label_ar": "الروضة",
+  "sort": 20
+ },
+ {
+  "code": "SA-02-JD-JD-HM",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Hamra",
+  "label_ar": "الحمراء",
+  "sort": 30
+ },
+ {
+  "code": "SA-02-JD-JD-SM",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Salamah",
+  "label_ar": "السلامة",
+  "sort": 40
+ },
+ {
+  "code": "SA-02-JD-JD-AZ",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Aziziyah",
+  "label_ar": "العزيزية",
+  "sort": 50
+ },
+ {
+  "code": "SA-02-JD-JD-NN",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Naeem",
+  "label_ar": "النعيم",
+  "sort": 60
+ },
+ {
+  "code": "SA-02-JD-JD-BW",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Bawadi",
+  "label_ar": "البوادي",
+  "sort": 70
+ },
+ {
+  "code": "SA-02-JD-JD-FS",
+  "level": "village",
+  "parent": "SA-02-JD-JD",
+  "label_en": "Al-Faisaliyah",
+  "label_ar": "الفيصلية",
+  "sort": 80
+ },
+ {
+  "code": "TN-11-TU-TU",
+  "level": "municipality",
+  "parent": "TN-11-TU",
+  "label_en": "Tunis Municipality",
+  "label_ar": "بلدية تونس",
+  "sort": 10
+ },
+ {
+  "code": "TN-11-TU-TU-HF",
+  "level": "village",
+  "parent": "TN-11-TU-TU",
+  "label_en": "Halfaouine",
+  "label_ar": "الحلفاوين",
+  "sort": 10
+ },
+ {
+  "code": "TN-11-TU-TU-BS",
+  "level": "village",
+  "parent": "TN-11-TU-TU",
+  "label_en": "Bab Souika",
+  "label_ar": "باب سويقة",
+  "sort": 20
+ },
+ {
+  "code": "TN-11-TU-TU-MZ",
+  "level": "village",
+  "parent": "TN-11-TU-TU",
+  "label_en": "El Menzah",
+  "label_ar": "المنزه",
+  "sort": 30
+ },
+ {
+  "code": "TN-11-TU-TU-MP",
+  "level": "village",
+  "parent": "TN-11-TU-TU",
+  "label_en": "Montplaisir",
+  "label_ar": "مونبليزير",
+  "sort": 40
+ },
+ {
+  "code": "TN-11-TU-TU-MV",
+  "level": "village",
+  "parent": "TN-11-TU-TU",
+  "label_en": "Mutuelleville",
+  "label_ar": "موتيوفيل",
+  "sort": 50
+ },
+ {
+  "code": "TN-11-TU-TU-OM",
+  "level": "village",
+  "parent": "TN-11-TU-TU",
+  "label_en": "El Omrane",
+  "label_ar": "العمران",
+  "sort": 60
+ },
+ {
+  "code": "IQ-BG-RU-RU",
+  "level": "municipality",
+  "parent": "IQ-BG-RU",
+  "label_en": "Baghdad — Rusafa side",
+  "label_ar": "بغداد — جهة الرصافة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-BG-RU-RU-KR",
+  "level": "village",
+  "parent": "IQ-BG-RU-RU",
+  "label_en": "Al-Karrada",
+  "label_ar": "الكرادة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-BG-RU-RU-JD",
+  "level": "village",
+  "parent": "IQ-BG-RU-RU",
+  "label_en": "Al-Jadriya",
+  "label_ar": "الجادرية",
+  "sort": 20
+ },
+ {
+  "code": "IQ-BG-RU-RU-BM",
+  "level": "village",
+  "parent": "IQ-BG-RU-RU",
+  "label_en": "Bab Al-Moatham",
+  "label_ar": "باب المعظم",
+  "sort": 30
+ },
+ {
+  "code": "IQ-BG-RU-RU-NB",
+  "level": "village",
+  "parent": "IQ-BG-RU-RU",
+  "label_en": "New Baghdad",
+  "label_ar": "بغداد الجديدة",
+  "sort": 40
+ },
+ {
+  "code": "IQ-BG-RU-RU-SC",
+  "level": "village",
+  "parent": "IQ-BG-RU-RU",
+  "label_en": "Sadr City",
+  "label_ar": "مدينة الصدر",
+  "sort": 50
+ },
+ {
+  "code": "IQ-BG-RU-RU-SH",
+  "level": "village",
+  "parent": "IQ-BG-RU-RU",
+  "label_en": "Al-Shaab",
+  "label_ar": "الشعب",
+  "sort": 60
+ },
+ {
+  "code": "IQ-BG-KR-KR",
+  "level": "municipality",
+  "parent": "IQ-BG-KR",
+  "label_en": "Baghdad — Karkh side",
+  "label_ar": "بغداد — جهة الكرخ",
+  "sort": 10
+ },
+ {
+  "code": "IQ-BG-KR-KR-KR",
+  "level": "village",
+  "parent": "IQ-BG-KR-KR",
+  "label_en": "Al-Karkh",
+  "label_ar": "الكرخ",
+  "sort": 10
+ },
+ {
+  "code": "IQ-BG-KR-KR-WZ",
+  "level": "village",
+  "parent": "IQ-BG-KR-KR",
+  "label_en": "Al-Waziriya",
+  "label_ar": "الوزيرية",
+  "sort": 20
+ },
+ {
+  "code": "IQ-BG-KR-KR-MY",
+  "level": "village",
+  "parent": "IQ-BG-KR-KR",
+  "label_en": "Al-Mansour",
+  "label_ar": "المنصور",
+  "sort": 30
+ },
+ {
+  "code": "IQ-BG-KR-KR-HR",
+  "level": "village",
+  "parent": "IQ-BG-KR-KR",
+  "label_en": "Al-Hurriya",
+  "label_ar": "الحرية",
+  "sort": 40
+ },
+ {
+  "code": "PS-GZA-GZ-GZ",
+  "level": "municipality",
+  "parent": "PS-GZA-GZ",
+  "label_en": "Gaza Municipality",
+  "label_ar": "بلدية غزة",
+  "sort": 10
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-RM",
+  "level": "village",
+  "parent": "PS-GZA-GZ-GZ",
+  "label_en": "Al-Rimal",
+  "label_ar": "الرمال",
+  "sort": 10
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-SJ",
+  "level": "village",
+  "parent": "PS-GZA-GZ-GZ",
+  "label_en": "Al-Shuja'iyya",
+  "label_ar": "الشجاعية",
+  "sort": 20
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-ZY",
+  "level": "village",
+  "parent": "PS-GZA-GZ-GZ",
+  "label_en": "Al-Zaytoun",
+  "label_ar": "الزيتون",
+  "sort": 30
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-DR",
+  "level": "village",
+  "parent": "PS-GZA-GZ-GZ",
+  "label_en": "Daraj",
+  "label_ar": "الدرج",
+  "sort": 40
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-SB",
+  "level": "village",
+  "parent": "PS-GZA-GZ-GZ",
+  "label_en": "Al-Sabra",
+  "label_ar": "الصبرة",
+  "sort": 50
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-TH",
+  "level": "village",
+  "parent": "PS-GZA-GZ-GZ",
+  "label_en": "Tal al-Hawa",
+  "label_ar": "تل الهوا",
+  "sort": 60
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-SR",
+  "level": "village",
+  "parent": "PS-GZA-GZ-GZ",
+  "label_en": "Sheikh Radwan",
+  "label_ar": "الشيخ رضوان",
+  "sort": 70
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-RM-SC",
+  "level": "community",
+  "parent": "PS-GZA-GZ-GZ-RM",
+  "label_en": "Al-Shati (Beach) Camp",
+  "label_ar": "مخيّم الشاطئ",
+  "sort": 10
+ },
+ {
+  "code": "PS-GZA-GZ-GZ-SJ-TF",
+  "level": "community",
+  "parent": "PS-GZA-GZ-GZ-SJ",
+  "label_en": "Al-Tuffah Quarter",
+  "label_ar": "حي التوفة",
+  "sort": 20
+ }
+]

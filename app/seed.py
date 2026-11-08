@@ -11,7 +11,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from . import db, settings
+from . import db, geo_chain, settings
 
 _RESOURCES = Path(__file__).resolve().parent / "resources"
 
@@ -342,6 +342,11 @@ def _districts() -> list[dict]:
     return _load_json("districts.json")
 
 
+def _admin_units() -> list[dict]:
+    """municipality / village / community rows (resources/admin_units.json)."""
+    return _load_json("admin_units.json")
+
+
 # Stable centre rows from earlier releases: referenced by _OBSOLETE_DIST and
 # live place backfills. The full Arab-world set lives in resources/districts.json.
 LEGACY_DISTRICTS: list[tuple[str, str, str, str, int]] = [
@@ -434,6 +439,63 @@ def _retire_obsolete_governorates(conn: sqlite3.Connection) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Historical dimensions: units that existed, were renamed, merged or dissolved
+# stay in the structure with validity bounds and successors (meta), never
+# deleted.  Historical names of living units ride as meta.aliases.
+# ---------------------------------------------------------------------------
+def _flag_emoji(iso2: str) -> str:
+    """Regional-indicator flag for a two-letter code — the unit's visual emblem."""
+    code = (iso2 or "").strip().upper()
+    if len(code) != 2 or not code.isalpha():
+        return ""
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code)
+
+
+# code, label_en, label_ar, meta — rows in the 'country' domain (level 0)
+HISTORICAL_UNITS: list[tuple[str, str, str, dict]] = [
+    ("SU", "Soviet Union", "الاتحاد السوفيتي",
+     {"historical": True, "iso3": "SUN", "valid_from": "1922-12-30", "valid_to": "1991-12-26",
+      "successors": ["RU", "UA", "BY", "KZ", "UZ", "TM", "KG", "TJ", "AM", "AZ", "GE", "MD", "LT", "LV", "EE"]}),
+    ("YU", "Yugoslavia", "يوغوسلافيا",
+     {"historical": True, "iso3": "YUG", "valid_from": "1918-12-01", "valid_to": "2003-02-04",
+      "successors": ["SI", "HR", "BA", "RS", "ME", "MK"]}),
+    ("CS", "Czechoslovakia", "تشيكوسلوفاكيا",
+     {"historical": True, "iso3": "CSK", "valid_from": "1918-10-28", "valid_to": "1992-12-31",
+      "successors": ["CZ", "SK"]}),
+    ("DD", "German Democratic Republic", "ألمانيا الديمقراطية",
+     {"historical": True, "iso3": "DDR", "valid_from": "1949-10-07", "valid_to": "1990-10-03",
+      "successors": ["DE"]}),
+    ("YD", "People's Democratic Republic of Yemen", "اليمن الديمقراطية",
+     {"historical": True, "iso3": "YMD", "valid_from": "1967-11-30", "valid_to": "1990-05-22",
+      "successors": ["YE"]}),
+    ("NT", "United Arab Republic", "الجمهورية العربية المتحدة",
+     {"historical": True, "iso3": "UAR", "valid_from": "1958-02-01", "valid_to": "1971-09-02",
+      "successors": ["EG", "SY"]}),
+    ("SCG", "Serbia and Montenegro", "صربيا والجبل الأسود",
+     {"historical": True, "iso3": "SCG", "valid_from": "2003-02-04", "valid_to": "2006-06-05",
+      "successors": ["RS", "ME"]}),
+]
+
+# historical names of living units (meta.aliases on the country row)
+COUNTRY_ALIASES: dict[str, list[str]] = {
+    "IR": ["Persia", "بلاد فارس"],
+    "TH": ["Siam", "سيام"],
+    "MM": ["Burma", "بورما"],
+    "SZ": ["Swaziland", "سوازيلاند"],
+    "TL": ["East Timor", "تيمور الشرقية"],
+    "CV": ["Cape Verde", "الرأس الأخضر"],
+    "CZ": ["Czech Republic", "التشيك"],
+    "TR": ["Ottoman Empire successor state", "دولة عثمانية سابقة"],
+    "RU": ["Russian Empire", "الإمبراطورية الروسية"],
+    "GR": ["Hellas", "اليونان"],
+    "NL": ["Holland", "هولندا"],
+    "KP": ["Democratic People's Republic of Korea", "كوريا الشعبية"],
+    "KR": ["Republic of Korea", "كوريا الجنوبية"],
+    "VA": ["Holy See", "الفاتيكان"],
+    "BN": ["Brunei Darussalam", "بروناي دار السلام"],
+}
+
+
 def seed_reference_data(conn: sqlite3.Connection) -> None:
     # domains
     for domain, en, ar, order in DOMAINS:
@@ -459,7 +521,10 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
             )
     # countries (configurable vocabulary — new rows may be added in Vocabularies)
     for i, c in enumerate(_countries(), start=1):
-        meta = {"iso2": c["code"], "iso3": c.get("iso3") or "", "region": c.get("region") or ""}
+        meta = {"iso2": c["code"], "iso3": c.get("iso3") or "",
+                "region": c.get("region") or "", "flag": _flag_emoji(c["code"])}
+        if COUNTRY_ALIASES.get(c["code"]):
+            meta["aliases"] = COUNTRY_ALIASES[c["code"]]
         conn.execute(
             """INSERT OR IGNORE INTO lookup (domain, code, label_en, label_ar, sort_order, color, meta, is_system)
                VALUES ('country',?,?,?,?,?,?,0)""",
@@ -469,6 +534,16 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
                WHERE domain='country' AND code=?""",
             (c["label_en"], c["label_ar"], i * 10, db.json_dump(meta), c["code"]))
     conn.execute("UPDATE lookup SET is_system=0 WHERE domain='country'")
+    # historical units — dissolved or renamed states keep their place in time
+    for i, (hcode, hen, har, hmeta) in enumerate(HISTORICAL_UNITS, start=1):
+        conn.execute(
+            """INSERT OR IGNORE INTO lookup (domain, code, label_en, label_ar, sort_order, color, meta, is_system)
+               VALUES ('country',?,?,?,?,?,?,0)""",
+            (hcode, hen, har, 1000 + i * 10, "slate", db.json_dump(hmeta)))
+        conn.execute(
+            """UPDATE lookup SET label_en=?, label_ar=?, meta=?, is_active=1, is_system=0
+               WHERE domain='country' AND code=?""",
+            (hen, har, db.json_dump(hmeta), hcode))
     # governorates / provinces → parent country
     for g in _governorates():
         parent = conn.execute(
@@ -508,6 +583,26 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
             """UPDATE lookup SET parent_id=?, label_en=?, label_ar=?, sort_order=?, is_system=0
                WHERE domain='district' AND code=?""",
             (parent["id"], en, ar, order, code))
+    # municipalities → villages → communities (resources/admin_units.json)
+    for u in _admin_units():
+        level = u["level"]
+        parent_domain = geo_chain.expected_parent(level)
+        parent = conn.execute(
+            "SELECT id FROM lookup WHERE domain=? AND code=?", (parent_domain, u["parent"])
+        ).fetchone()
+        if not parent:
+            continue
+        conn.execute(
+            """INSERT OR IGNORE INTO lookup
+               (domain, code, label_en, label_ar, parent_id, sort_order, color, is_system)
+               VALUES (?,?,?,?,?,?,?,0)""",
+            (level, u["code"], u["label_en"], u["label_ar"], parent["id"],
+             int(u.get("sort") or 100), "violet"))
+        conn.execute(
+            """UPDATE lookup SET parent_id=?, label_en=?, label_ar=?, sort_order=?, is_system=0
+               WHERE domain=? AND code=?""",
+            (parent["id"], u["label_en"], u["label_ar"], int(u.get("sort") or 100),
+             level, u["code"]))
     # Retire pre-ISO demo province codes; remount places onto the ISO equivalents.
     _retire_obsolete_governorates(conn)
     # locales / users / sequences / settings
