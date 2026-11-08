@@ -168,6 +168,33 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
         rank_title="Major", branch="Army",
         commission_date=_date(2010, 1, 10), status="Retired")
 
+    # --- assessed leadership qualities (the demo leadership layer) ----------
+    # What sets a leader apart: qualities WITH a basis, on the flagship
+    # commander so the profile fan and level chips render in the sample world.
+    add("trait", commander_id=vossen["id"], quality="Strategic Vision",
+        level="Exceptional", assessed_by="Higher Headquarters (fictional)",
+        assessed_at=_date(2024, 5, 12),
+        evidence_note="FICTIONAL evidence: authored the territorial defence "
+                      "concept later adopted theatre-wide.",
+        source="Annual Assessment Board (fictional)")
+    add("trait", commander_id=vossen["id"], quality="Leadership Under Fire",
+        level="Outstanding", assessed_by="After-Action Review (fictional)",
+        assessed_at=_date(2025, 2, 8),
+        evidence_note="FICTIONAL evidence: held the brigade together through "
+                      "the Brena floods of the sample storyline.",
+        source="After-action review (fictional)")
+    add("trait", commander_id=vossen["id"], quality="Logistics Mastery",
+        level="Proficient", assessed_by="Inspectorate General (fictional)",
+        assessed_at=_date(2025, 9, 30),
+        evidence_note="FICTIONAL evidence: reorganised the supply chain so no "
+                      "company went unfed during the sample deployment.")
+    add("trait", commander_id=kalvere["id"], quality="Discipline",
+        level="Outstanding", assessed_by="Board of Officers (fictional)",
+        assessed_at=_date(2025, 6, 14),
+        evidence_note="FICTIONAL evidence: the cleanest inspection record in "
+                      "the sample division for three running years.",
+        source="Annual Assessment Board (fictional)")
+
     # --- unit tree (military force tree) -----------------------------------
     brigade = add("unit", name="12th Territorial Brigade", code="12-TB",
                   echelon="Brigade", classification_id=line_cls["id"],
@@ -325,7 +352,8 @@ def clear_sample(conn, actor: str = "sample-loader",
                  keep_marker: bool = False) -> dict[str, Any]:
     """Remove all sample records (records only — the audit trail is append-only)."""
     tables = [
-        "note", "command_assignment", "training", "unit_armament", "mission",
+        "note", "commander_trait", "command_assignment", "training",
+        "unit_armament", "mission",
         "operational_deployment", "military_unit", "commander", "classification",
         "division", "region", "armament",
     ]

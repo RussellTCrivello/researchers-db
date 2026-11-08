@@ -311,6 +311,27 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
             duration_days=(e - s).days + 1,
             participant_count=rng.randint(0, cap))
 
+    # ---- assessed leadership qualities (basis kept — rule-clean) ----------
+    # Assessed qualities set leaders apart.  The basis trio is rule-required
+    # (basis_required), so `assessed_by` travels in the payload — never the
+    # optional dict — while level / date / source / evidence vary by the
+    # completeness profile like every other entity.
+    from .vocab import LEADERSHIP_QUALITIES
+    quals = [code for code, _labels in LEADERSHIP_QUALITIES]
+    assessors = ["Board of Officers", "Inspectorate General",
+                 "After-Action Review", "Staff College", "Higher Headquarters"]
+    for i, c in enumerate(commanders):
+        for q in (quals[i % len(quals)], quals[(i + 5) % len(quals)]):
+            optional: dict[str, Any] = {
+                "level": rng.choice(["Exceptional", "Outstanding",
+                                     "Proficient", "Developing"]),
+                "assessed_at": _date(rng, 2015, 2025),
+                "source": _name(rng, "Board", i),
+                "evidence_note": "FICTIONAL assessment evidence."}
+            add("trait", optional,
+                commander_id=c["id"], quality=q,
+                assessed_by=assessors[i % len(assessors)])
+
     # ---- command appointments (non-overlapping per unit+role) ---------
     roles = ["Commanding Officer", "Deputy Commander", "Chief of Staff",
              "Acting Commander"]

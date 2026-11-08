@@ -182,6 +182,37 @@ def test_leader_record_is_derived_not_estimated(client):
     assert missing.status_code == 404
 
 
+# ------------------------------------------------------- dataset coverage
+class TestLeadershipDatasetCoverage:
+    """The bulk dataset and the sample world carry the leadership layer too."""
+
+    def test_bulk_generates_basis_backed_assessments(self, tmp_db):
+        from app.military import bulk, service
+        with service.transaction() as conn:
+            bulk.load_bulk(conn, scale=300)
+            traits = service.list_records(conn, "trait", limit=200)["records"]
+        assert len(traits) >= 40, f"bulk made only {len(traits)} assessments"
+        assert all(t.get("quality") for t in traits)
+        # every row satisfies the basis rule — bulk is rule-clean by design
+        assert all(t.get("assessed_by") or t.get("evidence_note") or t.get("source")
+                   for t in traits), "bulk row without a basis"
+        quals = {t["quality"] for t in traits}
+        assert len(quals) >= 8, f"narrow quality spread: {sorted(quals)}"
+
+    def test_sample_world_shows_the_leadership_layer(self, tmp_db):
+        from app.military import seed, service
+        with service.transaction() as conn:
+            seed.load_sample(conn)
+            traits = service.list_records(conn, "trait", limit=50)["records"]
+        assert len(traits) >= 4, "sample world lacks the demo assessments"
+        by_cmd: dict[int, int] = {}
+        for t in traits:
+            by_cmd[t["commander_id"]] = by_cmd.get(t["commander_id"], 0) + 1
+        assert max(by_cmd.values()) >= 3, "flagship commander needs 3+ qualities"
+        assert all(t.get("assessed_by") or t.get("evidence_note") or t.get("source")
+                   for t in traits)
+
+
 # ---------------------------------------------------------------- front-end
 
 

@@ -87,6 +87,7 @@ erDiagram
     military_unit ||--o{ command_assignment : appoints
     operational_deployment ||--o{ mission : covers
     commander ||--o{ command_assignment : serves
+    commander ||--o{ commander_trait : "assessed qualities"
     armament ||--o{ unit_armament : issued
 ```
 
@@ -247,7 +248,23 @@ by users (see [UI-8](#8-interface)). The API exposes it as `subtree_personnel`.
 | `is_current` | bool | at most one current appointment per (unit, role) |
 | `notes` | text | |
 
-### 3.12 Note
+### 3.12 Command Trait (assessed leadership qualities)
+
+What sets a leader apart: qualities **assessed with a basis**, never bare
+tags. Each row records one assessment of one commander.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `commander_id` | → commander | R |
+| `quality` | lookup `leadership_quality` | R — 12 vocabulary qualities (EN/AR labels) |
+| `level` | lookup `leadership_level` | `Exceptional · Outstanding · Proficient · Developing` (colour + sort order) |
+| `assessed_by`, `evidence_note`, `source` | text | R collectively — **basis_required**: at least one must be present (4.15) |
+| `assessed_at` | date | must not be in the future (4.16) |
+
+The vocabulary is seeded idempotently by migration `019_commander_trait.sql`
+and the lazy path (`seed.ensure_leadership_vocab`) — both converge.
+
+### 3.13 Note
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -257,7 +274,7 @@ by users (see [UI-8](#8-interface)). The API exposes it as `subtree_personnel`.
 | `author` | text | R |
 | `note_at` | date | |
 
-### 3.13 System-maintained columns (all tables)
+### 3.14 System-maintained columns (all tables)
 
 | Column | Rule |
 | --- | --- |
@@ -295,6 +312,8 @@ the in-flight state. Violations return a structured error:
 | 4.12 | **Lifecycle transitions** — deployment `Planned → Active/ Suspended`, `Active → Completed/ Suspended`, `Suspended → Active/ Completed`, `Completed` terminal; mission `Planned → Ongoing/ Cancelled`, `Ongoing → Executed/ Cancelled`, terminal states final | `status_transition` | 422 |
 | 4.13 | **Deletion policy** — deleting a record referenced by dependents is blocked with a dependent count (RESTRICT at DB level as second line); a deleted current deployment/appointment always clears its pointer | `delete_blocked` | 409 |
 | 4.14 | **Role policy** — see §6; every write is checked server-side | `forbidden` | 403 |
+| 4.15 | **Assessment basis** — a trait assessment must carry at least one of `assessed_by`, `evidence_note`, `source` (a bare quality tag is not a record) | `basis_required` | 422 |
+| 4.16 | **No future assessments** — `assessed_at` must not be in the future | `future_assessment` | 422 |
 
 Unit status changes are set-valued only (all nine values always allowed): the
 unit transition policy is owner-reviewable and deliberately not hard-coded.
@@ -336,7 +355,7 @@ BODY[#+]
 * Adjusting a counter is **admin-only** and written to
   `naming_adjustment_log` (old/new value, actor, timestamp) plus the audit log.
 
-### 5.3 Catalogue (19 options)
+### 5.3 Catalogue (20 options)
 
 | Entity | Options (★ = default) |
 | --- | --- |
@@ -351,6 +370,7 @@ BODY[#+]
 | Unit Armament | ★`MIL-INV-` |
 | Training | ★`MIL-TRN-.YYYY.-`, `MIL-TRN-`, `MIL-TRN-.######` |
 | Command Assignment | ★`MIL-ASG-`, `MIL-ASG-.YYYY.-` |
+| Command Trait | ★`MIL-QUAL-` |
 | Note | ★`MIL-NOTE-` |
 
 ---
@@ -397,7 +417,7 @@ inside FastAPI's `detail`.
 
 ### 9.2 The unified data contract
 
-The twelve military entities are also served by the generic SIRAJ endpoints,
+The thirteen military entities are also served by the generic SIRAJ endpoints,
 in the exact shape the shared list engine speaks — the same contract that
 serves person / place / institution / source / relationship / event:
 
@@ -419,7 +439,7 @@ serves person / place / institution / source / relationship / event:
 
 Reads go through the shared query engine (`app/repo.py`, spec-driven);
 writes dispatch to `app/military/service` so business rules, automatic
-numbering and audit always apply. `app/military/specs.py` holds the twelve
+numbering and audit always apply. `app/military/specs.py` holds the thirteen
 `EntitySpec` definitions. **Import is unified the same way**: the shared
 import pipeline (`app/transfer.py`) serves every entity through the one
 wizard (`#/import`), and military rows are written through the military
@@ -493,7 +513,7 @@ polymorphic notes). The generic `/entity/...` routes resolve military
 entities to their own forms and dossiers, so links from shared surfaces
 (export rows, reference links, "Add" buttons) all work.
 
-**Administration** — **naming series** with full numbering control (19
+**Administration** — **naming series** with full numbering control (20
 options with partitions, next previews, the advisory preview tool,
 admin-only audited counter adjustment and a **counter history** log) and the
 **audit log**. Roles are demonstrated with a selector in the sub-nav
@@ -559,6 +579,8 @@ construction and doubles as a live example:
 * trainings within subtree participant capacity (the engine recomputes the
   subtree ceiling and rejects any exercise above it);
 * a CO history (relieved predecessor, current commander) plus staff roles;
+* assessed leadership qualities — what sets each leader apart — with a
+  basis (evidence, source or assessor) on the flagship commander;
 * polymorphic notes on a unit, a deployment and a commander.
 
 Loading is idempotent (already-loaded → skip); `force` resets through a full
@@ -591,7 +613,7 @@ against the live database and exits non-zero on any failure:
 | C.6 Restriction — mission/deployment consistency | mission unit = deployment unit or descendant of it |
 | C.7 Lifecycle — executed mission end date | `Executed` rows carry end dates |
 | C.8 Lifecycle — appointment overlap | no overlapping (unit, role) windows |
-| C.9 Naming — generated document names | `docname` unique per table; 19 series options |
+| C.9 Naming — generated document names | `docname` unique per table; 20 series options |
 | C.10 Dataset invariants | dataset rule-clean whenever data exists (skipped when empty) |
 | C.11 Dataset completeness variation | complete, partial AND near-empty records all present (enforced for bulk datasets) |
 

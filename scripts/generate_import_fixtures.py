@@ -19,9 +19,14 @@ Design contract (matches ``app/transfer.py``):
   registry entities (from a freshly seeded reference database) and the
   static option choices for military entities.
 * Reference fields chain within a file (parent places/regions/units) and
-  across files by name (import the files in the README order), plus a few
-  deliberately unresolvable references so the error report can be tested.
+  across files by name (import the files in the ``ORDER`` sequence of
+  ``tests/test_import_fixtures.py``), plus a few deliberately unresolvable
+  references so the error report can be tested.
 * A handful of rows per file omit a required name — expected row errors.
+* ``trait`` rows carry real ``leadership_quality`` / ``leadership_level``
+  vocabulary codes and every non-error row keeps at least one basis field
+  (``assessed_by`` / ``evidence_note`` / ``source``) — the basis rule is
+  satisfied by construction.
 """
 
 from __future__ import annotations
@@ -162,7 +167,7 @@ def field_info(spec, mil_flag):
                 "key": f["name"], "type": f.get("type", "text"),
                 "required": bool(f.get("required")), "ref": f.get("entity"),
                 "choices": f.get("options") if f.get("type") == "choice" else None,
-                "domain": None,
+                "domain": f.get("domain"),      # lookup-backed selects (quality/level)
                 "default": f.get("default"),
                 "label_en": f.get("label") or label_en_of(f["name"]),
                 "label_ar": FIELD_AR.get(f["name"], ""),
@@ -187,6 +192,8 @@ def harvest_lookup_codes():
     """Real lookup codes+labels from a freshly seeded reference DB."""
     from app import db as app_db
     app_db.init_db()
+    from app.military import dbm
+    dbm.ensure()                     # military migrations + vocab (leadership)
     db = sqlite3.connect(str(app_db.DB_PATH))
     rows = db.execute("SELECT domain, code, label_en FROM lookup").fetchall()
     db.close()
@@ -229,7 +236,7 @@ FK_NAME_POOLS = {
 
 MIL_ENTITIES = ("region", "division", "unit", "deployment", "mission", "holding",
                 "training", "assignment", "note", "armament", "classification",
-                "commander")
+                "commander", "trait")
 
 
 def value_for(key, ftype, i, ref, choices, domain, lookup, entity):
@@ -389,6 +396,12 @@ def build_rows(entity, fields, mil_flag, lookup):
                     r[f["key"]] = url_val(i)
                 else:
                     r[f["key"]] = f"Required {i}"
+        # the trait basis rule: at least one of assessed_by / evidence_note /
+        # source — guaranteed for every non-error row (the last six rows keep
+        # their blanks: they are the deliberate error rows)
+        if entity == "trait" and i < 114 and not any(
+                r.get(k) for k in ("assessed_by", "evidence_note", "source")):
+            r["assessed_by"] = f"Assessment Board {chr(65 + i % 6)}"
         # domain consistency: training duration matches its date range;
         # a completed deployment always carries an end date
         if entity == "training" and r.get("start_date"):

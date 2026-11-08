@@ -39,7 +39,7 @@ def tmp_db(tmp_path, monkeypatch):
 
 # dependency order — references resolve by name against earlier files
 ORDER = ["place", "institution", "person", "region", "division", "commander",
-         "classification", "armament", "unit", "deployment", "mission",
+         "trait", "classification", "armament", "unit", "deployment", "mission",
          "holding", "training", "assignment", "note", "event", "relationship",
          "source"]
 
@@ -126,11 +126,12 @@ def test_e2e_import_chain_creates_records_and_reports_errors(fixtures_dir, tmp_d
         imported[ent] = res
     # the bulk of every file lands in the database
     for ent in ("place", "person", "institution", "region", "division",
-                "commander", "classification", "armament", "unit", "training"):
+                "commander", "trait", "classification", "armament", "unit",
+                "training"):
         assert imported[ent]["created"] >= 100, \
             f"{ent}: only {imported[ent]['created']} created — {imported[ent]['rows'][:1]}"
     # deliberate error rows surface as row-level errors, not silent drops
-    for ent in ("commander", "unit", "training"):
+    for ent in ("commander", "trait", "unit", "training"):
         assert imported[ent]["failed"] >= 5, f"{ent}: expected error rows missing"
     conn.close()
 
