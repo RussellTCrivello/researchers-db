@@ -67,6 +67,8 @@ FIELD_AR = {
     "target_id": "السجل المستهدف", "note_text": "نص الملاحظة", "author": "الكاتب",
     "note_at": "تاريخ الملاحظة", "path": "المسار", "depth": "العمق",
     "image_url": "رابط الشعار", "image_alt": "الوصف البديل للشعار",
+    "person_id": "الفرد", "latitude": "خط العرض", "longitude": "خط الطول",
+    "geometry_source": "مصدر الإحداثيات",
     "created_at": "تاريخ الإنشاء", "created_by": "أنشأه",
     "modified_at": "آخر تحديث", "modified_by": "حدّثه",
 }
@@ -187,6 +189,10 @@ def _build_specs() -> dict[str, EntitySpec]:
         _ref("region_id", "region", group="structure", in_list=True),
         F("formation_date", "date", group="structure"),
         F("headquarters", "text", group="structure"),
+        # the unit's OWN position — the map shows this, never the commander's
+        F("latitude", "float", group="geo", in_list=False),
+        F("longitude", "float", group="geo", in_list=False),
+        F("geometry_source", "text", group="geo", in_list=False),
         F("image_url", "url", group="identity", in_list=False),
         F("image_alt", "text", group="identity", in_list=False),
         F("notes", "textarea", group="main"),
@@ -256,6 +262,9 @@ def _build_specs() -> dict[str, EntitySpec]:
         _sel("status", in_list=True),
         F("is_current", "bool", group="main", in_list=True),
         F("location", "text", group="main"),
+        F("latitude", "float", group="geo", in_list=False),
+        F("longitude", "float", group="geo", in_list=False),
+        F("geometry_source", "text", group="geo", in_list=False),
         F("area_of_operations", "textarea", group="main"),
         F("notes", "textarea", group="main"),
         *_audit_fields(),
@@ -295,6 +304,9 @@ def _build_specs() -> dict[str, EntitySpec]:
     s["commander"] = _spec("commander", "commander", [
         _docname(),
         F("full_name", "text", group="identity", required=True, in_list=True),
+        # a commander is a person first: the link to the individual record whose
+        # identity, life, relationships and geography the dossier then shows
+        _ref("person_id", "person", group="identity", in_list=False),
         _sel("rank_title", group="identity", in_list=True),
         _sel("branch", in_list=True),
         F("commission_date", "date", group="main"),

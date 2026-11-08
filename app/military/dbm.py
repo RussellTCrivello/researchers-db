@@ -46,16 +46,35 @@ def init_db(conn: sqlite3.Connection) -> None:
     """Apply the military migration to a connection (idempotent)."""
     conn.executescript(MIGRATION_FILE.read_text(encoding="utf-8"))
     _ensure_emblem_columns(conn)
+    _ensure_link_geo_columns(conn)
+
+
+def _add_missing_columns(conn: sqlite3.Connection, table: str,
+                         columns: list[tuple[str, str]]) -> None:
+    """Idempotent ALTERs for a lazily-created table (the lazy path runs no ledger)."""
+    have = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+    for name, decl in columns:
+        if name not in have:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
 
 
 def _ensure_emblem_columns(conn: sqlite3.Connection) -> None:
     """Idempotent 017: the unit emblem columns (the lazy path runs no ledger)."""
     if not _military_present(conn):
         return
-    have = {r["name"] for r in conn.execute("PRAGMA table_info(military_unit)")}
-    for name in ("image_url", "image_alt"):
-        if name not in have:
-            conn.execute(f"ALTER TABLE military_unit ADD COLUMN {name} TEXT")
+    _add_missing_columns(conn, "military_unit",
+                         [("image_url", "TEXT"), ("image_alt", "TEXT")])
+
+
+def _ensure_link_geo_columns(conn: sqlite3.Connection) -> None:
+    """Idempotent 018: commander↔person link and own-coordinate columns."""
+    if not _military_present(conn):
+        return
+    _add_missing_columns(conn, "commander", [("person_id", "INTEGER")])
+    _add_missing_columns(conn, "military_unit", [
+        ("latitude", "REAL"), ("longitude", "REAL"), ("geometry_source", "TEXT")])
+    _add_missing_columns(conn, "operational_deployment", [
+        ("latitude", "REAL"), ("longitude", "REAL"), ("geometry_source", "TEXT")])
 
 
 def ensure() -> None:
@@ -71,6 +90,7 @@ def ensure() -> None:
             if not _military_present(conn):
                 init_db(conn)
             _ensure_emblem_columns(conn)   # pre-017 databases gain the columns
+            _ensure_link_geo_columns(conn)  # pre-018 databases gain the columns
             conn.commit()
         finally:
             conn.close()

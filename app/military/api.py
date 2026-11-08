@@ -150,6 +150,19 @@ def unit_force_summary(unit_id: int, conn=Depends(_conn)) -> dict[str, Any]:
     return {"ok": True, **data}
 
 
+@router.get("/units/{unit_id}/geo")
+def unit_geo_route(unit_id: int, conn=Depends(_conn)) -> dict[str, Any]:
+    """The unit's own location for its dossier map — unit + deployment rows only.
+
+    The response intentionally never contains commander or person data: the map
+    must show the unit's own specific location, not the commander's location.
+    """
+    data = _call(service.unit_geo, conn, unit_id)
+    if data is None:
+        raise _not_found(f"unit {unit_id}")
+    return {"ok": True, **data}
+
+
 @router.get("/armaments/{armament_id}/holdings")
 def armament_holdings(armament_id: int, conn=Depends(_conn)) -> dict[str, Any]:
     data = _call(service.armament_holdings, conn, armament_id)

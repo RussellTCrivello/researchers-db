@@ -164,3 +164,63 @@ table.data th.sortable[aria-sort="descending"]::after { content: " ↓"; color: 
   0% { background: rgba(127, 179, 211, 0.55); }
   100% { background: transparent; }
 }
+
+/* ---------------------------------------------------------------
+   Unit map (the unit's OWN location) + commander↔individual panels
+   --------------------------------------------------------------- */
+.mil-map-caption {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline;
+  padding: 2px 2px 10px;
+}
+.mil-map-canvas {
+  height: 380px; border-radius: var(--radius, 10px); overflow: hidden;
+  border: 1px solid var(--line); background: #e8eef4;
+}
+.mil-map-canvas.is-empty {
+  display: flex; align-items: center; justify-content: center; height: 200px;
+  background: var(--card, #fff);
+}
+.mil-map-strip { margin-top: 10px; display: grid; gap: 6px; }
+.mil-map-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+.mil-map-key { display: inline-flex; align-items: center; gap: 6px; }
+.mil-map-dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+.mil-map-dot.own { background: #e8a13c; }
+.mil-map-dot.dep { background: #9d7bd8; }
+.mil-map-row {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+  padding: 7px 10px; border: 1px solid var(--line);
+  border-radius: var(--radius, 10px);
+}
+.mil-map-row.own { border-left: 3px solid #e8a13c; }
+[dir="rtl"] .mil-map-row.own { border-left: 1px solid var(--line); border-right: 3px solid #e8a13c; }
+
+.mil-ind-hero {
+  display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px;
+}
+.mil-ind-portrait {
+  width: 96px; height: 96px; border-radius: 14px; object-fit: cover;
+  border: 1px solid var(--line); display: flex; align-items: center;
+  justify-content: center; font-size: 26px; font-weight: 700; flex: none;
+}
+.mil-ind-sec { margin-top: 12px; }
+.mil-ind-sec h4 { margin: 0 0 6px; }
+.mil-ind-rel {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+  padding: 5px 2px; border-bottom: 1px dashed var(--line);
+}
+.mil-ind-rel:last-child { border-bottom: 0; }
+.mil-ind-cand {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
+  padding: 8px 6px; border-bottom: 1px dashed var(--line); text-align: start;
+}
+.mil-ind-cand:last-child { border-bottom: 0; }
+
+/* command-service panel on the individual's record page */
+.cmd-block { margin: 4px 0 12px; }
+.cmd-head {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline;
+  margin-bottom: 6px;
+}

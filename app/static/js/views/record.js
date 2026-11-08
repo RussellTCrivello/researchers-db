@@ -262,6 +262,76 @@
       return esc(v);
     }
 
+    /* ---- command service: the military side of an individual -------------
+       A commander is a person first. When a commander record is linked to this
+       individual (commander.person_id), the individual's page carries the
+       service record with it: rank, branch, status and appointments. The link
+       is the same one the commander dossier shows from the other side. */
+    function commandServiceCard() {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<div class="card-head"><h3>${esc(t("mil.cmd.title"))}</h3></div>
+        <div class="cmd-body"><div class="ap-loading">${esc(t("common.loading"))}</div></div>`;
+      setTimeout(async () => {
+        const host = card.querySelector(".cmd-body");
+        if (!host) return;
+        try {
+          const res = await A.api.get(
+            `/api/military/commanders?person_id=${id}&limit=20`);
+          const rows = res.records || [];
+          if (!rows.length) {
+            host.innerHTML = `<div class="empty small">${esc(t("mil.cmd.empty"))}</div>`;
+            return;
+          }
+          const unitName = {};
+          await Promise.all(rows.map(async (c) => {
+            let asg = [];
+            try {
+              const ares = await A.api.get(
+                `/api/military/assignments?commander_id=${c.id}&limit=20`);
+              asg = ares.records || [];
+            } catch (e) { /* the commander row still lists without appointments */ }
+            await Promise.all([...new Set(asg.map(a => a.unit_id).filter(Boolean))]
+              .map(async (uid) => {
+                try {
+                  const u = await A.api.get(`/api/military/units/${uid}`);
+                  const ur = u.record || u;
+                  unitName[uid] = ur.name || ur.docname || ("#" + uid);
+                } catch (e) { unitName[uid] = "#" + uid; }
+              }));
+            c._asg = asg.sort((a, b) => (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0)
+              || String(b.assigned_date || "").localeCompare(String(a.assigned_date || "")));
+          }));
+          host.innerHTML = rows.map(c => `
+            <div class="cmd-block">
+              <div class="cmd-head">
+                <a href="#/military/commanders/${c.id}/show">
+                  <b dir="auto">${esc(c.full_name || c.docname || "#" + c.id)}</b></a>
+                ${c.docname ? `<span class="badge mono">${esc(c.docname)}</span>` : ""}
+                ${c.rank_title ? `<span class="badge slate">${esc(c.rank_title)}</span>` : ""}
+                ${c.branch ? `<span class="badge slate">${esc(c.branch)}</span>` : ""}
+                ${c.status ? `<span class="badge ${c.status === "Active" ? "green" : "gray"}">${esc(c.status)}</span>` : ""}
+                ${c.commission_date ? `<span class="small muted">${esc(t("mil.cmd.commissioned"))}: ${esc(c.commission_date)}</span>` : ""}
+              </div>
+              ${(c._asg || []).length ? `<div class="table-wrap"><table class="data compact">
+                <thead><tr><th>${esc(t("mil.cmd.appointment"))}</th>
+                  <th>${esc(t("mil.cmd.unit"))}</th>
+                  <th>${esc(t("mil.cmd.since"))}</th></tr></thead><tbody>
+                ${(c._asg || []).slice(0, 6).map(a => `<tr>
+                  <td>${esc(a.role || "—")}${a.is_current
+                    ? ` <span class="badge green">${esc(t("mil.cmd.current"))}</span>` : ""}</td>
+                  <td><a href="#/military/units/${a.unit_id}/show">${esc(unitName[a.unit_id] || ("#" + a.unit_id))}</a></td>
+                  <td class="nowrap">${esc(a.assigned_date || "—")}${a.relieved_date
+                    ? " → " + esc(a.relieved_date) : ""}</td>
+                </tr>`).join("")}</tbody></table></div>` : ""}
+            </div>`).join("");
+        } catch (err) {
+          host.innerHTML = `<div class="notice err small">${esc(err.message)}</div>`;
+        }
+      }, 0);
+      return card;
+    }
+
     function overviewTab() {
       const nodes = [];
       const wrap = document.createElement("div");
@@ -306,6 +376,9 @@
         card.className = "card";
         card.innerHTML = egoNetwork(rec);
         if (card.innerHTML.trim()) wrap.appendChild(card);
+      }
+      if (entity === "person") {
+        wrap.appendChild(commandServiceCard());
       }
       const sys = document.createElement("div");
       sys.className = "card";

@@ -4,7 +4,8 @@
    The Military Organization (BIMS) lives inside the shell like every other
    workspace: one navigation, one locale mechanism (mil.* keys), one theme, one
    design language.  Data comes from the self-contained /api/military API
-   (its own SQLite file; the registry is never touched).  Every record shown is
+   (its own SQLite module; the registry is only read to show the individual
+   linked to a commander).  Every record shown is
    FICTIONAL sample data unless the operator replaces it.
    ========================================================================== */
 (function () {
@@ -432,6 +433,14 @@
     classification: "structure", deployment: "operations", mission: "operations",
     holding: "logistics", training: "training", assignment: "command",
     commander: "command", note: "notes" };
+  let DOSS_MAP = null;   /* the dossier map (MapLibre instance + its pins) */
+  function disposeDossierMap() {
+    if (!DOSS_MAP) return;
+    (DOSS_MAP.pins || []).forEach(pin => { try { pin.remove(); } catch (e) { /* */ } });
+    if (DOSS_MAP.attrib) { try { DOSS_MAP.attrib.remove(); } catch (e) { /* */ } }
+    try { DOSS_MAP.map.remove(); } catch (e) { /* already gone */ }
+    DOSS_MAP = null;
+  }
 
   function relHead(label, d, id, addKey) {
     return `<div class="card-head"><h2>${esc(label)}</h2>
@@ -490,8 +499,13 @@
       const r = (refMap[e] || {})[rid];
       return esc(r ? refLabelOf(e, r) : (rid ? "#" + rid : "—"));
     };
-    const refLink = (e, rid) => rid
-      ? `<a href="#/military/${esc(e)}s/${rid}/show"><b>${refName(e, rid)}</b></a>` : "—";
+    const refLink = (e, rid) => {
+      if (!rid) return "—";
+      if (e === "person") {
+        return `<a href="#/entity/person/${esc(rid)}"><b>${esc(t("mil.ind.tab"))} · #${esc(rid)}</b></a>`;
+      }
+      return `<a href="#/military/${esc(e)}s/${rid}/show"><b>${refName(e, rid)}</b></a>`;
+    };
 
     const relData = await Promise.all((RELATED[entity] || []).map(async ([slug, fk]) => {
       const data = await mreq("GET", "/" + slug + "?limit=" + REL_LIMIT
@@ -540,6 +554,16 @@
         [fl("formation_date"), rec.formation_date ? esc(rec.formation_date) : ""]
       ];
       facts = F.filter(([k, v]) => k && v && v !== "—")
+        .map(([k, v]) => `<span class="hfact">${esc(k)}: <b>${v}</b></span>`).join("");
+    } else if (entity === "commander") {
+      const CF = [
+        [fl("rank_title"), rec.rank_title ? chip(rec.rank_title) : ""],
+        [fl("branch"), rec.branch ? chip(rec.branch) : ""],
+        [fl("status"), rec.status ? chip(rec.status) : ""],
+        [fl("commission_date"), rec.commission_date ? esc(rec.commission_date) : ""],
+        [fl("person_id"), rec.person_id ? refLink("person", rec.person_id) : ""]
+      ];
+      facts = CF.filter(([k, v]) => k && v && v !== "—")
         .map(([k, v]) => `<span class="hfact">${esc(k)}: <b>${v}</b></span>`).join("");
     } else {
       facts = spec.fields
@@ -637,10 +661,14 @@
       TABS.push({ key: "structure", label: t("mil.doss.structure"), n: relOf("units").total });
       TABS.push({ key: "operations", label: t("mil.doss.operations"),
         n: (relOf("deployments").total || 0) + (relOf("missions").total || 0) });
+      TABS.push({ key: "map", label: t("mil.map.tab") });
       TABS.push({ key: "logistics", label: t("mil.doss.logistics"), n: relOf("holdings").total });
       TABS.push({ key: "training", label: t("mil.domain.training"), n: relOf("trainings").total });
       TABS.push({ key: "command", label: t("mil.domain.command"), n: relOf("assignments").total });
     } else {
+      if (entity === "commander") {
+        TABS.push({ key: "individual", label: t("mil.ind.tab") });
+      }
       (RELATED[entity] || []).forEach(([slug]) => {
         const d = relOf(slug);
         TABS.push({ key: "rel:" + slug, label: labelOf(slug), n: d.total });
@@ -735,6 +763,7 @@
     const body = root.querySelector("#tabBody");
 
     function paintTab(key) {
+      disposeDossierMap();
       if (key === "overview") {
         body.innerHTML = `<div class="card">
           <div class="card-head"><h2>${esc(t("mil.dossier.fields"))}</h2></div>
@@ -819,6 +848,15 @@
         </div>`;
         return;
       }
+      if (key === "map") {
+        body.innerHTML = milMapShell();
+        mountDossierMap(body);
+        return;
+      }
+      if (key === "individual") {
+        paintIndividualTab(body);
+        return;
+      }
       if (key === "notes") {
         body.innerHTML = `<div class="card" id="milNotesCard">
           <div class="card-head"><h2>${esc(t("mil.dossier.notes"))}</h2>
@@ -874,6 +912,225 @@
         return;
       }
       body.innerHTML = "";
+    }
+
+    /* --------------------------------------------------------- unit map --- */
+    /* The map shows the unit's OWN location: its own coordinates and those of
+       its deployments. The commander's personal location is deliberately not
+       here — service.unit_geo serves unit-owned rows only — and the caption
+       and tests keep that distinction visible. */
+    function milMapShell() {
+      return `<div class="card mil-map-card">
+        <div class="card-head"><h2>${esc(t("mil.map.tab"))}</h2>
+          ${canEdit ? `<a class="btn sm" href="#/military/units/${id}/edit">${icon("edit")} ${esc(t("common.edit"))}</a>` : ""}</div>
+        <div class="mil-map-caption">
+          <b>${esc(t("mil.map.ownCaption"))}</b>
+          <span class="small muted">${esc(t("mil.map.notCommander"))}</span>
+        </div>
+        <div class="mil-map-canvas" id="milMapCanvas"></div>
+        <div class="mil-map-strip" id="milMapStrip"></div>
+      </div>`;
+    }
+
+    async function mountDossierMap(body) {
+      const canvas = body.querySelector("#milMapCanvas");
+      const strip = body.querySelector("#milMapStrip");
+      if (!canvas) return;
+      let geo = null;
+      try {
+        geo = await mreq("GET", `/units/${id}/geo`);
+      } catch (err) {
+        canvas.innerHTML = `<div class="notice err small">${esc(err.message)}</div>`;
+        return;
+      }
+      if (!body.querySelector("#milMapCanvas")) return;   /* tab switched away */
+      const u = geo.unit || {};
+      const deps = geo.deployments || [];
+      const pts = [];
+      if (u.lat != null && u.lon != null) {
+        pts.push({ lat: Number(u.lat), lon: Number(u.lon), label: u.label || "",
+          kind: "unit", title: t("mil.map.ownPin") });
+      }
+      deps.forEach(d => {
+        if (d.lat == null || d.lon == null) return;
+        pts.push({ lat: Number(d.lat), lon: Number(d.lon), label: d.label || "",
+          kind: "deployment",
+          title: t("mil.map.deployments") + ": " + (d.label || "") +
+            (d.location ? " · " + d.location : "") });
+      });
+
+      /* every line below says whose location it is — the unit's own position
+         first, then each deployment; never anyone's personal coordinates */
+      const fmt = (v) => v == null ? "—" : Number(v).toFixed(5);
+      strip.innerHTML = `
+        <div class="mil-map-legend">
+          <span class="mil-map-key"><i class="mil-map-dot own"></i>${esc(t("mil.map.ownPin"))}</span>
+          <span class="mil-map-key"><i class="mil-map-dot dep"></i>${esc(t("mil.map.deployments"))}</span>
+        </div>
+        <div class="mil-map-row own">
+          <b dir="auto">${esc(u.label || rec.name || rec.docname || "")}</b>
+          <span class="mono-cell" dir="ltr">${esc(fmt(u.lat))}, ${esc(fmt(u.lon))}</span>
+          ${u.geometry_source ? `<span class="small muted">${esc(t("mil.map.source"))}: ${esc(u.geometry_source)}</span>` : ""}
+          ${u.headquarters ? `<span class="small muted">${esc(t("mil.doss.colLocation"))}: ${esc(u.headquarters)}</span>` : ""}
+        </div>
+        ${deps.map(d => `
+          <div class="mil-map-row">
+            <a href="#/military/deployments/${d.id}/show"><b dir="auto">${esc(d.label || "#" + d.id)}</b></a>
+            <span class="small">${esc(d.start_date || "—")} → ${esc(d.end_date || "…")}</span>
+            ${d.location ? `<span class="small muted">${esc(d.location)}</span>` : ""}
+            ${d.lat != null && d.lon != null
+              ? `<span class="mono-cell small" dir="ltr">${esc(fmt(d.lat))}, ${esc(fmt(d.lon))}</span>`
+              : `<span class="small muted">${esc(t("mil.map.noCoords"))}</span>`}
+          </div>`).join("")}`;
+
+      if (!pts.length || !window.maplibregl) {
+        canvas.classList.add("is-empty");
+        canvas.innerHTML = `<div class="empty">
+          <b>${esc(t("mil.map.empty"))}</b>
+          <div class="small muted" style="margin-top:6px">${esc(t("mil.map.emptyHint"))}</div>
+          ${canEdit ? `<a class="btn sm" style="margin-top:10px" href="#/military/units/${id}/edit">${icon("edit")} ${esc(t("mil.map.addLocation"))}</a>` : ""}
+        </div>`;
+        return;
+      }
+      const bootStyle = { version: 8, sources: {}, layers: [{ id: "bg", type: "background",
+        paint: { "background-color": "#e8eef4" } }] };
+      let map;
+      try {
+        map = new window.maplibregl.Map({
+          container: canvas, style: bootStyle,
+          center: [pts[0].lon, pts[0].lat], zoom: 8, attributionControl: false
+        });
+      } catch (e) {
+        canvas.innerHTML = `<div class="notice err small">${esc(t("common.error"))}</div>`;
+        return;
+      }
+      DOSS_MAP = { map, pins: [], attrib: null };
+      map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
+      map.on("load", () => {
+        if (pts.length > 1) {
+          const b = new window.maplibregl.LngLatBounds();
+          pts.forEach(pt => b.extend([pt.lon, pt.lat]));
+          try { map.fitBounds(b, { padding: 52, duration: 0 }); } catch (e) { /* */ }
+        }
+        pts.forEach(pt => {
+          if (!A.geopin) return;
+          const pin = A.geopin.marker(map, [pt.lon, pt.lat], {
+            etype: pt.kind, label: pt.label,
+            selected: pt.kind === "unit", size: pt.kind === "unit" ? "lg" : "md",
+            showLabel: !!pt.label, title: pt.title
+          });
+          if (DOSS_MAP) DOSS_MAP.pins.push(pin);
+        });
+      });
+    }
+
+    /* commander ↔ individual: the commander dossier encompasses the linked
+       person's identity, life and relationships (person_id is the bridge) */
+    async function paintIndividualTab(body) {
+      if (!rec.person_id) {
+        body.innerHTML = `<div class="card">
+          <div class="card-head"><h2>${esc(t("mil.ind.tab"))}</h2></div>
+          <div class="empty">
+            <b>${esc(t("mil.ind.notLinked"))}</b>
+            <div class="small muted" style="margin:6px 0 10px">${esc(t("mil.ind.linkHint"))}</div>
+            <div class="btn-row">
+              <input id="milIndQuery" class="grow" value="${esc(rec.full_name || "")}"
+                placeholder="${esc(t("mil.ind.find"))}">
+              <button class="btn primary" id="milIndSearch">${icon("search")} ${esc(t("mil.ind.find"))}</button>
+            </div>
+            <div id="milIndResults"></div>
+          </div>
+        </div>`;
+        const run = async () => {
+          const q = body.querySelector("#milIndQuery").value.trim();
+          const host = body.querySelector("#milIndResults");
+          host.innerHTML = `<div class="small muted">${esc(t("common.loading"))}</div>`;
+          try {
+            const res = await api.get(`/api/person?q=${encodeURIComponent(q)}&limit=6`);
+            const items = res.items || [];
+            host.innerHTML = items.length ? items.map(pr => `
+              <div class="mil-ind-cand">
+                <span class="badge mono">${esc(pr.code || "#" + pr.id)}</span>
+                <b dir="auto">${esc(pr.name_en || pr.name_ar || "")}</b>
+                ${pr.name_ar ? `<span class="small muted" dir="auto">${esc(pr.name_ar)}</span>` : ""}
+                ${pr.birth_date ? `<span class="small muted">${esc(pr.birth_date)}</span>` : ""}
+                ${canEdit ? `<button class="btn sm primary" data-indlink="${pr.id}">${icon("link")} ${esc(t("mil.ind.link"))}</button>` : ""}
+                <a class="btn sm" href="#/entity/person/${pr.id}">${esc(t("common.view"))}</a>
+              </div>`).join("")
+              : `<div class="small muted">${esc(t("mil.dossier.noRelated"))}</div>`;
+            host.querySelectorAll("[data-indlink]").forEach(btn => {
+              btn.onclick = async () => {
+                try {
+                  await mreq("PATCH", `/commanders/${id}`,
+                    { person_id: Number(btn.dataset.indlink) });
+                  toast(t("common.saved"), "ok");
+                  A.rerender();
+                } catch (err) { toast(err.message, "err"); }
+              };
+            });
+          } catch (err) {
+            host.innerHTML = `<div class="notice err small">${esc(err.message)}</div>`;
+          }
+        };
+        body.querySelector("#milIndSearch").onclick = run;
+        body.querySelector("#milIndQuery").addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") run();
+        });
+        return;
+      }
+      body.innerHTML = `<div class="card"><div class="small muted">${esc(t("common.loading"))}</div></div>`;
+      let person;
+      try {
+        person = await api.get(`/api/person/${rec.person_id}`);
+      } catch (err) {
+        body.innerHTML = `<div class="card"><div class="notice err small">${esc(err.message)}</div></div>`;
+        return;
+      }
+      const pr = person.record || person;
+      const lab = (k) => (pr._labels && pr._labels[k])
+        ? (A.state.lang === "ar" ? pr._labels[k].ar : pr._labels[k].en) : "";
+      const rref = (k) => (pr._refs && pr._refs[k])
+        ? (pr._refs[k].label || pr._refs[k].name_en || "") : "";
+      const rels = (pr.relationships || []).slice(0, 8);
+      const poss = (pr.positions || []).slice(0, 6);
+      body.innerHTML = `<div class="card">
+        <div class="card-head"><h2>${esc(t("mil.ind.linked"))}</h2>
+          <a class="btn sm" href="#/entity/person/${pr.id}">${icon("link")} ${esc(t("mil.ind.open"))}</a></div>
+        <div class="mil-ind-hero">
+          ${pr.image_url
+            ? `<img class="mil-ind-portrait" src="${esc(pr.image_url)}" alt="${esc(pr.image_alt || "")}">`
+            : `<span class="mil-ind-portrait">${esc(A.initials(pr.name_en || pr.name_ar || ""))}</span>`}
+          <div>
+            <h3 dir="auto">${esc(pr.name_en || pr.name_ar || "")}</h3>
+            ${pr.name_ar ? `<div class="muted" dir="auto">${esc(pr.name_ar)}</div>` : ""}
+            ${pr.name_original ? `<div class="small muted" dir="auto">${esc(pr.name_original)}</div>` : ""}
+            <div class="flex wrap" style="gap:5px;margin-top:6px">
+              <span class="badge mono">${esc(pr.code || "#" + pr.id)}</span>
+              ${lab("classification_id") ? `<span class="badge slate">${esc(lab("classification_id"))}</span>` : ""}
+              ${lab("nationality_id") ? `<span class="badge slate">${esc(lab("nationality_id"))}</span>` : ""}
+            </div>
+          </div>
+        </div>
+        <dl class="dossier-grid">
+          <div class="dfield"><dt>${esc(t("mil.ind.birth"))}</dt>
+            <dd>${esc(pr.birth_date || "—")}${pr.birthplace_text ? " · " + esc(pr.birthplace_text) : (rref("birthplace_id") ? " · " + esc(rref("birthplace_id")) : "")}</dd></div>
+          <div class="dfield"><dt>${esc(t("mil.ind.death"))}</dt><dd>${esc(pr.death_date || "—")}</dd></div>
+          <div class="dfield"><dt>${esc(t("mil.ind.nationality"))}</dt>
+            <dd>${esc(lab("nationality_id") || rref("nationality_id") || "—")}</dd></div>
+          <div class="dfield"><dt>${esc(t("mil.ind.position"))}</dt><dd>${esc(pr.current_position || "—")}</dd></div>
+        </dl>
+        ${poss.length ? `<div class="mil-ind-sec"><h4>${esc(t("mil.ind.positions"))}</h4>
+          ${poss.map(po => `<div class="mil-ind-rel"><b dir="auto">${esc(po.title_en || po.title_ar || "")}</b>
+            <span class="small muted" dir="auto">${esc(po.institution_en || po.institution_ar || "")}</span>
+            <span class="small">${esc(po.start_date || "—")} → ${esc(po.end_date || "…")}</span></div>`).join("")}
+        </div>` : ""}
+        ${rels.length ? `<div class="mil-ind-sec"><h4>${esc(t("mil.ind.relationships"))}</h4>
+          ${rels.map(rl => `<div class="mil-ind-rel">
+            <a href="#/entity/${esc(rl.other_type || "person")}/${rl.other_id}"><b dir="auto">${esc(rl.other_name || "")}</b></a>
+            <span class="small muted" dir="auto">${esc(A.state.lang === "ar" ? (rl.type_ar || rl.type_en || "") : (rl.type_en || ""))}</span>
+            <span class="small">${esc(rl.start_date || "—")}${rl.end_date ? " → " + esc(rl.end_date) : ""}</span></div>`).join("")}
+        </div>` : ""}
+      </div>`;
     }
 
     bindChrome(root);
@@ -989,8 +1246,10 @@
       A.rerender();
     }
     document.addEventListener("siraj:record-saved", onRecordSaved);
-    A.views.milDossier.__dispose = () =>
+    A.views.milDossier.__dispose = () => {
       document.removeEventListener("siraj:record-saved", onRecordSaved);
+      disposeDossierMap();
+    };
   };
 
   /* ========================================================= view: tree */

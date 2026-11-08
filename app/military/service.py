@@ -93,6 +93,11 @@ FIELD_LABELS_AR: dict[tuple[str, str], str] = {
     ("training", "duration_days"): "المدة (أيام)", ("training", "participant_count"): "عدد المشاركين",
     ("training", "lead_trainer"): "المدرب الرئيسي", ("training", "assessment"): "التقييم",
     ("training", "location"): "الموقع", ("training", "notes"): "ملاحظات",
+    ("commander", "person_id"): "الفرد المرتبط",
+    ("unit", "latitude"): "خط العرض", ("unit", "longitude"): "خط الطول",
+    ("unit", "geometry_source"): "مصدر الإحداثيات",
+    ("deployment", "latitude"): "خط العرض", ("deployment", "longitude"): "خط الطول",
+    ("deployment", "geometry_source"): "مصدر الإحداثيات",
     ("assignment", "unit_id"): "الوحدة", ("assignment", "commander_id"): "القائد",
     ("assignment", "role"): "الدور", ("assignment", "assigned_date"): "تاريخ التعيين",
     ("assignment", "relieved_date"): "تاريخ الإعفاء", ("assignment", "is_current"): "التعيين الحالي",
@@ -163,6 +168,7 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
         "table": "commander", "label": "Commander", "naming_entity": "commander",
         "fields": [
             _f("full_name", "text", "Full Name", required=True),
+            _f("person_id", "ref", "Individual", entity="person"),
             _f("rank_title", "choice", "Rank", options=[
                 "General", "Brigadier General", "Colonel", "Lieutenant Colonel",
                 "Major", "Captain", "Lieutenant"]),
@@ -188,6 +194,11 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("direct_personnel", "int", "Direct Personnel", min=0, default=0),
             _f("formation_date", "date", "Formation Date"),
             _f("headquarters", "text", "Headquarters"),
+            # the unit's OWN geographic position — like the registry's own-coordinate
+            # columns; a commander's personal coordinates must never stand in for it
+            _f("latitude", "float", "Latitude", min=-90.0, max=90.0),
+            _f("longitude", "float", "Longitude", min=-180.0, max=180.0),
+            _f("geometry_source", "text", "Geometry Source"),
             _f("image_url", "url", "Emblem URL"),
             _f("image_alt", "text", "Emblem Description"),
             _f("notes", "textarea", "Notes"),
@@ -205,6 +216,9 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("status", "choice", "Status", options=DEPLOYMENT_STATUSES, default="Planned"),
             _f("is_current", "bool", "Current Deployment", default=False),
             _f("location", "text", "Location"),
+            _f("latitude", "float", "Latitude", min=-90.0, max=90.0),
+            _f("longitude", "float", "Longitude", min=-180.0, max=180.0),
+            _f("geometry_source", "text", "Geometry Source"),
             _f("area_of_operations", "text", "Area of Operations"),
             _f("notes", "textarea", "Notes"),
         ],
@@ -369,7 +383,22 @@ def _validate_fields(conn, entity: str, payload: dict[str, Any],
             if "min" in fspec and ivalue < fspec["min"]:
                 raise ServiceError(422, "out_of_range",
                                    f"{name} must be >= {fspec['min']}", name)
+            if "max" in fspec and ivalue > fspec["max"]:
+                raise ServiceError(422, "out_of_range",
+                                   f"{name} must be <= {fspec['max']}", name)
             out[name] = ivalue
+        elif ftype == "float":
+            try:
+                fvalue = float(value)
+            except (TypeError, ValueError):
+                raise ServiceError(422, "invalid_type", f"{name} must be a number", name)
+            if "min" in fspec and fvalue < fspec["min"]:
+                raise ServiceError(422, "out_of_range",
+                                   f"{name} must be >= {fspec['min']}", name)
+            if "max" in fspec and fvalue > fspec["max"]:
+                raise ServiceError(422, "out_of_range",
+                                   f"{name} must be <= {fspec['max']}", name)
+            out[name] = fvalue
         elif ftype == "bool":
             out[name] = 1 if value in (True, 1, "1", "true", "on") else 0
         elif ftype == "choice":
@@ -976,6 +1005,45 @@ def force_summary(conn, unit_id: int) -> dict[str, Any] | None:
         "missions": [dict(r) for r in missons],
         "armament_top": [dict(r) for r in top],
         "children": [dict(r) for r in children],
+    }
+
+
+def unit_geo(conn, unit_id: int) -> dict[str, Any] | None:
+    """The unit's OWN geography: its own coordinates and those of its deployments.
+
+    Deliberately narrow: this reads military_unit and operational_deployment
+    only. The map shows the unit's own specific location — a commander's
+    personal coordinates must never stand in for the unit's.
+    """
+    unit = conn.execute("SELECT * FROM military_unit WHERE id = ?",
+                        (unit_id,)).fetchone()
+    if not unit:
+        return None
+    deps = conn.execute(
+        "SELECT * FROM operational_deployment WHERE unit_id = ? "
+        "ORDER BY start_date IS NULL, start_date, id", (unit_id,)).fetchall()
+    region = None
+    if unit["region_id"]:
+        row = conn.execute("SELECT name FROM region WHERE id = ?",
+                           (unit["region_id"],)).fetchone()
+        if row:
+            region = {"id": unit["region_id"], "name": row["name"]}
+    return {
+        "unit": {
+            "id": unit["id"], "label": unit["name"], "docname": unit["docname"],
+            "headquarters": unit["headquarters"],
+            "lat": unit["latitude"], "lon": unit["longitude"],
+            "geometry_source": unit["geometry_source"],
+            "own": True,
+        },
+        "deployments": [{
+            "id": d["id"], "label": d["name"], "location": d["location"],
+            "lat": d["latitude"], "lon": d["longitude"],
+            "geometry_source": d["geometry_source"],
+            "start_date": d["start_date"], "end_date": d["end_date"],
+            "status": d["status"], "is_current": bool(d["is_current"]),
+        } for d in deps],
+        "region": region,
     }
 
 

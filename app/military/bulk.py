@@ -141,8 +141,13 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
     # ---- commanders -----------------------------------------------------
     ranks = ["General", "Brigadier General", "Colonel", "Lieutenant Colonel",
              "Major", "Captain", "Lieutenant"]
+    # registry individuals to link commanders to (a commander is a person
+    # first); when the bulk loader runs alone the link is simply omitted
+    person_ids = [r["id"] for r in
+                  conn.execute("SELECT id FROM person ORDER BY id").fetchall()]
     commanders = [add("commander",
-                      {"rank_title": rng.choice(ranks),
+                      {"person_id": rng.choice(person_ids) if person_ids else None,
+                       "rank_title": rng.choice(ranks),
                        "branch": rng.choice(["Army", "Air Force", "Navy", "Joint"]),
                        "commission_date": _date(rng, 1992, 2018),
                        "status": rng.choices(["Active", "Reserve", "Retired"],
@@ -179,6 +184,10 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
                  "direct_personnel": rng.randint(8, 140),
                  "formation_date": _date(rng, 1995, 2020),
                  "headquarters": _name(rng, "Outpost", i),
+                 "latitude": round(rng.uniform(33.5, 37.5), 5),
+                 "longitude": round(rng.uniform(35.5, 41.5), 5),
+                 "geometry_source": rng.choice(
+                     ["map pick", "typed coordinates", "grid reference"]),
                  "image_url": f"https://archive.example.org/emblems/unit-{i}.svg",
                  "image_alt": f"Emblem of fictional unit {i} (bulk-generated)",
                  "notes": "FICTIONAL unit record (bulk-generated)."},
@@ -236,6 +245,10 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
                                            "Humanitarian", "Peacekeeping",
                                            "Reserve"]),
             "location": _name(rng, "Zone", i),
+            "latitude": round(rng.uniform(33.5, 37.5), 5),
+            "longitude": round(rng.uniform(35.5, 41.5), 5),
+            "geometry_source": rng.choice(
+                ["map pick", "typed coordinates", "grid reference"]),
             "area_of_operations": _name(rng, "Corridor", i),
             "notes": "FICTIONAL deployment record."}
         payload = dict(name=_name(rng, "Operation", i),
