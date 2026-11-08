@@ -69,10 +69,10 @@ def _deployment(conn, **kw):
 # ---------------------------------------------------------------------------
 # schema + naming engine
 # ---------------------------------------------------------------------------
-def test_schema_initialises_and_seeds_19_series(conn):
+def test_schema_initialises_and_seeds_20_series(conn):
     naming.seed_options(conn)
     count = conn.execute("SELECT COUNT(*) AS n FROM naming_series_option").fetchone()["n"]
-    assert count == 19
+    assert count == 20
 
 
 def test_docname_is_generated_and_unique(conn):

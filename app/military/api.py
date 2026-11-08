@@ -150,6 +150,20 @@ def unit_force_summary(unit_id: int, conn=Depends(_conn)) -> dict[str, Any]:
     return {"ok": True, **data}
 
 
+@router.get("/commanders/{commander_id}/leader-record")
+def leader_record_route(commander_id: int, conn=Depends(_conn)) -> dict[str, Any]:
+    """The leader's command record — database counts over their appointments.
+
+    Derived facts only (units commanded, echelon reached, personnel, deployments
+    covered, years of service); the qualitative side lives in the assessed
+    traits, each with its basis.
+    """
+    data = _call(service.leader_record, conn, commander_id)
+    if data is None:
+        raise _not_found(f"commander {commander_id}")
+    return {"ok": True, **data}
+
+
 @router.get("/units/{unit_id}/geo")
 def unit_geo_route(unit_id: int, conn=Depends(_conn)) -> dict[str, Any]:
     """The unit's own location for its dossier map — unit + deployment rows only.

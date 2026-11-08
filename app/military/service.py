@@ -12,6 +12,7 @@ import json
 import re
 import sqlite3
 from contextlib import contextmanager
+from datetime import date
 from typing import Any, Callable, Iterator
 
 from . import naming, rules
@@ -47,6 +48,7 @@ ENTITY_LABELS_AR = {
     "commander": "قائد", "unit": "وحدة عسكرية", "deployment": "نشر عملياتي",
     "mission": "مهمة", "armament": "تسليح", "holding": "تسليح الوحدة",
     "training": "تدريب", "assignment": "تعيين قيادي", "note": "ملاحظة",
+    "trait": "صفة قيادية",
 }
 
 FIELD_LABELS_AR: dict[tuple[str, str], str] = {
@@ -94,6 +96,9 @@ FIELD_LABELS_AR: dict[tuple[str, str], str] = {
     ("training", "lead_trainer"): "المدرب الرئيسي", ("training", "assessment"): "التقييم",
     ("training", "location"): "الموقع", ("training", "notes"): "ملاحظات",
     ("commander", "person_id"): "الفرد المرتبط",
+    ("trait", "quality"): "الصفة", ("trait", "level"): "المستوى",
+    ("trait", "assessed_by"): "قيّمه", ("trait", "assessed_at"): "تاريخ التقييم",
+    ("trait", "evidence_note"): "الأساس", ("trait", "source"): "المصدر",
     ("unit", "latitude"): "خط العرض", ("unit", "longitude"): "خط الطول",
     ("unit", "geometry_source"): "مصدر الإحداثيات",
     ("deployment", "latitude"): "خط العرض", ("deployment", "longitude"): "خط الطول",
@@ -176,6 +181,20 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("commission_date", "date", "Commission Date"),
             _f("status", "choice", "Status", options=COMMANDER_STATUSES, default="Active"),
             _f("biography", "textarea", "Biography"),
+        ],
+    },
+    "trait": {
+        "table": "commander_trait", "label": "Leadership Quality",
+        "naming_entity": "trait",
+        "fields": [
+            _f("commander_id", "ref", "Commander", entity="commander", required=True),
+            _f("quality", "select", "Quality", domain="leadership_quality",
+               required=True),
+            _f("level", "select", "Level", domain="leadership_level"),
+            _f("assessed_by", "text", "Assessed By"),
+            _f("assessed_at", "date", "Assessed At"),
+            _f("evidence_note", "textarea", "Basis"),
+            _f("source", "text", "Source"),
         ],
     },
     "unit": {
@@ -559,6 +578,10 @@ def _hook_assignment(conn, merged: dict[str, Any], exclude_id: int | None) -> No
                 f"({clash['docname']})", "is_current")
 
 
+def _hook_trait(conn, merged: dict[str, Any], exclude_id: int | None) -> None:
+    rules.check_trait(merged, exclude_id)
+
+
 def _hook_commander(conn, merged: dict[str, Any], exclude_id: int | None) -> None:
     old = conn.execute("SELECT status FROM commander WHERE id = ?", (exclude_id,)).fetchone() \
         if exclude_id else None
@@ -574,6 +597,7 @@ _HOOKS: dict[str, Callable[[sqlite3.Connection, dict[str, Any], int | None], Non
     "holding": _hook_holding,
     "note": _hook_note,
     "assignment": _hook_assignment,
+    "trait": _hook_trait,
     "commander": _hook_commander,
 }
 
@@ -1044,6 +1068,58 @@ def unit_geo(conn, unit_id: int) -> dict[str, Any] | None:
             "status": d["status"], "is_current": bool(d["is_current"]),
         } for d in deps],
         "region": region,
+    }
+
+
+ECHOLON_RANK = {"Squadron": 1, "Platoon": 2, "Company": 3, "Battalion": 4,
+                "Regiment": 5, "Brigade": 6, "Division": 7, "Detachment": 0}
+
+
+def leader_record(conn, commander_id: int) -> dict[str, Any] | None:
+    """The leader's command record — derived from real rows, never estimated.
+
+    Every number here is a database count over this commander's appointments:
+    units commanded, the highest echelon reached, the personnel under those
+    units (subtree sums), the deployments those units covered, and years of
+    service since commission. Nothing is filled in to look complete.
+    """
+    cmd = conn.execute("SELECT * FROM commander WHERE id = ?",
+                       (commander_id,)).fetchone()
+    if not cmd:
+        return None
+    asgs = conn.execute(
+        "SELECT * FROM command_assignment WHERE commander_id = ?",
+        (commander_id,)).fetchall()
+    unit_ids = list({a["unit_id"] for a in asgs if a["unit_id"]})
+    max_echelon = None
+    personnel = 0
+    deployments = 0
+    for uid in unit_ids:
+        unit = conn.execute("SELECT * FROM military_unit WHERE id = ?",
+                            (uid,)).fetchone()
+        if not unit:
+            continue
+        rank = ECHOLON_RANK.get(unit["echelon"] or "", -1)
+        if max_echelon is None or rank > ECHOLON_RANK.get(max_echelon, -1):
+            max_echelon = unit["echelon"] or max_echelon
+        personnel += rules.descendant_personnel(conn, uid)
+        deployments += conn.execute(
+            "SELECT COUNT(*) AS n FROM operational_deployment WHERE unit_id = ?",
+            (uid,)).fetchone()["n"]
+    years = None
+    raw = str(cmd["commission_date"] or "")[:4]
+    if raw.isdigit():
+        years = max(0, date.today().year - int(raw))
+    return {
+        "commander_id": commander_id,
+        "appointments": len(asgs),
+        "current_appointment": any(a["is_current"] for a in asgs),
+        "units_commanded": len(unit_ids),
+        "max_echelon": max_echelon,
+        "personnel_under_command": personnel,
+        "deployments_covered": deployments,
+        "years_of_service": years,
+        "status": cmd["status"],
     }
 
 

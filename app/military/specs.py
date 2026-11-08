@@ -35,6 +35,7 @@ ENTITY_AR = {
     "mission": ("المهمة", "المهام"),
     "training": ("التدريب", "التدريبات"),
     "commander": ("القائد", "القادة"),
+    "trait": ("صفة قيادية", "الصفات القيادية"),
     "assignment": ("التعيين", "التعيينات"),
     "note": ("ملاحظة", "ملاحظات"),
 }
@@ -69,6 +70,8 @@ FIELD_AR = {
     "image_url": "رابط الشعار", "image_alt": "الوصف البديل للشعار",
     "person_id": "الفرد", "latitude": "خط العرض", "longitude": "خط الطول",
     "geometry_source": "مصدر الإحداثيات",
+    "quality": "الصفة", "level": "المستوى", "assessed_by": "قيّمه",
+    "assessed_at": "تاريخ التقييم", "evidence_note": "الأساس", "source": "المصدر",
     "created_at": "تاريخ الإنشاء", "created_by": "أنشأه",
     "modified_at": "آخر تحديث", "modified_by": "حدّثه",
 }
@@ -126,6 +129,7 @@ TITLE_FIELDS = {
     "mission": ("name", "docname"),
     "training": ("exercise_name", "docname"),
     "commander": ("full_name", "docname"),
+    "trait": ("quality", "docname"),
     "assignment": ("docname",),
     "note": ("docname",),
 }
@@ -139,6 +143,8 @@ _DESCRIPTIONS = {
     "holding": ("Unit armament holdings", "حيازات التسليح للوحدات"),
     "deployment": ("Operational deployments", "عمليات النشر"),
     "mission": ("Missions", "المهام"),
+    "trait": ("Leadership quality assessments — what sets a leader apart, with its basis",
+              "تقييمات الصفات القيادية — ما يميز القائد، مع الأساس"),
     "training": ("Training and exercises", "التدريبات والتمارين"),
     "commander": ("Commanders", "القادة"),
     "assignment": ("Command appointments", "التعيينات القيادية"),
@@ -314,6 +320,19 @@ def _build_specs() -> dict[str, EntitySpec]:
         F("biography", "textarea", group="main"),
         *_audit_fields(),
     ], "user")
+
+    s["trait"] = _spec("trait", "commander_trait", [
+        _docname(),
+        _ref("commander_id", "commander", group="structure", required=True, in_list=True),
+        _sel("quality", domain="leadership_quality", group="identity",
+             required=True, in_list=True),
+        _sel("level", domain="leadership_level", group="identity", in_list=True),
+        F("assessed_by", "text", group="identity", in_list=True),
+        F("assessed_at", "date", group="identity", in_list=True),
+        F("evidence_note", "textarea", group="main"),
+        F("source", "text", group="main"),
+        *_audit_fields(),
+    ], "award")
 
     s["assignment"] = _spec("assignment", "command_assignment", [
         _docname(in_list=True),

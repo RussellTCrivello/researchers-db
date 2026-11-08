@@ -26,7 +26,7 @@ from typing import Any
 
 from .dbm import now_iso
 
-# entity -> list of (label, is_default) — Appendix B, 19 options
+# entity -> list of (label, is_default) — Appendix B, 20 options
 SERIES_CATALOG: list[tuple[str, str, bool]] = [
     ("region", "MIL-REG-", True),
     ("division", "MIL-DIV-", True),
@@ -47,6 +47,7 @@ SERIES_CATALOG: list[tuple[str, str, bool]] = [
     ("assignment", "MIL-ASG-", True),
     ("assignment", "MIL-ASG-.YYYY.-", False),
     ("note", "MIL-NOTE-", True),
+    ("trait", "MIL-QUAL-", True),
 ]
 
 _TOKEN_RE = re.compile(r"\.(YYYY|\{(\w+)\})\.?")
@@ -80,7 +81,7 @@ def parse_label(label: str) -> dict[str, Any]:
 
 
 def seed_options(conn) -> None:
-    """Insert the 19 catalogue options (idempotent)."""
+    """Insert the 20 catalogue options (idempotent)."""
     for entity, label, is_default in SERIES_CATALOG:
         spec = parse_label(label)
         year_token = 1 if any(t == "year" for t, _ in spec["tokens"]) else 0

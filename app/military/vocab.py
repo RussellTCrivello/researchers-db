@@ -10,7 +10,7 @@ from __future__ import annotations
 ENTITY_TYPES = [
     "region", "division", "classification", "commander", "unit",
     "deployment", "mission", "armament", "holding", "training",
-    "assignment", "note",
+    "assignment", "note", "trait",
 ]
 
 # entity slug -> human label (design record §7.2)
@@ -27,6 +27,7 @@ ENTITY_LABELS = {
     "training": "Training",
     "assignment": "Command Assignment",
     "note": "Note",
+    "trait": "Leadership Quality",
 }
 
 # --- enumerated vocabularies ------------------------------------------------
@@ -67,6 +68,35 @@ TRAINING_ASSESSMENTS = ["Excellent", "Satisfactory", "Needs Improvement", "Unsat
 
 ASSIGNMENT_ROLES = [
     "Commanding Officer", "Deputy Commander", "Chief of Staff", "Acting Commander",
+]
+
+# --- leadership qualities (lookup domains, bilingual) -----------------------
+# What sets a leader apart is a JUDGMENT, so it lives in owner-reviewable
+# vocabulary data (seeded into the lookup table) — never scattered literals —
+# and every assessment row carries its basis alongside these codes.
+LEADERSHIP_QUALITY_DOMAIN = "leadership_quality"
+LEADERSHIP_LEVEL_DOMAIN = "leadership_level"
+
+LEADERSHIP_QUALITIES = [
+    ("Decisiveness", "الحسم"),
+    ("Tactical Acumen", "البراعة التكتيكية"),
+    ("Strategic Vision", "الرؤية الاستراتيجية"),
+    ("Leadership Under Fire", "القيادة تحت النار"),
+    ("Discipline", "الانضباط"),
+    ("Initiative", "المبادرة"),
+    ("Resilience", "المرونة والصبر"),
+    ("Logistics Mastery", "إتقان الإمداد"),
+    ("Training & Development", "التدريب والتطوير"),
+    ("Coalition Building", "بناء التحالفات"),
+    ("Intelligence & Deception", "الاستخبارات والخداع"),
+    ("Communication", "التواصل"),
+]
+
+LEADERSHIP_LEVELS = [
+    ("Exceptional", "استثنائي", "green", 10),
+    ("Outstanding", "متميز", "blue", 20),
+    ("Proficient", "بارع", "slate", 30),
+    ("Developing", "قيد التطوير", "amber", 40),
 ]
 
 # note targets allowed by the polymorphic link (design record §7.5, §8.1)

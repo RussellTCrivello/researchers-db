@@ -61,6 +61,49 @@ def ensure_country_vocab(conn) -> str:
     return FICTIONAL_COUNTRY["code"]
 
 
+def ensure_leadership_vocab(conn) -> str:
+    """Seed the leadership quality/level vocabularies — bilingual, idempotent.
+
+    Qualities and levels are data (lookup rows), owner-reviewable like every
+    other vocabulary; assessment rows store their codes.
+    """
+    from . import vocab as v
+    for domain, (en, ar, sort_order) in (
+        (v.LEADERSHIP_QUALITY_DOMAIN,
+         ("Leadership Quality", "الصفة القيادية", 80)),
+        (v.LEADERSHIP_LEVEL_DOMAIN,
+         ("Leadership Level", "مستوى القيادة", 81)),
+    ):
+        if not conn.execute(
+                "SELECT 1 FROM lookup_domain WHERE domain=?", (domain,)).fetchone():
+            conn.execute(
+                "INSERT INTO lookup_domain (domain, label_en, label_ar,"
+                " sort_order, is_system) VALUES (?, ?, ?, ?, 1)",
+                (domain, en, ar, sort_order))
+    now = now_iso()
+    for i, (code, label_ar) in enumerate(v.LEADERSHIP_QUALITIES):
+        if not conn.execute(
+                "SELECT 1 FROM lookup WHERE domain=? AND code=?",
+                (v.LEADERSHIP_QUALITY_DOMAIN, code)).fetchone():
+            conn.execute(
+                "INSERT INTO lookup (domain, code, label_en, label_ar,"
+                " sort_order, color, is_active, is_system, created_at,"
+                " updated_at) VALUES (?,?,?,?,?,?,1,0,?,?)",
+                (v.LEADERSHIP_QUALITY_DOMAIN, code, code, label_ar,
+                 10 + i * 10, "slate", now, now))
+    for code, label_ar, color, sort_order in v.LEADERSHIP_LEVELS:
+        if not conn.execute(
+                "SELECT 1 FROM lookup WHERE domain=? AND code=?",
+                (v.LEADERSHIP_LEVEL_DOMAIN, code)).fetchone():
+            conn.execute(
+                "INSERT INTO lookup (domain, code, label_en, label_ar,"
+                " sort_order, color, is_active, is_system, created_at,"
+                " updated_at) VALUES (?,?,?,?,?,?,1,0,?,?)",
+                (v.LEADERSHIP_LEVEL_DOMAIN, code, code, label_ar,
+                 sort_order, color, now, now))
+    return v.LEADERSHIP_QUALITY_DOMAIN
+
+
 def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict[str, Any]:
     """Load the fictional dataset through the real service layer (idempotent)."""
     from . import service  # late import: service imports seed only via api

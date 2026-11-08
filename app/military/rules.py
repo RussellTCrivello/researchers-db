@@ -207,6 +207,31 @@ def check_mission(conn, payload: dict[str, Any]) -> None:
 
 
 # --- command appointment policy (§8.4) ------------------------------------
+def check_trait(payload: dict[str, Any], exclude_id: int | None = None) -> None:
+    """A leadership assessment must carry its basis.
+
+    Qualities set leaders apart, but they are judgments: one recorded without
+    who assessed it, on what evidence, or from which source invites fabrication.
+    At least one provenance element is required, and a judgment cannot be
+    dated in the future.
+    """
+    basis = [payload.get("evidence_note"), payload.get("source"),
+             payload.get("assessed_by")]
+    if not any(b not in (None, "") for b in basis):
+        raise RuleViolation(
+            "basis_required",
+            "an assessment needs its basis: evidence, source, or assessor",
+            "evidence_note")
+    at = payload.get("assessed_at")
+    if at:
+        parsed = _parse_date(at, "assessed_at")
+        if parsed and parsed > date.today():
+            raise RuleViolation(
+                "future_assessment",
+                "an assessment cannot be dated in the future",
+                "assessed_at")
+
+
 def check_assignment(conn, payload: dict[str, Any], exclude_id: int | None = None) -> None:
     check_date_range(payload.get("assigned_date"), payload.get("relieved_date"),
                      "assigned_date", "relieved_date")

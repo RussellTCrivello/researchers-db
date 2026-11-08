@@ -47,6 +47,7 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(MIGRATION_FILE.read_text(encoding="utf-8"))
     _ensure_emblem_columns(conn)
     _ensure_link_geo_columns(conn)
+    _ensure_trait_table(conn)
 
 
 def _add_missing_columns(conn: sqlite3.Connection, table: str,
@@ -77,6 +78,36 @@ def _ensure_link_geo_columns(conn: sqlite3.Connection) -> None:
         ("latitude", "REAL"), ("longitude", "REAL"), ("geometry_source", "TEXT")])
 
 
+TRAIT_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS commander_trait (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    docname       TEXT NOT NULL UNIQUE,
+    commander_id  INTEGER NOT NULL REFERENCES commander(id) ON DELETE RESTRICT,
+    quality       TEXT NOT NULL,
+    level         TEXT,
+    assessed_by   TEXT,
+    assessed_at   TEXT,
+    evidence_note TEXT,
+    source        TEXT,
+    created_at    TEXT NOT NULL,
+    created_by    TEXT NOT NULL,
+    modified_at   TEXT,
+    modified_by   TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_trait_commander ON commander_trait(commander_id);
+CREATE INDEX IF NOT EXISTS ix_trait_quality ON commander_trait(quality);
+"""
+
+
+def _ensure_trait_table(conn: sqlite3.Connection) -> None:
+    """Idempotent 019: the leadership-quality table + its vocabularies."""
+    if not _military_present(conn):
+        return
+    conn.executescript(TRAIT_TABLE_SQL)
+    from . import seed
+    seed.ensure_leadership_vocab(conn)
+
+
 def ensure() -> None:
     """Make sure the military tables exist — once per process, lazily."""
     global _initialised
@@ -91,6 +122,7 @@ def ensure() -> None:
                 init_db(conn)
             _ensure_emblem_columns(conn)   # pre-017 databases gain the columns
             _ensure_link_geo_columns(conn)  # pre-018 databases gain the columns
+            _ensure_trait_table(conn)       # pre-019 databases gain the table
             conn.commit()
         finally:
             conn.close()

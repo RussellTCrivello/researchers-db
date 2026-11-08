@@ -224,3 +224,17 @@ table.data th.sortable[aria-sort="descending"]::after { content: " ↓"; color: 
   display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline;
   margin-bottom: 6px;
 }
+
+/* ---------------------------------------------------------------
+   Leadership profile — what sets a leader apart (recorded, evidenced)
+   --------------------------------------------------------------- */
+.mil-lead-card .mil-lead-fan { display: flex; justify-content: center; padding: 4px 0; }
+.mil-lead-fan-svg { width: 100%; max-width: 560px; height: auto; }
+.mil-lead-fan-svg .mil-lead-label { font-size: 11px; fill: var(--text, #24313c); }
+.mil-lead-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  margin: 4px 0 12px;
+}
+.mil-lead-sub { margin: 12px 0 6px; font-size: 14px; }
+.mil-lead-record .statgrid { margin: 0; }
+.mil-lead-basis { margin-top: 10px; }
