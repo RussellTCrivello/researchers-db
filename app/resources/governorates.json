@@ -1979,7 +1979,7 @@
   "code": "AZ-LA",
   "country": "AZ",
   "label_en": "Lankaran City",
-  "label_ar": "لانكاران كيتي",
+  "label_ar": "مدينة لانكاران",
   "sort": 400,
   "type": "Municipality",
   "aliases": [
@@ -2135,7 +2135,7 @@
   "code": "AZ-SA",
   "country": "AZ",
   "label_en": "Shaki City",
-  "label_ar": "شاكي كيتي",
+  "label_ar": "مدينة شاكي",
   "sort": 540,
   "type": "Municipality",
   "aliases": [
@@ -2288,7 +2288,7 @@
   "code": "AZ-YE",
   "country": "AZ",
   "label_en": "Yevlakh City",
-  "label_ar": "ييفلاخ كيتي",
+  "label_ar": "مدينة ييفلاخ",
   "sort": 670,
   "type": "Municipality",
   "aliases": [
@@ -2358,7 +2358,7 @@
   "code": "BA-SRP",
   "country": "BA",
   "label_en": "Republic of Srpska",
-  "label_ar": "ريبوبليك وف سربسكا",
+  "label_ar": "سربسكا",
   "sort": 30,
   "type": "Entity",
   "aliases": [
@@ -2602,7 +2602,7 @@
   "code": "BE-BRU",
   "country": "BE",
   "label_en": "Brussels-Capital Region",
-  "label_ar": "بروكسل كابيتال ريجيون",
+  "label_ar": "منطقة بروكسل كابيتال",
   "sort": 50,
   "type": "Region",
   "aliases": [
@@ -2629,7 +2629,7 @@
   "code": "BE-VLG",
   "country": "BE",
   "label_en": "Flemish Region",
-  "label_ar": "فليميش ريجيون",
+  "label_ar": "منطقة فليميش",
   "sort": 70,
   "type": "Region",
   "aliases": [
@@ -2654,7 +2654,7 @@
   "code": "BE-WLG",
   "country": "BE",
   "label_en": "Liège",
-  "label_ar": "ليyجي",
+  "label_ar": "لييج",
   "sort": 90,
   "type": "Province",
   "aliases": [
@@ -2736,7 +2736,7 @@
   "code": "BF-BAZ",
   "country": "BF",
   "label_en": "Bazèga",
-  "label_ar": "بازyجا",
+  "label_ar": "بازيجا",
   "sort": 40,
   "type": "Province",
   "aliases": [
@@ -4180,7 +4180,7 @@
   "code": "BR-DF",
   "country": "BR",
   "label_en": "Federal District",
-  "label_ar": "فيديرال ديستريكت",
+  "label_ar": "منطقة فيديرال",
   "sort": 70,
   "type": "Federal district",
   "aliases": [
@@ -5130,7 +5130,7 @@
   "code": "BY-HM",
   "country": "BY",
   "label_en": "Minsk City",
-  "label_ar": "مينسك كيتي",
+  "label_ar": "مدينة مينسك",
   "sort": 50,
   "type": "City",
   "aliases": [
@@ -6452,7 +6452,7 @@
   "code": "CL-RM",
   "country": "CL",
   "label_en": "Santiago Metropolitan Region",
-  "label_ar": "سانتياغو ميتروبوليتان ريجيون",
+  "label_ar": "منطقة سانتياغو ميتروبوليتان",
   "sort": 120,
   "type": "Region",
   "aliases": [
@@ -6539,7 +6539,7 @@
   "code": "CM-EN",
   "country": "CM",
   "label_en": "Extreme North Region",
-  "label_ar": "إكستريمي نورث ريجيون",
+  "label_ar": "منطقة إكستريمي نورث",
   "sort": 40,
   "type": "Region",
   "aliases": [
@@ -7485,7 +7485,7 @@
   "code": "CU-05",
   "country": "CU",
   "label_en": "Clara City",
-  "label_ar": "كلارا كيتي",
+  "label_ar": "مدينة كلارا",
   "sort": 50,
   "type": "Province",
   "aliases": [
@@ -7798,7 +7798,7 @@
   "code": "CZ-32",
   "country": "CZ",
   "label_en": "Plzeň",
-  "label_ar": "بلزيn",
+  "label_ar": "بلزن",
   "sort": 80,
   "type": "Region",
   "aliases": [
@@ -8134,7 +8134,7 @@
   "code": "DK-84",
   "country": "DK",
   "label_en": "Capital Region",
-  "label_ar": "كابيتال ريجيون",
+  "label_ar": "منطقة كابيتال",
   "sort": 10,
   "type": "Region",
   "aliases": [
@@ -10657,7 +10657,7 @@
   "code": "ES-TF",
   "country": "ES",
   "label_en": "Province of Santa Cruz",
-  "label_ar": "بروفينكي وف سانتا كروز",
+  "label_ar": "سانتا كروز",
   "sort": 550,
   "type": "Province",
   "aliases": [
@@ -10669,7 +10669,7 @@
   "code": "ES-MC",
   "country": "ES",
   "label_en": "Region of Murcia",
-  "label_ar": "ريجيون وف موركيا",
+  "label_ar": "موركيا",
   "sort": 560,
   "type": "Autonomous community",
   "aliases": [
@@ -11401,7 +11401,7 @@
   "code": "FR-BFC",
   "country": "FR",
   "label_en": "Burgundy-Free County",
-  "label_ar": "بورجوندي فريي كوونتي",
+  "label_ar": "مقاطعة بورجوندي فريي",
   "sort": 30,
   "type": "Metropolitan region",
   "aliases": [
@@ -11598,7 +11598,7 @@
   "code": "FR-IDF",
   "country": "FR",
   "label_en": "Paris Region",
-  "label_ar": "باريس ريجيون",
+  "label_ar": "منطقة باريس",
   "sort": 200,
   "type": "Metropolitan region",
   "aliases": [
@@ -11987,7 +11987,7 @@
   "code": "GE-AB",
   "country": "GE",
   "label_en": "Republic of Abkhazia",
-  "label_ar": "ريبوبليك وف أبخازيا",
+  "label_ar": "أبخازيا",
   "sort": 90,
   "type": "Autonomous republic",
   "aliases": [
@@ -13459,7 +13459,7 @@
   "code": "HR-21",
   "country": "HR",
   "label_en": "Zagreb City",
-  "label_ar": "زغرب كيتي",
+  "label_ar": "مدينة زغرب",
   "sort": 190,
   "type": "City",
   "aliases": [
@@ -13471,7 +13471,7 @@
   "code": "HR-01",
   "country": "HR",
   "label_en": "Zagreb County",
-  "label_ar": "زغرب كوونتي",
+  "label_ar": "مقاطعة زاجريب",
   "sort": 200,
   "type": "County",
   "aliases": [
@@ -13758,7 +13758,7 @@
   "code": "HU-DU",
   "country": "HU",
   "label_en": "Danube New City",
-  "label_ar": "دانوبي نيو كيتي",
+  "label_ar": "مدينة دانوبي نيو",
   "sort": 140,
   "type": "City with county rights",
   "aliases": [
@@ -13929,7 +13929,7 @@
   "code": "HU-MI",
   "country": "HU",
   "label_en": "Steel City",
-  "label_ar": "ستييل كيتي",
+  "label_ar": "مدينة ستييل",
   "sort": 300,
   "type": "City with county rights",
   "aliases": [
@@ -15712,7 +15712,7 @@
   "code": "IS-1",
   "country": "IS",
   "label_en": "Capital Region",
-  "label_ar": "كابيتال ريجيون",
+  "label_ar": "منطقة كابيتال",
   "sort": 10,
   "type": "Region",
   "aliases": [
@@ -15724,7 +15724,7 @@
   "code": "IS-7",
   "country": "IS",
   "label_en": "Eastern Region",
-  "label_ar": "إاستيرن ريجيون",
+  "label_ar": "منطقة إاستيرن",
   "sort": 20,
   "type": "Region",
   "aliases": [
@@ -15736,7 +15736,7 @@
   "code": "IS-6",
   "country": "IS",
   "label_en": "Northeastern Region",
-  "label_ar": "نورثياستيرن ريجيون",
+  "label_ar": "منطقة نورثياستيرن",
   "sort": 30,
   "type": "Region",
   "aliases": [
@@ -15748,7 +15748,7 @@
   "code": "IS-5",
   "country": "IS",
   "label_en": "Northwestern Region",
-  "label_ar": "نورثويستيرن ريجيون",
+  "label_ar": "منطقة نورثويستيرن",
   "sort": 40,
   "type": "Region",
   "aliases": [
@@ -15772,7 +15772,7 @@
   "code": "IS-8",
   "country": "IS",
   "label_en": "Southern Region",
-  "label_ar": "سووثيرن ريجيون",
+  "label_ar": "منطقة سووثيرن",
   "sort": 60,
   "type": "Region",
   "aliases": [
@@ -15784,7 +15784,7 @@
   "code": "IS-3",
   "country": "IS",
   "label_en": "Western Region",
-  "label_ar": "ويستيرن ريجيون",
+  "label_ar": "منطقة ويستيرن",
   "sort": 70,
   "type": "Region",
   "aliases": [
@@ -17372,7 +17372,7 @@
   "code": "JP-13",
   "country": "JP",
   "label_en": "Tokyo Metropolis",
-  "label_ar": "طوكيو ميتروبوليس",
+  "label_ar": "طوكيو",
   "sort": 410,
   "type": "Prefecture",
   "aliases": [
@@ -17700,7 +17700,7 @@
   "code": "KE-30",
   "country": "KE",
   "label_en": "Nairobi City",
-  "label_ar": "نيروبي كيتي",
+  "label_ar": "مدينة نيروبي",
   "sort": 300,
   "type": "County",
   "aliases": []
@@ -17937,7 +17937,7 @@
   "code": "KG-GO",
   "country": "KG",
   "label_en": "Osh City",
-  "label_ar": "أوش كيتي",
+  "label_ar": "مدينة أوش",
   "sort": 80,
   "type": "City",
   "aliases": [
@@ -18849,7 +18849,7 @@
   "code": "KZ-75",
   "country": "KZ",
   "label_en": "Almaty City",
-  "label_ar": "ألماتي كيتي",
+  "label_ar": "مدينة ألماتي",
   "sort": 50,
   "type": "City",
   "aliases": [
@@ -19050,7 +19050,7 @@
   "code": "LA-XI",
   "country": "LA",
   "label_en": "Horizontal City",
-  "label_ar": "هوريزونتال كيتي",
+  "label_ar": "مدينة هوريزونتال",
   "sort": 50,
   "type": "Province",
   "aliases": [
@@ -19358,7 +19358,7 @@
   "code": "LC-10",
   "country": "LC",
   "label_en": "Soufrière",
-  "label_ar": "سووفريyري",
+  "label_ar": "سوفريير",
   "sort": 90,
   "type": "District",
   "aliases": [
@@ -19802,7 +19802,7 @@
   "code": "LT-AL",
   "country": "LT",
   "label_en": "Alytus County",
-  "label_ar": "أليتوس كوونتي",
+  "label_ar": "مقاطعة أليتوس",
   "sort": 10,
   "type": "County",
   "aliases": [
@@ -19814,7 +19814,7 @@
   "code": "LT-KU",
   "country": "LT",
   "label_en": "Kaunas County",
-  "label_ar": "كاوناس كوونتي",
+  "label_ar": "مقاطعة كاوناس",
   "sort": 20,
   "type": "County",
   "aliases": [
@@ -19826,7 +19826,7 @@
   "code": "LT-KL",
   "country": "LT",
   "label_en": "Klaipėda County",
-  "label_ar": "كلايبدا كوونتي",
+  "label_ar": "مقاطعة كلايبدا",
   "sort": 30,
   "type": "County",
   "aliases": [
@@ -19839,7 +19839,7 @@
   "code": "LT-MR",
   "country": "LT",
   "label_en": "Marijampolė County",
-  "label_ar": "ماريجامبول كوونتي",
+  "label_ar": "مقاطعة ماريجامبول",
   "sort": 40,
   "type": "County",
   "aliases": [
@@ -19852,7 +19852,7 @@
   "code": "LT-PN",
   "country": "LT",
   "label_en": "Panevėžys County",
-  "label_ar": "بانيفجيس كوونتي",
+  "label_ar": "مقاطعة بانيفجيس",
   "sort": 50,
   "type": "County",
   "aliases": [
@@ -19865,7 +19865,7 @@
   "code": "LT-TA",
   "country": "LT",
   "label_en": "Tauragė County",
-  "label_ar": "تاوراج كوونتي",
+  "label_ar": "مقاطعة تاوراج",
   "sort": 60,
   "type": "County",
   "aliases": [
@@ -19878,7 +19878,7 @@
   "code": "LT-TE",
   "country": "LT",
   "label_en": "Telšiai County",
-  "label_ar": "تيلشياي كوونتي",
+  "label_ar": "مقاطعة تيلشياي",
   "sort": 70,
   "type": "County",
   "aliases": [
@@ -19891,7 +19891,7 @@
   "code": "LT-UT",
   "country": "LT",
   "label_en": "Utena County",
-  "label_ar": "أوتينا كوونتي",
+  "label_ar": "مقاطعة أوتينا",
   "sort": 80,
   "type": "County",
   "aliases": [
@@ -19903,7 +19903,7 @@
   "code": "LT-VL",
   "country": "LT",
   "label_en": "Vilnius County",
-  "label_ar": "فيلنيوس كوونتي",
+  "label_ar": "مقاطعة فيلنيوس",
   "sort": 90,
   "type": "County",
   "aliases": [
@@ -19916,7 +19916,7 @@
   "code": "LT-SA",
   "country": "LT",
   "label_en": "Šiauliai County",
-  "label_ar": "شياولياي كوونتي",
+  "label_ar": "مقاطعة شياولياي",
   "sort": 100,
   "type": "County",
   "aliases": [
@@ -20037,7 +20037,7 @@
   "code": "LV-002",
   "country": "LV",
   "label_en": "Aizkraukle Municipality",
-  "label_ar": "أيزكراوكلي مونيكيباليتي",
+  "label_ar": "بلدية أيزكراوكلي",
   "sort": 10,
   "type": "Municipality",
   "aliases": [
@@ -20049,7 +20049,7 @@
   "code": "LV-007",
   "country": "LV",
   "label_en": "Alūksne Municipality",
-  "label_ar": "ألكسني مونيكيباليتي",
+  "label_ar": "بلدية ألكسني",
   "sort": 20,
   "type": "Municipality",
   "aliases": [
@@ -20062,7 +20062,7 @@
   "code": "LV-111",
   "country": "LV",
   "label_en": "Augšdaugavas Municipality",
-  "label_ar": "أوجشداوجافاس مونيكيباليتي",
+  "label_ar": "بلدية أوجشداوجافاس",
   "sort": 30,
   "type": "Municipality",
   "aliases": [
@@ -20076,7 +20076,7 @@
   "code": "LV-015",
   "country": "LV",
   "label_en": "Balvi Municipality",
-  "label_ar": "بالفي مونيكيباليتي",
+  "label_ar": "بلدية بالفي",
   "sort": 40,
   "type": "Municipality",
   "aliases": [
@@ -20088,7 +20088,7 @@
   "code": "LV-016",
   "country": "LV",
   "label_en": "Bauska\tMunicipality",
-  "label_ar": "باوسكامونيكيباليتي",
+  "label_ar": "بلدية باوسكا",
   "sort": 50,
   "type": "Municipality",
   "aliases": [
@@ -20120,7 +20120,7 @@
   "code": "LV-026",
   "country": "LV",
   "label_en": "Dobele Municipality",
-  "label_ar": "دوبيلي مونيكيباليتي",
+  "label_ar": "بلدية دوبيلي",
   "sort": 80,
   "type": "Municipality",
   "aliases": [
@@ -20132,7 +20132,7 @@
   "code": "LV-033",
   "country": "LV",
   "label_en": "Gulbene Municipality",
-  "label_ar": "جولبيني مونيكيباليتي",
+  "label_ar": "بلدية جولبيني",
   "sort": 90,
   "type": "Municipality",
   "aliases": [
@@ -20144,7 +20144,7 @@
   "code": "LV-041",
   "country": "LV",
   "label_en": "Jelgava Municipality",
-  "label_ar": "جيلجافا مونيكيباليتي",
+  "label_ar": "بلدية جيلجافا",
   "sort": 100,
   "type": "Municipality",
   "aliases": [
@@ -20156,7 +20156,7 @@
   "code": "LV-042",
   "country": "LV",
   "label_en": "Jēkabpils Municipality",
-  "label_ar": "جكاببيلس مونيكيباليتي",
+  "label_ar": "بلدية جكاببيلس",
   "sort": 110,
   "type": "Municipality",
   "aliases": [
@@ -20169,7 +20169,7 @@
   "code": "LV-047",
   "country": "LV",
   "label_en": "Krāslava Municipality",
-  "label_ar": "كرسلافا مونيكيباليتي",
+  "label_ar": "بلدية كرسلافا",
   "sort": 120,
   "type": "Municipality",
   "aliases": [
@@ -20182,7 +20182,7 @@
   "code": "LV-050",
   "country": "LV",
   "label_en": "Kuldīga Municipality",
-  "label_ar": "كولدجا مونيكيباليتي",
+  "label_ar": "بلدية كولدجا",
   "sort": 130,
   "type": "Municipality",
   "aliases": [
@@ -20207,7 +20207,7 @@
   "code": "LV-054",
   "country": "LV",
   "label_en": "Limbaži Municipality",
-  "label_ar": "ليمباجي مونيكيباليتي",
+  "label_ar": "بلدية ليمباجي",
   "sort": 150,
   "type": "Municipality",
   "aliases": [
@@ -20220,7 +20220,7 @@
   "code": "LV-058",
   "country": "LV",
   "label_en": "Ludza Municipality",
-  "label_ar": "لودزا مونيكيباليتي",
+  "label_ar": "بلدية لودزا",
   "sort": 160,
   "type": "Municipality",
   "aliases": [
@@ -20232,7 +20232,7 @@
   "code": "LV-056",
   "country": "LV",
   "label_en": "Līvāni Municipality",
-  "label_ar": "لفني مونيكيباليتي",
+  "label_ar": "بلدية لفني",
   "sort": 170,
   "type": "Municipality",
   "aliases": [
@@ -20245,7 +20245,7 @@
   "code": "LV-059",
   "country": "LV",
   "label_en": "Madona Municipality",
-  "label_ar": "مادونا مونيكيباليتي",
+  "label_ar": "بلدية مادونا",
   "sort": 180,
   "type": "Municipality",
   "aliases": [
@@ -20257,7 +20257,7 @@
   "code": "LV-062",
   "country": "LV",
   "label_en": "Mārupe Municipality",
-  "label_ar": "مروبي مونيكيباليتي",
+  "label_ar": "بلدية مروبي",
   "sort": 190,
   "type": "Municipality",
   "aliases": [
@@ -20270,7 +20270,7 @@
   "code": "LV-067",
   "country": "LV",
   "label_en": "Ogre Municipality",
-  "label_ar": "أوجري مونيكيباليتي",
+  "label_ar": "بلدية أوجري",
   "sort": 200,
   "type": "Municipality",
   "aliases": [
@@ -20282,7 +20282,7 @@
   "code": "LV-068",
   "country": "LV",
   "label_en": "Olaine Municipality",
-  "label_ar": "أولايني مونيكيباليتي",
+  "label_ar": "بلدية أولايني",
   "sort": 210,
   "type": "Municipality",
   "aliases": [
@@ -20294,7 +20294,7 @@
   "code": "LV-073",
   "country": "LV",
   "label_en": "Preiļi Municipality",
-  "label_ar": "بريي مونيكيباليتي",
+  "label_ar": "بلدية برييي",
   "sort": 220,
   "type": "Municipality",
   "aliases": [
@@ -20307,7 +20307,7 @@
   "code": "LV-080",
   "country": "LV",
   "label_en": "Ropaži Municipality",
-  "label_ar": "روباجي مونيكيباليتي",
+  "label_ar": "بلدية روباجي",
   "sort": 230,
   "type": "Municipality",
   "aliases": [
@@ -20331,7 +20331,7 @@
   "code": "LV-077",
   "country": "LV",
   "label_en": "Rēzekne Municipality",
-  "label_ar": "رزيكني مونيكيباليتي",
+  "label_ar": "بلدية رزيكني",
   "sort": 250,
   "type": "Municipality",
   "aliases": [
@@ -20355,7 +20355,7 @@
   "code": "LV-087",
   "country": "LV",
   "label_en": "Salaspils Municipality",
-  "label_ar": "سالاسبيلس مونيكيباليتي",
+  "label_ar": "بلدية سالاسبيلس",
   "sort": 270,
   "type": "Municipality",
   "aliases": [
@@ -20367,7 +20367,7 @@
   "code": "LV-088",
   "country": "LV",
   "label_en": "Saldus Municipality",
-  "label_ar": "سالدوس مونيكيباليتي",
+  "label_ar": "بلدية سالدوس",
   "sort": 280,
   "type": "Municipality",
   "aliases": [
@@ -20379,7 +20379,7 @@
   "code": "LV-089",
   "country": "LV",
   "label_en": "Saulkrasti Municipality",
-  "label_ar": "ساولكراستي مونيكيباليتي",
+  "label_ar": "بلدية ساولكراستي",
   "sort": 290,
   "type": "Municipality",
   "aliases": [
@@ -20403,7 +20403,7 @@
   "code": "LV-091",
   "country": "LV",
   "label_en": "Sigulda Municipality",
-  "label_ar": "سيجولدا مونيكيباليتي",
+  "label_ar": "بلدية سيجولدا",
   "sort": 310,
   "type": "Municipality",
   "aliases": [
@@ -20415,7 +20415,7 @@
   "code": "LV-094",
   "country": "LV",
   "label_en": "Smiltene Municipality",
-  "label_ar": "سميلتيني مونيكيباليتي",
+  "label_ar": "بلدية سميلتيني",
   "sort": 320,
   "type": "Municipality",
   "aliases": [
@@ -20427,7 +20427,7 @@
   "code": "LV-112",
   "country": "LV",
   "label_en": "South Kurzeme Municipality",
-  "label_ar": "سووث كورزيمي مونيكيباليتي",
+  "label_ar": "بلدية سووث كورزيمي",
   "sort": 330,
   "type": "Municipality",
   "aliases": [
@@ -20439,7 +20439,7 @@
   "code": "LV-097",
   "country": "LV",
   "label_en": "Talsi Municipality",
-  "label_ar": "تالسي مونيكيباليتي",
+  "label_ar": "بلدية تالسي",
   "sort": 340,
   "type": "Municipality",
   "aliases": [
@@ -20451,7 +20451,7 @@
   "code": "LV-099",
   "country": "LV",
   "label_en": "Tukums Municipality",
-  "label_ar": "توكومس مونيكيباليتي",
+  "label_ar": "بلدية توكومس",
   "sort": 350,
   "type": "Municipality",
   "aliases": [
@@ -20463,7 +20463,7 @@
   "code": "LV-101",
   "country": "LV",
   "label_en": "Valka Municipality",
-  "label_ar": "فالكا مونيكيباليتي",
+  "label_ar": "بلدية فالكا",
   "sort": 360,
   "type": "Municipality",
   "aliases": [
@@ -20475,7 +20475,7 @@
   "code": "LV-113",
   "country": "LV",
   "label_en": "Valmieras Municipality",
-  "label_ar": "فالمييراس مونيكيباليتي",
+  "label_ar": "بلدية فالمييراس",
   "sort": 370,
   "type": "Municipality",
   "aliases": [
@@ -20487,7 +20487,7 @@
   "code": "LV-102",
   "country": "LV",
   "label_en": "Varakļāni Municipality",
-  "label_ar": "فاراكني مونيكيباليتي",
+  "label_ar": "بلدية فاراكني",
   "sort": 380,
   "type": "Municipality",
   "aliases": [
@@ -20509,7 +20509,7 @@
   "code": "LV-106",
   "country": "LV",
   "label_en": "Ventspils Municipality",
-  "label_ar": "فينتسبيلس مونيكيباليتي",
+  "label_ar": "بلدية فينتسبيلس",
   "sort": 400,
   "type": "Municipality",
   "aliases": [
@@ -20533,7 +20533,7 @@
   "code": "LV-011",
   "country": "LV",
   "label_en": "Ādaži Municipality",
-  "label_ar": "داجي مونيكيباليتي",
+  "label_ar": "بلدية داجي",
   "sort": 420,
   "type": "Municipality",
   "aliases": [
@@ -20546,7 +20546,7 @@
   "code": "LV-052",
   "country": "LV",
   "label_en": "Ķekava Municipality",
-  "label_ar": "يكافا مونيكيباليتي",
+  "label_ar": "بلدية يكافا",
   "sort": 430,
   "type": "Municipality",
   "aliases": [
@@ -21613,7 +21613,7 @@
   "code": "MC-MO",
   "country": "MC",
   "label_en": "Monaco City",
-  "label_ar": "موناكو كيتي",
+  "label_ar": "مدينة موناكو",
   "sort": 80,
   "type": "Quarter",
   "aliases": [
@@ -22268,7 +22268,7 @@
   "code": "ME-16",
   "country": "ME",
   "label_en": "Podgorica Capital City",
-  "label_ar": "بودجوريكا كابيتال كيتي",
+  "label_ar": "مدينة بودجوريكا كابيتال",
   "sort": 180,
   "type": "Municipality",
   "aliases": [
@@ -23660,7 +23660,7 @@
   "code": "MN-071",
   "country": "MN",
   "label_en": "Rich Region",
-  "label_ar": "ريتش ريجيون",
+  "label_ar": "منطقة ريتش",
   "sort": 150,
   "type": "Province",
   "aliases": [
@@ -23784,7 +23784,7 @@
   "code": "MR-01",
   "country": "MR",
   "label_en": "Eastern Basin Region",
-  "label_ar": "الحوض الشرقي",
+  "label_ar": "منطقة إاستيرن باسين",
   "sort": 40,
   "type": "Region",
   "aliases": [
@@ -23898,7 +23898,7 @@
   "code": "MR-02",
   "country": "MR",
   "label_en": "Western Basin Region",
-  "label_ar": "الحوض الغربي",
+  "label_ar": "منطقة ويستيرن باسين",
   "sort": 150,
   "type": "Region",
   "aliases": [
@@ -24656,7 +24656,7 @@
   "code": "MU-RR",
   "country": "MU",
   "label_en": "Rivière du Rempart",
-  "label_ar": "ريفيyري دو ريمبارت",
+  "label_ar": "ريفير دو ريمبارت",
   "sort": 90,
   "type": "District",
   "aliases": [
@@ -24704,7 +24704,7 @@
   "code": "MV-01",
   "country": "MV",
   "label_en": "Addu City",
-  "label_ar": "أددو كيتي",
+  "label_ar": "مدينة أددو",
   "sort": 10,
   "type": "City",
   "aliases": []
@@ -24949,7 +24949,7 @@
   "code": "MW-C",
   "country": "MW",
   "label_en": "Central Region",
-  "label_ar": "كينترال ريجيون",
+  "label_ar": "منطقة كينترال",
   "sort": 10,
   "type": "Region",
   "aliases": []
@@ -24958,7 +24958,7 @@
   "code": "MW-N",
   "country": "MW",
   "label_en": "Northern Region",
-  "label_ar": "نورثيرن ريجيون",
+  "label_ar": "منطقة نورثيرن",
   "sort": 20,
   "type": "Region",
   "aliases": []
@@ -24967,7 +24967,7 @@
   "code": "MW-S",
   "country": "MW",
   "label_en": "Southern Region",
-  "label_ar": "سووثيرن ريجيون",
+  "label_ar": "منطقة سووثيرن",
   "sort": 30,
   "type": "Region",
   "aliases": []
@@ -25366,7 +25366,7 @@
   "code": "MX-MEX",
   "country": "MX",
   "label_en": "State of Mexico",
-  "label_ar": "ستاتي وف المكسيك",
+  "label_ar": "ميكسيكو",
   "sort": 320,
   "type": "State",
   "aliases": [
@@ -26234,7 +26234,7 @@
   "code": "NG-KW",
   "country": "NG",
   "label_en": "State of Harmony",
-  "label_ar": "ستاتي وف هارموني",
+  "label_ar": "هارموني",
   "sort": 300,
   "type": "State",
   "aliases": [
@@ -27213,7 +27213,7 @@
   "code": "NZ-WGN",
   "country": "NZ",
   "label_en": "Wellington Region",
-  "label_ar": "ويلينغتون ريجيون",
+  "label_ar": "منطقة ويلينغتون",
   "sort": 170,
   "type": "Region",
   "aliases": [
@@ -27579,7 +27579,7 @@
   "code": "PE-LIM",
   "country": "PE",
   "label_en": "Department of the Capital",
-  "label_ar": "ديبارتمينت وف ثي كابيتال",
+  "label_ar": "ثي كابيتال",
   "sort": 80,
   "type": "Region",
   "aliases": [
@@ -27922,7 +27922,7 @@
   "code": "PG-NCD",
   "country": "PG",
   "label_en": "Pom City",
-  "label_ar": "بوم كيتي",
+  "label_ar": "مدينة بوم",
   "sort": 170,
   "type": "District",
   "aliases": [
@@ -28136,7 +28136,7 @@
   "code": "PH-13",
   "country": "PH",
   "label_en": "Caraga Administrative Region",
-  "label_ar": "كاراجا أدمينيستراتيفي ريجيون",
+  "label_ar": "منطقة كاراجا أدمينيستراتيفي",
   "sort": 180,
   "type": "Region",
   "aliases": [
@@ -28198,7 +28198,7 @@
   "code": "PH-15",
   "country": "PH",
   "label_en": "Cordillera Region",
-  "label_ar": "كورديلليرا ريجيون",
+  "label_ar": "منطقة كورديلليرا",
   "sort": 230,
   "type": "Region",
   "aliases": [
@@ -28789,7 +28789,7 @@
   "code": "PH-41",
   "country": "PH",
   "label_en": "Southwestern Tagalog Region",
-  "label_ar": "سووثويستيرن تاجالوج ريجيون",
+  "label_ar": "منطقة سووثويستيرن تاجالوج",
   "sort": 780,
   "type": "Region",
   "aliases": [
@@ -31047,7 +31047,7 @@
   "code": "RU-YEV",
   "country": "RU",
   "label_en": "Jewish Autonomous Oblast",
-  "label_ar": "جيويش أوتونومووس أوبلاست",
+  "label_ar": "أوبلاست جيويش أوتونومووس",
   "sort": 190,
   "type": "Autonomous region",
   "aliases": [
@@ -31345,7 +31345,7 @@
   "code": "RU-MOW",
   "country": "RU",
   "label_en": "Moscow City",
-  "label_ar": "موسكو كيتي",
+  "label_ar": "مدينة موسكو",
   "sort": 430,
   "type": "Autonomous city",
   "aliases": [
@@ -31517,7 +31517,7 @@
   "code": "RU-SA",
   "country": "RU",
   "label_en": "Republic of Sakha [Yakutia]",
-  "label_ar": "ريبوبليك وف ساخا ياكوتيا",
+  "label_ar": "ساخا ياكوتيا",
   "sort": 570,
   "type": "Republic",
   "aliases": [
@@ -35350,7 +35350,7 @@
   "code": "SN-TH",
   "country": "SN",
   "label_en": "Thiès",
-  "label_ar": "ثيyس",
+  "label_ar": "تييس",
   "sort": 130,
   "type": "Region",
   "aliases": [
@@ -36654,7 +36654,7 @@
   "code": "TH-60",
   "country": "TH",
   "label_en": "Heavenly City",
-  "label_ar": "هيافينلي كيتي",
+  "label_ar": "مدينة هيافينلي",
   "sort": 180,
   "type": "Province",
   "aliases": [
@@ -36805,7 +36805,7 @@
   "code": "TH-48",
   "country": "TH",
   "label_en": "Mountain City",
-  "label_ar": "موونتاين كيتي",
+  "label_ar": "مدينة موونتاين",
   "sort": 310,
   "type": "Province",
   "aliases": [
@@ -38953,7 +38953,7 @@
   "code": "TW-KHH",
   "country": "TW",
   "label_en": "Kaohsiung City",
-  "label_ar": "كاوهسيونغ كيتي",
+  "label_ar": "مدينة كاوهسيونغ",
   "sort": 90,
   "type": "Special municipality",
   "aliases": [
@@ -39011,7 +39011,7 @@
   "code": "TW-CYI",
   "country": "TW",
   "label_en": "Peach City",
-  "label_ar": "بياتش كيتي",
+  "label_ar": "مدينة بياتش",
   "sort": 140,
   "type": "City",
   "aliases": [
@@ -39102,7 +39102,7 @@
   "code": "TW-HSZ",
   "country": "TW",
   "label_en": "Windy City",
-  "label_ar": "ويندي كيتي",
+  "label_ar": "مدينة ويندي",
   "sort": 210,
   "type": "City",
   "aliases": [
@@ -39246,7 +39246,7 @@
   "code": "TZ-08",
   "country": "TZ",
   "label_en": "Tanzanias Sunset Region",
-  "label_ar": "تنزانياس سونسيت ريجيون",
+  "label_ar": "منطقة تانزانياس سونسيت",
   "sort": 110,
   "type": "Region",
   "aliases": [
@@ -39322,7 +39322,7 @@
   "code": "TZ-27",
   "country": "TZ",
   "label_en": "The Gold Region",
-  "label_ar": "ثي جولد ريجيون",
+  "label_ar": "منطقة ثي جولد",
   "sort": 170,
   "type": "Region",
   "aliases": [
@@ -39348,7 +39348,7 @@
   "code": "TZ-12",
   "country": "TZ",
   "label_en": "The Heritage Region",
-  "label_ar": "ثي هيريتاجي ريجيون",
+  "label_ar": "منطقة ثي هيريتاجي",
   "sort": 190,
   "type": "Region",
   "aliases": [
@@ -39676,7 +39676,7 @@
   "code": "UA-30",
   "country": "UA",
   "label_en": "Kyiv City",
-  "label_ar": "كييف كيتي",
+  "label_ar": "مدينة كييف",
   "sort": 130,
   "type": "City",
   "aliases": [
@@ -40009,7 +40009,7 @@
   "code": "US-MN",
   "country": "US",
   "label_en": "000 Lakes",
-  "label_ar": "00 لاكيس",
+  "label_ar": "مينيسوتا",
   "sort": 10,
   "type": "State",
   "aliases": [
@@ -40023,7 +40023,7 @@
   "code": "US-WI",
   "country": "US",
   "label_en": "Badger State",
-  "label_ar": "بادجير ستاتي",
+  "label_ar": "ويسكونسن",
   "sort": 20,
   "type": "State",
   "aliases": [
@@ -40036,7 +40036,7 @@
   "code": "US-UT",
   "country": "US",
   "label_en": "Beehive State",
-  "label_ar": "بييهيفي ستاتي",
+  "label_ar": "يوتا",
   "sort": 30,
   "type": "State",
   "aliases": [
@@ -40050,7 +40050,7 @@
   "code": "US-MT",
   "country": "US",
   "label_en": "Big Sky Country",
-  "label_ar": "بيج سكي كوونتري",
+  "label_ar": "مونتانا",
   "sort": 40,
   "type": "State",
   "aliases": [
@@ -40063,7 +40063,7 @@
   "code": "US-KY",
   "country": "US",
   "label_en": "Commonwealth of Kentucky",
-  "label_ar": "كوممونويالث وف كنتاكي",
+  "label_ar": "كنتاكي",
   "sort": 50,
   "type": "State",
   "aliases": [
@@ -40076,7 +40076,7 @@
   "code": "US-PA",
   "country": "US",
   "label_en": "Commonwealth of Pennsylvania",
-  "label_ar": "كوممونويالث وف بنسيلفانيا",
+  "label_ar": "بنسيلفانيا",
   "sort": 60,
   "type": "State",
   "aliases": [
@@ -40089,7 +40089,7 @@
   "code": "US-PR",
   "country": "US",
   "label_en": "Commonwealth of Puerto Rico",
-  "label_ar": "كوممونويالث وف بويرتو ريكو",
+  "label_ar": "بورتوريكو",
   "sort": 70,
   "type": "Outlying area",
   "aliases": [
@@ -40105,7 +40105,7 @@
   "code": "US-MP",
   "country": "US",
   "label_en": "Commonwealth of the Northern Mariana Islands",
-  "label_ar": "كوممونويالث وف ثي نورثيرن ماريانا إيسلاندس",
+  "label_ar": "جزر ماريانا الشمالية",
   "sort": 80,
   "type": "Outlying area",
   "aliases": [
@@ -40117,7 +40117,7 @@
   "code": "US-VA",
   "country": "US",
   "label_en": "Commonwealth of Virginia",
-  "label_ar": "كوممونويالث وف فرجينيا",
+  "label_ar": "فرجينيا",
   "sort": 90,
   "type": "State",
   "aliases": [
@@ -40131,7 +40131,7 @@
   "code": "US-DC",
   "country": "US",
   "label_en": "D.C.",
-  "label_ar": "د ك",
+  "label_ar": "مقاطعة كولومبيا",
   "sort": 100,
   "type": "District",
   "aliases": [
@@ -40146,7 +40146,7 @@
   "code": "US-WY",
   "country": "US",
   "label_en": "Equality State",
-  "label_ar": "إكاليتي ستاتي",
+  "label_ar": "وايومنغ",
   "sort": 110,
   "type": "State",
   "aliases": [
@@ -40160,7 +40160,7 @@
   "code": "US-NH",
   "country": "US",
   "label_en": "Granite State",
-  "label_ar": "جرانيتي ستاتي",
+  "label_ar": "نيو هامبشاير",
   "sort": 120,
   "type": "State",
   "aliases": [
@@ -40173,7 +40173,7 @@
   "code": "US-IA",
   "country": "US",
   "label_en": "Hawkeye State",
-  "label_ar": "هاوكيي ستاتي",
+  "label_ar": "آيوا",
   "sort": 130,
   "type": "State",
   "aliases": [
@@ -40185,7 +40185,7 @@
   "code": "US-AS",
   "country": "US",
   "label_en": "Heart of Polynesia",
-  "label_ar": "هيارت وف بولينيسيا",
+  "label_ar": "ساموا الأمريكية",
   "sort": 140,
   "type": "Outlying area",
   "aliases": [
@@ -40197,7 +40197,7 @@
   "code": "US-IL",
   "country": "US",
   "label_en": "Land of Lincoln",
-  "label_ar": "لاند وف لينكولن",
+  "label_ar": "إلينوي",
   "sort": 150,
   "type": "State",
   "aliases": [
@@ -40211,7 +40211,7 @@
   "code": "US-GU",
   "country": "US",
   "label_en": "Land of the Chamorro",
-  "label_ar": "لاند وف ثي تشاموررو",
+  "label_ar": "غوام",
   "sort": 160,
   "type": "Outlying area",
   "aliases": [
@@ -40223,7 +40223,7 @@
   "code": "US-WV",
   "country": "US",
   "label_en": "Mountain State",
-  "label_ar": "موونتاين ستاتي",
+  "label_ar": "فرجينيا الغربية",
   "sort": 170,
   "type": "State",
   "aliases": [
@@ -40235,7 +40235,7 @@
   "code": "US-OK",
   "country": "US",
   "label_en": "Native America",
-  "label_ar": "ناتيفي أميريكا",
+  "label_ar": "أوكلاهوما",
   "sort": 180,
   "type": "State",
   "aliases": [
@@ -40249,7 +40249,7 @@
   "code": "US-NY",
   "country": "US",
   "label_en": "New York State",
-  "label_ar": "نيويورك ستاتي",
+  "label_ar": "نيويورك",
   "sort": 190,
   "type": "State",
   "aliases": [
@@ -40262,7 +40262,7 @@
   "code": "US-MD",
   "country": "US",
   "label_en": "Old Line State",
-  "label_ar": "أولد ليني ستاتي",
+  "label_ar": "ماريلاند",
   "sort": 200,
   "type": "State",
   "aliases": [
@@ -40277,7 +40277,7 @@
   "code": "US-ND",
   "country": "US",
   "label_en": "Peace Garden State",
-  "label_ar": "بياكي جاردين ستاتي",
+  "label_ar": "داكوتا الشمالية",
   "sort": 210,
   "type": "State",
   "aliases": [
@@ -40292,7 +40292,7 @@
   "code": "US-GA",
   "country": "US",
   "label_en": "Peach State",
-  "label_ar": "بياتش ستاتي",
+  "label_ar": "جورجيا",
   "sort": 220,
   "type": "State",
   "aliases": [
@@ -40305,7 +40305,7 @@
   "code": "US-LA",
   "country": "US",
   "label_en": "Pelican State",
-  "label_ar": "بيليكان ستاتي",
+  "label_ar": "لويزيانا",
   "sort": 230,
   "type": "State",
   "aliases": [
@@ -40320,7 +40320,7 @@
   "code": "US-MO",
   "country": "US",
   "label_en": "Show Me State",
-  "label_ar": "شوو مي ستاتي",
+  "label_ar": "ميزوري",
   "sort": 240,
   "type": "State",
   "aliases": [
@@ -40334,7 +40334,7 @@
   "code": "US-TN",
   "country": "US",
   "label_en": "State of Tennessee",
-  "label_ar": "ستاتي وف تينيسي",
+  "label_ar": "تينيسي",
   "sort": 250,
   "type": "State",
   "aliases": [
@@ -40347,7 +40347,7 @@
   "code": "US-WA",
   "country": "US",
   "label_en": "State of Washington",
-  "label_ar": "ستاتي وف واشنطن",
+  "label_ar": "واشنطن",
   "sort": 260,
   "type": "State",
   "aliases": [
@@ -40361,7 +40361,7 @@
   "code": "US-FL",
   "country": "US",
   "label_en": "Sunshine State",
-  "label_ar": "سونشيني ستاتي",
+  "label_ar": "فلوريدا",
   "sort": 270,
   "type": "State",
   "aliases": [
@@ -40373,7 +40373,7 @@
   "code": "US-HI",
   "country": "US",
   "label_en": "The Aloha State",
-  "label_ar": "ثي ألوها ستاتي",
+  "label_ar": "هاواي",
   "sort": 280,
   "type": "State",
   "aliases": [
@@ -40388,7 +40388,7 @@
   "code": "US-MA",
   "country": "US",
   "label_en": "The Bay State",
-  "label_ar": "ثي باي ستاتي",
+  "label_ar": "ماساتشوستس",
   "sort": 290,
   "type": "State",
   "aliases": [
@@ -40405,7 +40405,7 @@
   "code": "US-OR",
   "country": "US",
   "label_en": "The Beaver State",
-  "label_ar": "ثي بيافير ستاتي",
+  "label_ar": "أوريغون",
   "sort": 300,
   "type": "State",
   "aliases": [
@@ -40417,7 +40417,7 @@
   "code": "US-OH",
   "country": "US",
   "label_en": "The Buckeye State",
-  "label_ar": "ثي بوكيي ستاتي",
+  "label_ar": "أوهايو",
   "sort": 310,
   "type": "State",
   "aliases": [
@@ -40431,7 +40431,7 @@
   "code": "US-CO",
   "country": "US",
   "label_en": "The Centennial State",
-  "label_ar": "ثي كينتيننيال ستاتي",
+  "label_ar": "كولورادو",
   "sort": 320,
   "type": "State",
   "aliases": [
@@ -40443,7 +40443,7 @@
   "code": "US-CT",
   "country": "US",
   "label_en": "The Constitution State",
-  "label_ar": "ثي كونستيتوتيون ستاتي",
+  "label_ar": "كونيتيكت",
   "sort": 330,
   "type": "State",
   "aliases": [
@@ -40458,7 +40458,7 @@
   "code": "US-NE",
   "country": "US",
   "label_en": "The Cornhusker Stat",
-  "label_ar": "ثي كورنهوسكير ستات",
+  "label_ar": "نبراسكا",
   "sort": 340,
   "type": "State",
   "aliases": [
@@ -40470,7 +40470,7 @@
   "code": "US-DE",
   "country": "US",
   "label_en": "The First State",
-  "label_ar": "ثي فيرست ستاتي",
+  "label_ar": "ديلاوير",
   "sort": 350,
   "type": "State",
   "aliases": [
@@ -40485,7 +40485,7 @@
   "code": "US-NJ",
   "country": "US",
   "label_en": "The Garden State",
-  "label_ar": "ثي جاردين ستاتي",
+  "label_ar": "نيو جيرسي",
   "sort": 360,
   "type": "State",
   "aliases": [
@@ -40497,7 +40497,7 @@
   "code": "US-ID",
   "country": "US",
   "label_en": "The Gem State",
-  "label_ar": "ثي جيم ستاتي",
+  "label_ar": "أيداهو",
   "sort": 370,
   "type": "State",
   "aliases": [
@@ -40510,7 +40510,7 @@
   "code": "US-CA",
   "country": "US",
   "label_en": "The Golden State",
-  "label_ar": "ثي جولدين ستاتي",
+  "label_ar": "كاليفورنيا",
   "sort": 380,
   "type": "State",
   "aliases": [
@@ -40522,7 +40522,7 @@
   "code": "US-AZ",
   "country": "US",
   "label_en": "The Grand Canyon State",
-  "label_ar": "ثي جراند كانيون ستاتي",
+  "label_ar": "أريزونا",
   "sort": 390,
   "type": "State",
   "aliases": [
@@ -40536,7 +40536,7 @@
   "code": "US-MI",
   "country": "US",
   "label_en": "The Great Lake State",
-  "label_ar": "ثي جريات لاكي ستاتي",
+  "label_ar": "ميشيغان",
   "sort": 400,
   "type": "State",
   "aliases": [
@@ -40550,7 +40550,7 @@
   "code": "US-VT",
   "country": "US",
   "label_en": "The Green Mountain State",
-  "label_ar": "ثي جريين موونتاين ستاتي",
+  "label_ar": "فيرمونت",
   "sort": 410,
   "type": "State",
   "aliases": [
@@ -40562,7 +40562,7 @@
   "code": "US-IN",
   "country": "US",
   "label_en": "The Hoosier State",
-  "label_ar": "ثي هووسيير ستاتي",
+  "label_ar": "إنديانا",
   "sort": 420,
   "type": "State",
   "aliases": [
@@ -40574,7 +40574,7 @@
   "code": "US-NM",
   "country": "US",
   "label_en": "The Land of Enchantment",
-  "label_ar": "ثي لاند وف إنتشانتمينت",
+  "label_ar": "نيو مكسيكو",
   "sort": 430,
   "type": "State",
   "aliases": [
@@ -40586,7 +40586,7 @@
   "code": "US-AK",
   "country": "US",
   "label_en": "The Last Frontier",
-  "label_ar": "ثي لاست فرونتيير",
+  "label_ar": "ألاسكا",
   "sort": 440,
   "type": "State",
   "aliases": [
@@ -40598,7 +40598,7 @@
   "code": "US-TX",
   "country": "US",
   "label_en": "The Lone Star State",
-  "label_ar": "ثي لوني ستار ستاتي",
+  "label_ar": "تكساس",
   "sort": 450,
   "type": "State",
   "aliases": [
@@ -40610,7 +40610,7 @@
   "code": "US-MS",
   "country": "US",
   "label_en": "The Magnolia State",
-  "label_ar": "ثي ماجنوليا ستاتي",
+  "label_ar": "ميسيسيبي",
   "sort": 460,
   "type": "State",
   "aliases": [
@@ -40623,7 +40623,7 @@
   "code": "US-SD",
   "country": "US",
   "label_en": "The Mount Rushmore State",
-  "label_ar": "ثي موونت روشموري ستاتي",
+  "label_ar": "داكوتا الجنوبية",
   "sort": 470,
   "type": "State",
   "aliases": [
@@ -40635,7 +40635,7 @@
   "code": "US-AR",
   "country": "US",
   "label_en": "The Natural State",
-  "label_ar": "ثي ناتورال ستاتي",
+  "label_ar": "أركنساس",
   "sort": 480,
   "type": "State",
   "aliases": [
@@ -40648,7 +40648,7 @@
   "code": "US-RI",
   "country": "US",
   "label_en": "The Ocean State",
-  "label_ar": "ثي أوكيان ستاتي",
+  "label_ar": "رود آيلاند",
   "sort": 490,
   "type": "State",
   "aliases": [
@@ -40661,7 +40661,7 @@
   "code": "US-SC",
   "country": "US",
   "label_en": "The Palmetto State",
-  "label_ar": "ثي بالميتتو ستاتي",
+  "label_ar": "كارولاينا الجنوبية",
   "sort": 500,
   "type": "State",
   "aliases": [
@@ -40673,7 +40673,7 @@
   "code": "US-ME",
   "country": "US",
   "label_en": "The Pine Tree State",
-  "label_ar": "ثي بيني تريي ستاتي",
+  "label_ar": "مين",
   "sort": 510,
   "type": "State",
   "aliases": [
@@ -40686,7 +40686,7 @@
   "code": "US-NV",
   "country": "US",
   "label_en": "The Silver State",
-  "label_ar": "ثي سيلفير ستاتي",
+  "label_ar": "نيفادا",
   "sort": 520,
   "type": "State",
   "aliases": [
@@ -40700,7 +40700,7 @@
   "code": "US-KS",
   "country": "US",
   "label_en": "The Sunflower State",
-  "label_ar": "ثي سونفلووير ستاتي",
+  "label_ar": "كانساس",
   "sort": 530,
   "type": "State",
   "aliases": [
@@ -40714,7 +40714,7 @@
   "code": "US-NC",
   "country": "US",
   "label_en": "The Tarheel State",
-  "label_ar": "ثي تارهييل ستاتي",
+  "label_ar": "كارولاينا الشمالية",
   "sort": 540,
   "type": "State",
   "aliases": [
@@ -40727,7 +40727,7 @@
   "code": "US-AL",
   "country": "US",
   "label_en": "The Yellowhammer State",
-  "label_ar": "ثي ييللووهاممير ستاتي",
+  "label_ar": "ألاباما",
   "sort": 550,
   "type": "State",
   "aliases": [
@@ -40741,7 +40741,7 @@
   "code": "US-UM",
   "country": "US",
   "label_en": "United States Minor Outlying Islands",
-  "label_ar": "الولايات المتحدة مينور أووتليينغ إيسلاندس",
+  "label_ar": "الجزر النائية الصغيرة للولايات المتحدة",
   "sort": 560,
   "type": "Outlying area",
   "aliases": []
@@ -40750,7 +40750,7 @@
   "code": "US-VI",
   "country": "US",
   "label_en": "United States Virgin Islands",
-  "label_ar": "الولايات المتحدة فيرجين إيسلاندس",
+  "label_ar": "جزر فيرجن الأمريكية",
   "sort": 570,
   "type": "Outlying area",
   "aliases": [
@@ -41090,7 +41090,7 @@
   "code": "UZ-TK",
   "country": "UZ",
   "label_en": "Tashkent City",
-  "label_ar": "طشقند كيتي",
+  "label_ar": "مدينة طشقند",
   "sort": 140,
   "type": "City",
   "aliases": [
@@ -41673,7 +41673,7 @@
   "code": "VN-SG",
   "country": "VN",
   "label_en": "Ho Chi Minh City",
-  "label_ar": "هو تشي مينه كيتي",
+  "label_ar": "مدينة هو تشي مينه",
   "sort": 220,
   "type": "Municipality",
   "aliases": [
