@@ -1,10 +1,11 @@
-"""Commander ↔ individual integration + the unit's own map.
+"""The leader is a person + the unit's own map.
 
-Two features, one rule of honesty: the commander dossier now encompasses the
-linked individual's details (``commander.person_id`` bridges the two), and the
-unit dossier shows a map of the UNIT'S OWN location — its own coordinates and
-its deployments' — never the commander's personal location. ``service.unit_geo``
-serves unit-owned rows only, and these tests hold that distinction in place.
+Two features, one rule of honesty: the Leader is a categorized Person — the
+commander's attributes live directly on the person record and the appointment
+points at it — and the unit dossier shows a map of the UNIT'S OWN location: its
+own coordinates and its deployments', never its commander's personal location.
+``service.unit_geo`` serves unit-owned rows only, and these tests hold that
+distinction in place.
 """
 
 from __future__ import annotations
@@ -31,10 +32,6 @@ HDRS = {"X-Military-Role": "admin"}
 NEW_KEYS = [
     "mil.cmd.appointment", "mil.cmd.commissioned", "mil.cmd.current",
     "mil.cmd.empty", "mil.cmd.since", "mil.cmd.title", "mil.cmd.unit",
-    "mil.ind.birth", "mil.ind.death", "mil.ind.find", "mil.ind.link",
-    "mil.ind.linkHint", "mil.ind.linked", "mil.ind.nationality",
-    "mil.ind.notLinked", "mil.ind.open", "mil.ind.position",
-    "mil.ind.positions", "mil.ind.relationships", "mil.ind.tab",
     "mil.map.addLocation", "mil.map.deployments", "mil.map.empty",
     "mil.map.emptyHint", "mil.map.noCoords", "mil.map.notCommander",
     "mil.map.ownCaption", "mil.map.ownPin", "mil.map.source", "mil.map.tab",
@@ -79,8 +76,8 @@ def _make_person(tmp_db, name="QA Individual", lat=None, lon=None) -> int:
     conn = db.connect()
     try:
         cur = conn.execute(
-            "INSERT INTO person (code, name_ar, name_en, latitude, longitude) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO person (code, name_ar, name_en, category, latitude, longitude) "
+            "VALUES (?, ?, ?, 'military', ?, ?)",
             (f"QA-P-{abs(hash((name, lat, lon))) % 100000}", name, name, lat, lon))
         conn.commit()
         return cur.lastrowid
@@ -97,7 +94,7 @@ def test_link_and_own_geo_columns_exist(tmp_db):
     conn = db.connect()
     try:
         for table, cols in {
-            "commander": {"person_id"},
+            "person": {"category", "rank_title", "service_status"},
             "military_unit": {"latitude", "longitude", "geometry_source"},
             "operational_deployment": {"latitude", "longitude", "geometry_source"},
         }.items():
@@ -108,17 +105,19 @@ def test_link_and_own_geo_columns_exist(tmp_db):
 
 
 def test_both_spec_layers_carry_the_new_fields():
+    from app.schemas import ENTITIES
     meta = mil_specs._build_specs()
     unit_keys = {f.key for f in meta["unit"].fields}
     dep_keys = {f.key for f in meta["deployment"].fields}
-    cmd_keys = {f.key for f in meta["commander"].fields}
     assert {"latitude", "longitude", "geometry_source"} <= unit_keys
     assert {"latitude", "longitude", "geometry_source"} <= dep_keys
-    assert "person_id" in cmd_keys
+    # the commander's attributes live on the person spec now
+    person_keys = {f.key for f in ENTITIES["person"].fields}
+    assert {"category", "rank_title", "branch", "service_status"} <= person_keys
     svc = service.ENTITY_SPECS
     for ent, cols in (("unit", {"latitude", "longitude", "geometry_source"}),
                       ("deployment", {"latitude", "longitude", "geometry_source"}),
-                      ("commander", {"person_id"})):
+                      ("trait", {"person_id"})):
         names = {f["name"] for f in svc[ent]["fields"]}
         assert cols <= names, f"{ent} service spec missing {cols - names}"
     # the coordinate pair is a float with honest bounds in the service layer
@@ -162,12 +161,11 @@ def test_unit_geo_serves_own_location_only(client, tmp_db):
         "name": "Text-only Deployment", "unit_id": uid,
         "start_date": "2025-01-01", "location": "South sector"}, headers=HDRS))
 
-    # a commander firmly attached to this unit — with a person at ANOTHER place
+    # a commander firmly attached to this unit — a leader whose own
+    # coordinates sit at ANOTHER place
     pid = _make_person(tmp_db, "Geo Ghost Commander", lat=24.0, lon=45.0)
-    cmd = _rec(client.post("/api/commander", json={
-        "full_name": "Geo Ghost Commander", "person_id": pid}, headers=HDRS))
     asg = client.post("/api/assignment", json={
-        "unit_id": uid, "commander_id": cmd["id"], "role": "Commanding Officer",
+        "unit_id": uid, "commander_id": pid, "role": "Commanding Officer",
         "assigned_date": "2026-01-01", "is_current": True}, headers=HDRS)
     assert asg.status_code in (200, 201)
 
@@ -190,39 +188,51 @@ def test_unit_geo_serves_own_location_only(client, tmp_db):
     assert "Geo Ghost Commander" not in json.dumps(data)
 
 
-def test_commander_person_link_roundtrip(client, tmp_db):
-    pid = _make_person(tmp_db, "Linked Individual")
-    created = client.post("/api/commander", json={
-        "full_name": "Linked Commander", "person_id": pid}, headers=HDRS)
+def test_leader_is_the_person_record_roundtrip(client, tmp_db):
+    """The Leader table is gone: the person record carries the commander's
+    attributes directly, and appointments point at the person."""
+    created = client.post("/api/person", json={
+        "name_en": "Linked Leader", "name_ar": "قائد مرتبط",
+        "category": "military", "rank_title": "Colonel",
+        "branch": "Army", "service_status": "Active"}, headers=HDRS)
     assert created.status_code in (200, 201)
-    cid = _rec(created)["id"]
-    assert _rec(client.get(f"/api/commander/{cid}"))["person_id"] == pid
+    pid = _rec(created)["id"]
+    got = _rec(client.get(f"/api/person/{pid}"))
+    assert got["category"] == "military" and got["rank_title"] == "Colonel"
 
-    listed = client.get(f"/api/military/commanders?person_id={pid}")
-    assert listed.status_code == 200
-    assert any(r["id"] == cid for r in listed.json()["records"])
+    # the appointment points at the person; the unit's pointer follows
+    unit = _rec(client.post("/api/unit", json={"name": "Linked Unit"}, headers=HDRS))
+    asg = client.post("/api/assignment", json={
+        "unit_id": unit["id"], "commander_id": pid,
+        "role": "Commanding Officer", "assigned_date": "2026-01-01",
+        "is_current": True}, headers=HDRS)
+    assert asg.status_code in (200, 201)
+    u = _rec(client.get(f"/api/unit/{unit['id']}"))
+    assert u["commander_id"] == pid
 
-    # the dossier's link flow: a partial PATCH moves the link
-    pid2 = _make_person(tmp_db, "Better Match")
-    upd = client.patch(f"/api/commander/{cid}", json={"person_id": pid2}, headers=HDRS)
-    assert upd.status_code == 200
-    assert _rec(client.get(f"/api/commander/{cid}"))["person_id"] == pid2
+    # the derived leader record reads straight off the person
+    d = client.get(f"/api/military/persons/{pid}/leader-record").json()
+    assert d["person_id"] == pid and d["rank_title"] == "Colonel"
+    assert d["appointments"] == 1 and d["current_appointment"] is True
 
-    cleared = client.patch(f"/api/commander/{cid}", json={"person_id": None}, headers=HDRS)
-    assert cleared.status_code == 200
-    assert _rec(client.get(f"/api/commander/{cid}"))["person_id"] in (None, "")
+    # category discipline: civilian-only attributes refuse on a military person
+    bad = client.patch(f"/api/person/{pid}", json={"classification_id": 1},
+                       headers=HDRS)
+    assert bad.status_code in (400, 422)
 
 
 # ---------------------------------------------------------------- front-end
 
 
-def test_unit_map_and_individual_wiring_shipped():
-    for needle in ("milMapShell", "paintIndividualTab", "disposeDossierMap",
+def test_unit_map_and_person_wiring_shipped():
+    for needle in ("milMapShell", "disposeDossierMap",
                    "mil.map.ownCaption", "mil.map.notCommander",
-                   "mil.ind.linkHint", "data-indlink", "#/entity/person/",
-                   "person_id", "A.geopin.marker", "/geo"):
+                   "#/entity/person/", 'refLink("person", rec.commander_id)',
+                   "A.geopin.marker", "/geo"):
         assert needle in MIL_JS, needle
-    for needle in ("commandServiceCard", "/api/military/commanders?person_id=",
+    # the leadership layer lives on the person page
+    for needle in ("commandServiceCard",
+                   "/api/military/persons/${id}/leader-record",
                    "mil.cmd.title", "#/military/units/"):
         assert needle in REC_JS, needle
     assert 'unit: "#e8a13c"' in GEO_JS

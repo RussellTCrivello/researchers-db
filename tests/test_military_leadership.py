@@ -4,7 +4,7 @@ The most important thing about leaders is what sets them apart. These
 qualities are JUDGMENTS, so the design keeps them honest: every assessment
 row carries its basis (who assessed it, when, on what evidence), the
 vocabulary is bilingual lookup data, and the command record beside them is
-derived from real rows (database counts over the commander's appointments) —
+derived from real rows (database counts over the person's appointments) —
 never estimated, never generated.
 """
 
@@ -100,7 +100,7 @@ def test_leadership_vocab_seeded_bilingual(tmp_db):
 def test_trait_in_all_layers():
     assert "trait" in mil_specs._build_specs()
     names = {f["name"] for f in service.ENTITY_SPECS["trait"]["fields"]}
-    assert {"commander_id", "quality", "level", "assessed_by",
+    assert {"person_id", "quality", "level", "assessed_by",
             "assessed_at", "evidence_note", "source"} <= names
     series = {s[0] for s in naming.SERIES_CATALOG}
     assert "trait" in series
@@ -108,16 +108,18 @@ def test_trait_in_all_layers():
 
 
 def test_assessment_needs_its_basis(client):
-    cmd = _rec(client.post("/api/commander", json={"full_name": "Basis Commander"},
-                           headers=HDRS))
+    # the Leader is a categorized Person: assessments target a person record
+    cmd = _rec(client.post("/api/person", json={
+        "name_en": "Basis Commander", "name_ar": "قائد الأساس",
+        "category": "military"}, headers=HDRS))
     bare = client.post("/api/trait", json={
-        "commander_id": cmd["id"], "quality": "Decisiveness",
+        "person_id": cmd["id"], "quality": "Decisiveness",
         "level": "Exceptional"}, headers=HDRS)
     assert bare.status_code == 422
     assert _err(bare).get("code") == "basis_required"
 
     ok = client.post("/api/trait", json={
-        "commander_id": cmd["id"], "quality": "Decisiveness",
+        "person_id": cmd["id"], "quality": "Decisiveness",
         "level": "Exceptional", "assessed_by": "Board of Officers",
         "assessed_at": "2026-01-15",
         "evidence_note": "Held the line at the ridge under sustained pressure."}, headers=HDRS)
@@ -130,26 +132,27 @@ def test_assessment_needs_its_basis(client):
 
     # a judgment cannot be dated in the future
     future = client.post("/api/trait", json={
-        "commander_id": cmd["id"], "quality": "Initiative",
+        "person_id": cmd["id"], "quality": "Initiative",
         "assessed_by": "Someone", "assessed_at": "2027-01-01"}, headers=HDRS)
     assert future.status_code == 422
     assert _err(future).get("code") == "future_assessment"
 
     # unknown vocabulary codes are refused, not stored
     bad = client.post("/api/trait", json={
-        "commander_id": cmd["id"], "quality": "Telepathy",
+        "person_id": cmd["id"], "quality": "Telepathy",
         "assessed_by": "Someone"}, headers=HDRS)
     assert bad.status_code == 422
 
-    # the dossier's rel tab lists by commander
-    listed = client.get(f"/api/military/traits?commander_id={cmd['id']}")
+    # the person page's leadership layer lists by person
+    listed = client.get(f"/api/military/traits?person_id={cmd['id']}")
     assert listed.status_code == 200
     assert any(r["id"] == rec["id"] for r in listed.json()["records"])
 
 
 def test_leader_record_is_derived_not_estimated(client):
-    cmd = _rec(client.post("/api/commander", json={
-        "full_name": "Record Commander", "commission_date": "2006-06-01"},
+    cmd = _rec(client.post("/api/person", json={
+        "name_en": "Record Commander", "name_ar": "قائد السجل",
+        "category": "military", "commission_date": "2006-06-01"},
         headers=HDRS))
     unit = _rec(client.post("/api/unit", json={
         "name": "Led Brigade", "direct_personnel": 40, "echelon": "Brigade"},
@@ -167,7 +170,7 @@ def test_leader_record_is_derived_not_estimated(client):
         "name": "Led Deployment", "unit_id": unit["id"],
         "start_date": "2021-01-01"}, headers=HDRS)
 
-    got = client.get(f"/api/military/commanders/{cmd['id']}/leader-record")
+    got = client.get(f"/api/military/persons/{cmd['id']}/leader-record")
     assert got.status_code == 200
     d = got.json()
     assert d["appointments"] == 1
@@ -178,7 +181,7 @@ def test_leader_record_is_derived_not_estimated(client):
     assert d["deployments_covered"] == 1
     assert d["years_of_service"] == 2026 - 2006
 
-    missing = client.get("/api/military/commanders/999999/leader-record")
+    missing = client.get("/api/military/persons/999999/leader-record")
     assert missing.status_code == 404
 
 
@@ -205,10 +208,10 @@ class TestLeadershipDatasetCoverage:
             seed.load_sample(conn)
             traits = service.list_records(conn, "trait", limit=50)["records"]
         assert len(traits) >= 4, "sample world lacks the demo assessments"
-        by_cmd: dict[int, int] = {}
+        by_person: dict[int, int] = {}
         for t in traits:
-            by_cmd[t["commander_id"]] = by_cmd.get(t["commander_id"], 0) + 1
-        assert max(by_cmd.values()) >= 3, "flagship commander needs 3+ qualities"
+            by_person[t["person_id"]] = by_person.get(t["person_id"], 0) + 1
+        assert max(by_person.values()) >= 3, "flagship leader needs 3+ qualities"
         assert all(t.get("assessed_by") or t.get("evidence_note") or t.get("source")
                    for t in traits)
 
@@ -217,11 +220,15 @@ class TestLeadershipDatasetCoverage:
 
 
 def test_leadership_wiring_shipped():
-    for needle in ("leaderFan", "leaderSection", "mountLeaderRecord",
-                   "mil.lead.title", "mil.lead.basisNote", "LEVEL_RANK",
-                   'data-add="trait"', "/leader-record",
-                   '["traits", "commander_id"]', 'trait: "rel:traits"',
-                   "vocabLabel"):
+    # the leadership profile lives on the person page (the Leader is a person)
+    record_js = (ROOT / "app/static/js/views/record.js").read_text(encoding="utf-8")
+    for needle in ("commandServiceCard", "cmdFan", "CMD_LEVEL_RANK",
+                   "mil.lead.title", "mil.lead.basisNote", "mil.lead.recordTitle",
+                   "/api/military/persons/${id}/leader-record",
+                   "/api/military/traits?person_id="):
+        assert needle in record_js, needle
+    for needle in ('trait: "rel:traits"', "vocabLabel",
+                   'refLink("person", r.commander_id)'):
         assert needle in MIL_JS, needle
     assert "basis_required" in (ROOT / "app/military/rules.py").read_text(encoding="utf-8")
     assert "leader_record" in (ROOT / "app/military/service.py").read_text(encoding="utf-8")

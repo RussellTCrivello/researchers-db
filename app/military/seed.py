@@ -143,7 +143,9 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
         rec = repo.create_record(
             conn, ENTITIES["person"],
             {"code": code, "name_en": name_en, "name_ar": name_ar,
-             "birth_date": born, "current_position": position,
+             "birth_date": born,
+             # a military person's post lives in rank and appointments — the
+             # civilian career marker stays empty (category discipline)
              "birthplace_text": "Republic of Aldervale (fictional)",
              # the Leader is a categorized Person: the sample's commanders are
              # person rows of the military category with their service detail

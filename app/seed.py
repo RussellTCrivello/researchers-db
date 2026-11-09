@@ -844,6 +844,7 @@ def seed_demo(conn: sqlite3.Connection) -> None:
         status = "published" if i % 3 else ("verified" if i % 2 else "in_review")
         rec = {
             "name_ar": ar, "name_en": en, "name_original": en, "name_original_lang": "en",
+            "category": "civilian",
             "name_transliteration": en.replace("b. ", "bin "),
             "birth_date": str(birth), "birth_precision": L("date_precision", "year"),
             "death_date": str(death) if death else None,

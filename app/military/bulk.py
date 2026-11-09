@@ -75,6 +75,8 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
     if scale < 200:
         scale = 200
     seed.ensure_country_vocab(conn)   # country fields link to the vocabulary
+    from ..seed import seed_reference_data
+    seed_reference_data(conn)         # registry vocabularies (record status)
     rng = random.Random(20261107)
     counts: dict[str, int] = {}
     profiles: dict[str, int] = {}

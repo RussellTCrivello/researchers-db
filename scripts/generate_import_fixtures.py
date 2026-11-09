@@ -236,7 +236,7 @@ FK_NAME_POOLS = {
 
 MIL_ENTITIES = ("region", "division", "unit", "deployment", "mission", "holding",
                 "training", "assignment", "note", "armament", "classification",
-                "commander", "trait")
+                "trait")
 
 
 def value_for(key, ftype, i, ref, choices, domain, lookup, entity):
@@ -297,8 +297,6 @@ def name_value(entity, key, i, rows_of_file):
         return ar_name(i) if key == "name_ar" else en_name(i)
     if entity in ("place", "institution"):
         return FK_NAME_POOLS[entity](i) if key in ("name_en", "name") else ar_name(i + 2)
-    if entity == "commander":
-        return en_name(i + 3) if key == "full_name" else ar_name(i + 3)
     if entity == "note":
         return notes_val(i)
     if entity in FK_NAME_POOLS:
@@ -306,7 +304,7 @@ def name_value(entity, key, i, rows_of_file):
     return f"{entity}-{i:03d}"
 
 
-HEADER_STYLES = {"place": "ar", "commander": "ar", "unit": "both", "event": "key"}
+HEADER_STYLES = {"place": "ar", "unit": "both", "event": "key"}
 
 
 def headers_for(fields, entity):
@@ -368,9 +366,13 @@ def build_rows(entity, fields, mil_flag, lookup):
             else:
                 r[key] = value_for(*args) if j % 5 == 0 else ""
         # intra-file chains: self-references point at another row in this file
+        # — anchored at the nearest row divisible by five (those rows carry no
+        # parent themselves and always survive, so one deliberate error row can
+        # never orphan its neighbours)
         for f in fields:
             if f["ref"] == entity and f["key"] in r:
-                r[f["key"]] = "" if (i == 0 or i % 5 == 0) else FK_NAME_POOLS[entity](i - 1)
+                r[f["key"]] = ("" if (i == 0 or i % 5 == 0)
+                               else FK_NAME_POOLS[entity](5 * ((i - 1) // 5)))
         # coordinates come as a pair — never leave exactly one side blank
         for f in fields:
             if f["key"] in ("latitude", "longitude"):
@@ -417,6 +419,28 @@ def build_rows(entity, fields, mil_flag, lookup):
             r["participant_count"] = 1 + i % 25
         if entity == "unit" and "direct_personnel" in r:
             r["direct_personnel"] = 50 + (i * 7) % 450
+        # commander references point at military-category people only (the
+        # rule: a unit's or appointment's commander is a military person —
+        # military person rows sit at indexes divisible by three)
+        if entity in ("unit", "assignment") and r.get("commander_id"):
+            # indexes 0, 3, 6 … 111 — always military, never a deliberate
+            # error row (114+), so the reference resolves
+            r["commander_id"] = FK_NAME_POOLS["person"](3 * (i % 38))
+        # category discipline: the person's category decides which of the
+        # category-conditional attributes may appear on the row (the Leader is
+        # a categorized Person — military detail only on military people)
+        if entity == "person":
+            cat = ("military" if i % 3 == 0 else
+                   "civilian" if i % 3 == 1 else "other")
+            r["category"] = cat
+            for k in ("rank_title", "branch", "commission_date", "service_status",
+                      "military_biography"):
+                if cat != "military":
+                    r[k] = ""
+            for k in ("classification_id", "current_position", "declared_affiliation",
+                      "cv_url", "public_activity"):
+                if cat != "civilian":
+                    r[k] = ""
 
         # expected-error rows: missing the required name
         if i >= 114:

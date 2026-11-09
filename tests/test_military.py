@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
+from app import repo
 from app.military import dbm, naming, rules, seed, service
 from app.military.rules import RuleViolation
 from app.military.service import ServiceError
@@ -69,10 +70,10 @@ def _deployment(conn, **kw):
 # ---------------------------------------------------------------------------
 # schema + naming engine
 # ---------------------------------------------------------------------------
-def test_schema_initialises_and_seeds_20_series(conn):
+def test_schema_initialises_and_seeds_19_series(conn):
     naming.seed_options(conn)
     count = conn.execute("SELECT COUNT(*) AS n FROM naming_series_option").fetchone()["n"]
-    assert count == 20
+    assert count == 19
 
 
 def test_docname_is_generated_and_unique(conn):
@@ -292,10 +293,17 @@ def test_mission_status_transitions(conn):
 # ---------------------------------------------------------------------------
 # command appointments
 # ---------------------------------------------------------------------------
-def _commander(conn, name="Test Commander", **kw):
-    payload = {"full_name": name}
+def _military_person(conn, name="Test Commander", **kw):
+    """The Leader is a categorized Person: a military-category person row."""
+    from app import repo
+    from app.schemas import ENTITIES
+    from app.seed import seed_reference_data
+    seed_reference_data(conn)          # registry vocabularies (idempotent)
+    payload = {"name_en": name, "name_ar": name, "category": "military",
+               "service_status": "Active"}
     payload.update(kw)
-    return service.create(conn, "commander", payload, "tester")
+    return repo.create_record(conn, ENTITIES["person"], payload, "tester",
+                              commit=False)
 
 
 def _assignment(conn, **kw):
@@ -306,8 +314,8 @@ def _assignment(conn, **kw):
 
 def test_appointment_overlap_rejected(conn):
     unit = _unit(conn)
-    c1 = _commander(conn, "One")
-    c2 = _commander(conn, "Two")
+    c1 = _military_person(conn, "One")
+    c2 = _military_person(conn, "Two")
     _assignment(conn, unit_id=unit["id"], commander_id=c1["id"],
                 assigned_date="2020-01-01", relieved_date="2025-12-31",
                 is_current=False)
@@ -323,8 +331,8 @@ def test_appointment_overlap_rejected(conn):
 
 def test_one_current_appointment_per_unit_role(conn):
     unit = _unit(conn)
-    c1 = _commander(conn, "One")
-    c2 = _commander(conn, "Two")
+    c1 = _military_person(conn, "One")
+    c2 = _military_person(conn, "Two")
     _assignment(conn, unit_id=unit["id"], commander_id=c1["id"],
                 assigned_date="2020-01-01", is_current=True)
     with pytest.raises(RuleViolation) as exc:
@@ -333,10 +341,10 @@ def test_one_current_appointment_per_unit_role(conn):
     assert exc.value.code in ("one_current_appointment", "appointment_overlap")
 
 
-def test_commander_pointer_sync(conn):
+def test_unit_commander_pointer_syncs_from_appointments(conn):
     unit = _unit(conn)
-    c1 = _commander(conn, "One")
-    c2 = _commander(conn, "Two")
+    c1 = _military_person(conn, "One")
+    c2 = _military_person(conn, "Two")
     a1 = _assignment(conn, unit_id=unit["id"], commander_id=c1["id"],
                      assigned_date="2020-01-01", is_current=True)
     u = service.get_record(conn, "unit", unit["id"])
@@ -351,30 +359,52 @@ def test_commander_pointer_sync(conn):
     assert u["commander_id"] == c2["id"]
 
 
-def test_cannot_retire_commander_with_current_appointment(conn):
+def test_cannot_retire_person_with_current_appointment(conn):
     unit = _unit(conn)
-    c1 = _commander(conn, "One")
+    c1 = _military_person(conn, "One")
     _assignment(conn, unit_id=unit["id"], commander_id=c1["id"],
                 assigned_date="2020-01-01", is_current=True)
-    service.update(conn, "commander", c1["id"], {"status": "Reserve"}, "tester")
+    _set_service_status(conn, c1["id"], "Reserve")
     with pytest.raises(RuleViolation) as exc:
-        service.update(conn, "commander", c1["id"], {"status": "Retired"}, "tester")
+        _set_service_status(conn, c1["id"], "Retired")
     assert exc.value.code == "unresolved_appointment"
 
 
-def test_commander_status_transitions(conn):
-    c = _commander(conn)
-    # the record's lifecycle is Active → Reserve → Retired; Retired is terminal
+def _set_service_status(conn, person_id, status):
+    """Person rows are registry records: their service status moves through
+    the registry write path (the same one the person form uses)."""
+    from app import repo
+    from app.schemas import ENTITIES
+    return repo.update_record(conn, ENTITIES["person"], person_id,
+                              {"service_status": status}, "tester", commit=False)
+
+
+def test_service_status_transitions(conn):
+    c = _military_person(conn)
+    # the lifecycle is Active → Reserve → Retired; Retired is terminal
+    with pytest.raises(repo.ValidationError):
+        _set_service_status(conn, c["id"], "Retired")
+    _set_service_status(conn, c["id"], "Reserve")
+    _set_service_status(conn, c["id"], "Active")
+    _set_service_status(conn, c["id"], "Reserve")
+    _set_service_status(conn, c["id"], "Retired")
+    with pytest.raises(repo.ValidationError):
+        _set_service_status(conn, c["id"], "Active")
+
+
+def test_commander_must_be_a_military_person(conn):
+    from app import repo
+    from app.schemas import ENTITIES
+    from app.seed import seed_reference_data
+    seed_reference_data(conn)
+    civilian = repo.create_record(
+        conn, ENTITIES["person"],
+        {"name_en": "Civilian", "name_ar": "مدني", "category": "civilian"},
+        "tester", commit=False)
+    unit = _unit(conn)
     with pytest.raises(RuleViolation) as exc:
-        service.update(conn, "commander", c["id"], {"status": "Retired"}, "tester")
-    assert exc.value.code == "status_transition"
-    service.update(conn, "commander", c["id"], {"status": "Reserve"}, "tester")
-    service.update(conn, "commander", c["id"], {"status": "Active"}, "tester")
-    service.update(conn, "commander", c["id"], {"status": "Reserve"}, "tester")
-    service.update(conn, "commander", c["id"], {"status": "Retired"}, "tester")
-    with pytest.raises(RuleViolation) as exc:
-        service.update(conn, "commander", c["id"], {"status": "Active"}, "tester")
-    assert exc.value.code == "status_transition"
+        _assignment(conn, unit_id=unit["id"], commander_id=civilian["id"])
+    assert exc.value.code == "commander_must_be_military"
 
 
 # ---------------------------------------------------------------------------
@@ -579,12 +609,17 @@ def test_sample_loads_clean_and_is_labeled_fictional(conn):
     again = seed.load_sample(conn)
     assert again["skipped"] is True
     # every entity type got sample records
-    for entity in ("region", "division", "classification", "commander", "unit",
+    for entity in ("region", "division", "classification", "unit",
                    "deployment", "mission", "armament", "holding", "training",
-                   "assignment", "note"):
+                   "assignment", "note", "trait"):
         spec = service.ENTITY_SPECS[entity]
         n = conn.execute(f"SELECT COUNT(*) AS n FROM {spec['table']}").fetchone()["n"]
         assert n > 0, entity
+    # the sample's leaders are categorized persons (military + a civilian)
+    assert conn.execute("SELECT COUNT(*) AS n FROM person "
+                        "WHERE category = 'military'").fetchone()["n"] > 0
+    assert conn.execute("SELECT COUNT(*) AS n FROM person "
+                        "WHERE category = 'civilian'").fetchone()["n"] > 0
 
 
 def test_sample_force_reset_and_clear(conn):
@@ -1162,11 +1197,16 @@ class TestLinkedVocabularies:
             f = next(x for x in meta["fields"][ent] if x["key"] == key)
             assert f["type"] == "select", (ent, key)
             assert f["domain"] == "country", (ent, key)
-        # rank and command role have fixed lists — dropdown material, not text
-        for ent, key in (("commander", "rank_title"), ("assignment", "role")):
-            f = next(x for x in meta["fields"][ent] if x["key"] == key)
-            assert f["type"] == "select", (ent, key)
-            assert f.get("options"), (ent, key)
+        # command role has a fixed list — dropdown material, not text; a rank
+        # is free text (any historical rank fits), while the person's category
+        # and service fields are controlled vocabularies
+        f = next(x for x in meta["fields"]["assignment"] if x["key"] == "role")
+        assert f["type"] == "select" and f.get("options"), "assignment.role"
+        for key in ("category", "branch", "service_status"):
+            f = next(x for x in meta["fields"]["person"] if x["key"] == key)
+            assert f["type"] == "select" and f.get("domain"), ("person", key)
+        rank = next(x for x in meta["fields"]["person"] if x["key"] == "rank_title")
+        assert rank["type"] == "text", "rank is free text"
 
     def test_language_fields_link_to_the_vocabulary(self, client):
         meta = client.get("/api/meta").json()
@@ -1674,7 +1714,7 @@ class TestConstraintErrorsClean:
 # Organizations, with the military service on the write path.
 # ---------------------------------------------------------------------------
 MIL_KEYS = ("unit", "region", "division", "classification", "armament", "holding",
-            "deployment", "mission", "training", "commander", "assignment", "note")
+            "deployment", "mission", "training", "trait", "assignment", "note")
 
 
 class TestUnifiedMeta:
@@ -1713,12 +1753,13 @@ class TestUnifiedQuery:
 
     def test_filter_operators(self, client):
         def total(payload):
-            return client.post("/api/commander/query", json=payload).json()["total"]
+            return client.post("/api/assignment/query", json=payload).json()["total"]
         all_ = total({})
-        assert total({"where": [{"field": "status", "op": "eq", "value": "Active"}]}) <= all_
-        assert total({"where": [{"field": "full_name", "op": "contains", "value": "a"}]}) <= all_
-        assert total({"where": [{"field": "commission_date", "op": "year_lte", "value": "2030"}]}) <= all_
-        assert total({"where": [{"field": "commission_date", "op": "is_null"}]}) <= all_
+        assert total({"where": [{"field": "role", "op": "eq",
+                                 "value": "Commanding Officer"}]}) <= all_
+        assert total({"where": [{"field": "notes", "op": "contains", "value": "a"}]}) <= all_
+        assert total({"where": [{"field": "assigned_date", "op": "year_lte", "value": "2030"}]}) <= all_
+        assert total({"where": [{"field": "relieved_date", "op": "is_null"}]}) <= all_
         assert total({"where": [{"field": "id", "op": "in", "value": [1, 2, 3]}]}) <= 3
 
     def test_between_and_logic_or(self, client):
@@ -1779,11 +1820,11 @@ class TestUnifiedExport:
         assert r.status_code == 200
 
     def test_export_columns_selection(self, client):
-        r = client.post("/api/export/commander", json={
-            "format": "csv", "columns": ["full_name", "rank_title"]})
+        r = client.post("/api/export/assignment", json={
+            "format": "csv", "columns": ["unit_id", "commander_id", "role"]})
         header = r.content.decode("utf-8-sig").splitlines()[0]
         # the exporter writes human labels, exactly as for registry entities
-        assert "Full Name" in header and "Rank Title" in header
+        assert "Unit" in header and "Commander" in header and "Role" in header
 
 
 class TestUnifiedFacadeWrites:

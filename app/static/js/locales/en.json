@@ -1105,6 +1105,7 @@
   "mil.value.deployment": "deployment",
   "mil.value.division": "division",
   "mil.value.mission": "mission",
+  "mil.value.person": "Person",
   "mil.value.region": "region",
   "mil.value.training": "training",
   "mil.value.unit": "unit",

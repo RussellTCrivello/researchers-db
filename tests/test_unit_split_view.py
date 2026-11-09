@@ -31,7 +31,7 @@ AR = json.loads((ROOT / "app/static/js/locales/ar.json").read_text(encoding="utf
 HDRS = {"X-Military-Role": "admin"}
 
 MIL_ENTITIES = [
-    "unit", "region", "division", "commander", "deployment", "mission",
+    "unit", "region", "division", "deployment", "mission",
     "training", "assignment", "holding", "armament", "classification", "note",
     "trait",
 ]
@@ -101,18 +101,16 @@ class TestUnitDetailPayload:
         only; the geography payload never substitutes his coordinates."""
         with service.transaction() as conn:
             seed.load_sample(conn)
-            # give the commander's linked person a distinctive position
-            cmd = conn.execute(
-                "SELECT id, person_id FROM commander WHERE person_id IS NOT NULL "
-                "ORDER BY id LIMIT 1").fetchone()
-            assert cmd and cmd["person_id"]
+            # give the unit's commander (a person) a distinctive position
+            row = conn.execute(
+                "SELECT id AS uid, commander_id AS pid FROM military_unit "
+                "WHERE commander_id IS NOT NULL ORDER BY id LIMIT 1").fetchone()
+            assert row and row["pid"]
             conn.execute(
                 "UPDATE person SET latitude=12.34567, longitude=76.54321 WHERE id=?",
-                (cmd["person_id"],))
+                (row["pid"],))
             conn.commit()
-            uid = conn.execute(
-                "SELECT id FROM military_unit WHERE commander_id=?",
-                (cmd["id"],)).fetchone()["id"]
+            uid = row["uid"]
 
         org = client.get(f"/api/unit/{uid}").json().get("org") or {}
         assert org.get("commander"), "org must name the commander"
@@ -164,7 +162,7 @@ class TestSplitViewWiring:
 
     def test_person_record_carries_the_full_leadership_layer(self):
         for needle in ("cmdFan", "cmdVocabLabel", "CMD_LEVEL_RANK",
-                       "/api/military/traits?commander_id=", "/leader-record",
+                       "/api/military/traits?person_id=", "/leader-record",
                        "mil.lead.title", "mil.lead.recordTitle",
                        "mil.lead.basisNote", "mil.lead.noAssessments"):
             assert needle in REC_JS, needle

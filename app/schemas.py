@@ -777,6 +777,9 @@ ENTITIES: dict[str, EntitySpec] = {
         category_fields={
             "military": ("rank_title", "branch", "commission_date",
                          "service_status", "military_biography"),
+            "civilian": ("classification_id", "current_position",
+                         "declared_affiliation", "cv_url", "public_activity"),
+            "other": (),
         },
         transition_policies={"service_status": SERVICE_STATUS_TRANSITIONS},
         description_en="Researchers, scholars, officials and other individuals.",

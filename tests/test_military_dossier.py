@@ -199,7 +199,10 @@ def test_quick_add_api_roundtrip(client):
     srec = sub.json().get("record") or sub.json()
     assert srec["parent_id"] == uid
 
-    cmd = client.post("/api/commander", json={"full_name": "QA Commander"}, headers=hdrs)
+    # the Leader is a categorized Person
+    cmd = client.post("/api/person", json={
+        "name_en": "QA Commander", "name_ar": "قائد تجريبي",
+        "category": "military"}, headers=hdrs)
     assert cmd.status_code in (200, 201)
     cid = (cmd.json().get("record") or cmd.json())["id"]
 
