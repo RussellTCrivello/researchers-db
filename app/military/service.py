@@ -22,7 +22,6 @@ from .vocab import (
     ARMAMENT_CATEGORIES,
     ASSIGNMENT_ROLES,
     CLASS_CATEGORIES,
-    COMMANDER_STATUSES,
     DEPLOYMENT_STATUSES,
     DEPLOYMENT_TYPES,
     DIVISION_TYPES,
@@ -45,7 +44,7 @@ from .vocab import (
 # ---------------------------------------------------------------------------
 ENTITY_LABELS_AR = {
     "region": "منطقة", "division": "فرقة", "classification": "تصنيف",
-    "commander": "قائد", "unit": "وحدة عسكرية", "deployment": "نشر عملياتي",
+    "unit": "وحدة عسكرية", "deployment": "نشر عملياتي",
     "mission": "مهمة", "armament": "تسليح", "holding": "تسليح الوحدة",
     "training": "تدريب", "assignment": "تعيين قيادي", "note": "ملاحظة",
     "trait": "صفة قيادية",
@@ -61,9 +60,6 @@ FIELD_LABELS_AR: dict[tuple[str, str], str] = {
     ("classification", "name"): "اسم التصنيف", ("classification", "category"): "الفئة",
     ("classification", "readiness_tier"): "مستوى الجاهزية",
     ("classification", "description"): "الوصف",
-    ("commander", "full_name"): "الاسم الكامل", ("commander", "rank_title"): "الرتبة",
-    ("commander", "branch"): "الفرع", ("commander", "commission_date"): "تاريخ التكليف",
-    ("commander", "status"): "الحالة", ("commander", "biography"): "السيرة",
     ("unit", "name"): "اسم الوحدة", ("unit", "code"): "الرمز التشغيلي",
     ("unit", "echelon"): "المستوى", ("unit", "parent_id"): "الوحدة الأم",
     ("unit", "classification_id"): "التصنيف", ("unit", "division_id"): "الفرقة",
@@ -95,7 +91,7 @@ FIELD_LABELS_AR: dict[tuple[str, str], str] = {
     ("training", "duration_days"): "المدة (أيام)", ("training", "participant_count"): "عدد المشاركين",
     ("training", "lead_trainer"): "المدرب الرئيسي", ("training", "assessment"): "التقييم",
     ("training", "location"): "الموقع", ("training", "notes"): "ملاحظات",
-    ("commander", "person_id"): "الفرد المرتبط",
+    ("trait", "person_id"): "الشخص",
     ("trait", "quality"): "الصفة", ("trait", "level"): "المستوى",
     ("trait", "assessed_by"): "قيّمه", ("trait", "assessed_at"): "تاريخ التقييم",
     ("trait", "evidence_note"): "الأساس", ("trait", "source"): "المصدر",
@@ -169,25 +165,11 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("description", "textarea", "Description"),
         ],
     },
-    "commander": {
-        "table": "commander", "label": "Commander", "naming_entity": "commander",
-        "fields": [
-            _f("full_name", "text", "Full Name", required=True),
-            _f("person_id", "ref", "Individual", entity="person"),
-            _f("rank_title", "choice", "Rank", options=[
-                "General", "Brigadier General", "Colonel", "Lieutenant Colonel",
-                "Major", "Captain", "Lieutenant"]),
-            _f("branch", "choice", "Branch", options=["Army", "Air Force", "Navy", "Joint"]),
-            _f("commission_date", "date", "Commission Date"),
-            _f("status", "choice", "Status", options=COMMANDER_STATUSES, default="Active"),
-            _f("biography", "textarea", "Biography"),
-        ],
-    },
     "trait": {
-        "table": "commander_trait", "label": "Leadership Quality",
+        "table": "person_trait", "label": "Leadership Quality",
         "naming_entity": "trait",
         "fields": [
-            _f("commander_id", "ref", "Commander", entity="commander", required=True),
+            _f("person_id", "ref", "Person", entity="person", required=True),
             _f("quality", "select", "Quality", domain="leadership_quality",
                required=True),
             _f("level", "select", "Level", domain="leadership_level"),
@@ -207,7 +189,7 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
             _f("classification_id", "ref", "Classification", entity="classification"),
             _f("division_id", "ref", "Division", entity="division"),
             _f("region_id", "ref", "Region", entity="region"),
-            _f("commander_id", "ref", "Commander", entity="commander"),
+            _f("commander_id", "ref", "Commander", entity="person"),
             _f("role", "text", "Role"),
             _f("status", "choice", "Status", options=UNIT_STATUSES, default="Active"),
             _f("direct_personnel", "int", "Direct Personnel", min=0, default=0),
@@ -301,7 +283,7 @@ ENTITY_SPECS: dict[str, dict[str, Any]] = {
         "naming_entity": "assignment", "sync": "assignment",
         "fields": [
             _f("unit_id", "ref", "Unit", entity="unit", required=True),
-            _f("commander_id", "ref", "Commander", entity="commander", required=True),
+            _f("commander_id", "ref", "Commander", entity="person", required=True),
             _f("role", "choice", "Role", options=ASSIGNMENT_ROLES,
                default="Commanding Officer"),
             _f("assigned_date", "date", "Assigned Date", required=True),
@@ -580,14 +562,19 @@ def _hook_assignment(conn, merged: dict[str, Any], exclude_id: int | None) -> No
 
 def _hook_trait(conn, merged: dict[str, Any], exclude_id: int | None) -> None:
     rules.check_trait(merged, exclude_id)
+    # the assessed individual must exist — a quality needs its person (any
+    # category: leadership is not limited to the military classification)
+    pid = merged.get("person_id")
+    if pid is not None and not conn.execute(
+            "SELECT id FROM person WHERE id = ? AND deleted_at IS NULL",
+            (pid,)).fetchone():
+        raise RuleViolation("person_not_found",
+                            f"person {pid} does not exist", "person_id")
 
 
-def _hook_commander(conn, merged: dict[str, Any], exclude_id: int | None) -> None:
-    old = conn.execute("SELECT status FROM commander WHERE id = ?", (exclude_id,)).fetchone() \
-        if exclude_id else None
-    if merged.get("status") == "Retired" and (not old or old["status"] != "Retired"):
-        if exclude_id:
-            rules.check_commander_retire(conn, exclude_id)
+def _hook_unit(conn, merged: dict[str, Any], exclude_id: int | None) -> None:
+    if merged.get("commander_id") is not None:
+        rules.check_commander_person(conn, merged["commander_id"])
 
 
 _HOOKS: dict[str, Callable[[sqlite3.Connection, dict[str, Any], int | None], None]] = {
@@ -598,8 +585,36 @@ _HOOKS: dict[str, Callable[[sqlite3.Connection, dict[str, Any], int | None], Non
     "note": _hook_note,
     "assignment": _hook_assignment,
     "trait": _hook_trait,
-    "commander": _hook_commander,
+    "unit": _hook_unit,
 }
+
+
+# ---------------------------------------------------------------------------
+# registry-side person guard
+# ---------------------------------------------------------------------------
+# The Leader is a categorized Person, so person rows are written through the
+# registry API; the service-status lifecycle (Active -> Reserve -> Retired,
+# Retired terminal) is enforced generically by app.repo, and this guard adds
+# the military rule the registry cannot know: retiring is refused while a
+# current command appointment is still open.
+def _person_service_guard(conn: sqlite3.Connection, entity: str,
+                          before: dict[str, Any] | None,
+                          values: dict[str, Any]) -> None:
+    if entity != "person":
+        return
+    new = values.get("service_status")
+    old = (before or {}).get("service_status")
+    if new == "Retired" and old != "Retired" and before and before.get("id"):
+        rules.check_service_retire(conn, int(before["id"]))
+
+
+def _register_registry_guards() -> None:
+    from .. import repo  # local import: repo has no knowledge of this module
+    if _person_service_guard not in repo.UPDATE_GUARDS:
+        repo.UPDATE_GUARDS.append(_person_service_guard)
+
+
+_register_registry_guards()
 
 
 # ---------------------------------------------------------------------------
@@ -720,8 +735,6 @@ def update(conn, entity: str, record_id: int, payload: dict[str, Any],
         rules.check_deployment_transition(old_d.get("status"), merged.get("status"))
     elif entity == "mission":
         rules.check_mission_transition(old_d.get("status"), merged.get("status"))
-    elif entity == "commander":
-        rules.check_commander_transition(old_d.get("status"), merged.get("status"))
     hook = _HOOKS.get(entity)
     if hook:
         hook(conn, merged, record_id)
@@ -1075,21 +1088,22 @@ ECHOLON_RANK = {"Squadron": 1, "Platoon": 2, "Company": 3, "Battalion": 4,
                 "Regiment": 5, "Brigade": 6, "Division": 7, "Detachment": 0}
 
 
-def leader_record(conn, commander_id: int) -> dict[str, Any] | None:
+def leader_record(conn, person_id: int) -> dict[str, Any] | None:
     """The leader's command record — derived from real rows, never estimated.
 
-    Every number here is a database count over this commander's appointments:
-    units commanded, the highest echelon reached, the personnel under those
-    units (subtree sums), the deployments those units covered, and years of
-    service since commission. Nothing is filled in to look complete.
+    The Leader is a categorized Person: this profile reads the person record
+    (category, rank, branch, service) and counts that person's command
+    appointments — units commanded, the highest echelon reached, the personnel
+    under those units (subtree sums), the deployments those units covered, and
+    years of service since commission. Nothing is filled in to look complete.
     """
-    cmd = conn.execute("SELECT * FROM commander WHERE id = ?",
-                       (commander_id,)).fetchone()
-    if not cmd:
+    person = conn.execute("SELECT * FROM person WHERE id = ?",
+                          (person_id,)).fetchone()
+    if not person:
         return None
     asgs = conn.execute(
         "SELECT * FROM command_assignment WHERE commander_id = ?",
-        (commander_id,)).fetchall()
+        (person_id,)).fetchall()
     unit_ids = list({a["unit_id"] for a in asgs if a["unit_id"]})
     max_echelon = None
     personnel = 0
@@ -1107,11 +1121,16 @@ def leader_record(conn, commander_id: int) -> dict[str, Any] | None:
             "SELECT COUNT(*) AS n FROM operational_deployment WHERE unit_id = ?",
             (uid,)).fetchone()["n"]
     years = None
-    raw = str(cmd["commission_date"] or "")[:4]
+    raw = str(person["commission_date"] or "")[:4]
     if raw.isdigit():
         years = max(0, date.today().year - int(raw))
     return {
-        "commander_id": commander_id,
+        "person_id": person_id,
+        "name": person["name_en"] or person["name_ar"] or person["code"],
+        "category": person["category"],
+        "rank_title": person["rank_title"],
+        "branch": person["branch"],
+        "commission_date": person["commission_date"],
         "appointments": len(asgs),
         "current_appointment": any(a["is_current"] for a in asgs),
         "units_commanded": len(unit_ids),
@@ -1119,7 +1138,7 @@ def leader_record(conn, commander_id: int) -> dict[str, Any] | None:
         "personnel_under_command": personnel,
         "deployments_covered": deployments,
         "years_of_service": years,
-        "status": cmd["status"],
+        "status": person["service_status"],
     }
 
 
@@ -1161,23 +1180,29 @@ def unit_org(conn, unit_id: int) -> dict[str, Any] | None:
         "SELECT * FROM military_unit WHERE parent_id = ? ORDER BY name",
         (unit_id,)).fetchall()]
 
+    # the commander IS a person (the Leader is integrated into Person):
+    # command references carry the person id directly
     commander = None
     if unit["commander_id"]:
-        c = conn.execute("SELECT * FROM commander WHERE id = ?",
+        c = conn.execute("SELECT * FROM person WHERE id = ?",
                          (unit["commander_id"],)).fetchone()
         if c:
-            commander = {"id": c["id"], "full_name": c["full_name"],
-                         "docname": c["docname"], "rank_title": c["rank_title"],
-                         "status": c["status"], "person_id": c["person_id"]}
+            commander = {"id": c["id"], "person_id": c["id"],
+                         "full_name": c["name_en"] or c["name_ar"] or c["code"],
+                         "name_ar": c["name_ar"], "name_en": c["name_en"],
+                         "docname": c["code"], "rank_title": c["rank_title"],
+                         "category": c["category"],
+                         "status": c["service_status"]}
     appointments = []
     for a in conn.execute(
             "SELECT * FROM command_assignment WHERE unit_id = ? "
             "ORDER BY is_current DESC, assigned_date DESC", (unit_id,)).fetchall():
-        who = conn.execute("SELECT full_name FROM commander WHERE id = ?",
+        who = conn.execute("SELECT name_ar, name_en, code FROM person WHERE id = ?",
                            (a["commander_id"],)).fetchone() if a["commander_id"] else None
         appointments.append({
             "id": a["id"], "role": a["role"], "commander_id": a["commander_id"],
-            "commander_name": who["full_name"] if who else None,
+            "person_id": a["commander_id"],
+            "commander_name": (who["name_en"] or who["name_ar"] or who["code"]) if who else None,
             "assigned_date": a["assigned_date"], "relieved_date": a["relieved_date"],
             "is_current": bool(a["is_current"]),
         })
@@ -1242,8 +1267,9 @@ def summary(conn) -> dict[str, Any]:
         "training_this_year": _count(conn, "SELECT COUNT(*) AS n FROM training "
                                      "WHERE substr(start_date, 1, 4) = ?",
                                      (now_iso()[:4],)),
-        "active_commanders": _count(conn, "SELECT COUNT(*) AS n FROM commander "
-                                    "WHERE status = 'Active'"),
+        "active_commanders": _count(conn, "SELECT COUNT(*) AS n FROM person "
+                                   "WHERE category = 'military' "
+                                   "AND service_status = 'Active'"),
     }
 
     def dist(sql: str) -> list[dict[str, Any]]:

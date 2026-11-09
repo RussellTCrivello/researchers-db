@@ -262,13 +262,15 @@
       return esc(v);
     }
 
-    /* ---- command service: the military side of an individual -------------
-       A commander is a person first. When a commander record is linked to this
-       individual (commander.person_id), the individual's page carries the
-       full leadership picture: rank, branch, status, the assessed qualities
-       that set the leader apart (always with their basis), the command record
-       counts, and the appointment history. The link is the same one the
-       commander dossier shows from the other side. */
+    /* ---- the leader, integrated: the military side of a person record ----
+       The Leader table is gone: a commander IS a person of the 'military'
+       category, and the person record holds the full leadership picture.
+       A military person shows one card — service detail (rank, branch,
+       service status, commission date), the assessed qualities that set the
+       leader apart (always with their basis), the derived command record and
+       the appointment history.  Any other category shows only the assessed
+       qualities, if there are any: each category displays the attributes
+       relevant to that specific classification. */
     const CMD_LEVEL_COLOR = {
       Exceptional: "green", Outstanding: "blue", Proficient: "slate",
       Developing: "amber"
@@ -287,7 +289,7 @@
     }
 
     /* The signature fan: one spoke per assessed quality, its length the
-       recorded level — identical language to the commander dossier. */
+       recorded level — identical language to the military workspace. */
     function cmdFan(rows, name) {
       const shown = rows.slice(0, 8);
       if (!shown.length) return "";
@@ -322,41 +324,40 @@
     }
 
     function commandServiceCard() {
+      const military = rec.category === "military";
       const card = document.createElement("div");
       card.className = "card";
-      card.innerHTML = `<div class="card-head"><h3>${esc(t("mil.cmd.title"))}</h3></div>
+      /* the service header is category-conditional: rank/branch/service only
+         apply to a military person */
+      const serviceChips = military ? `
+        ${rec.rank_title ? `<span class="badge slate">${esc(rec.rank_title)}</span>` : ""}
+        ${rec.branch ? `<span class="badge slate">${esc(cmdVocabLabel("military_branch", rec.branch) || rec.branch)}</span>` : ""}
+        ${rec.service_status ? `<span class="badge ${rec.service_status === "Active" ? "green" : "gray"}">${esc(cmdVocabLabel("military_service_status", rec.service_status) || rec.service_status)}</span>` : ""}
+        ${rec.commission_date ? `<span class="small muted">${esc(t("mil.cmd.commissioned"))}: ${esc(rec.commission_date)}</span>` : ""}` : "";
+      card.innerHTML = `<div class="card-head"><h3>${esc(t(military ? "mil.cmd.title" : "mil.lead.title"))}</h3>${serviceChips}</div>
         <div class="cmd-body"><div class="ap-loading">${esc(t("common.loading"))}</div></div>`;
       setTimeout(async () => {
         const host = card.querySelector(".cmd-body");
         if (!host) return;
         try {
-          const res = await A.api.get(
-            `/api/military/commanders?person_id=${id}&limit=20`);
-          const rows = res.records || [];
-          if (!rows.length) {
-            host.innerHTML = `<div class="empty small">${esc(t("mil.cmd.empty"))}</div>`;
-            return;
-          }
-          const unitName = {};
-          await Promise.all(rows.map(async (c) => {
-            let asg = [];
+          /* the assessed qualities — real rows with their basis (any category:
+             leadership is not limited to the military classification) */
+          let traits = [];
+          try {
+            const tres = await A.api.get(
+              `/api/military/traits?person_id=${id}&limit=50`);
+            traits = tres.records || [];
+          } catch (e) { traits = []; }
+
+          let asg = [], unitName = {}, lrec = null;
+          if (military) {
             try {
               const ares = await A.api.get(
-                `/api/military/assignments?commander_id=${c.id}&limit=20`);
-              asg = ares.records || [];
-            } catch (e) { /* the commander row still lists without appointments */ }
-            /* the leadership layer: assessed qualities (with their basis) and
-               the command-record counts — real rows, fetched live */
-            try {
-              const tres = await A.api.get(
-                `/api/military/traits?commander_id=${c.id}&limit=50`);
-              c._traits = tres.records || [];
-            } catch (e) { c._traits = []; }
-            try {
-              const lres = await A.api.get(
-                `/api/military/commanders/${c.id}/leader-record`);
-              c._rec = lres.leader_record || lres;
-            } catch (e) { c._rec = null; }
+                `/api/military/assignments?commander_id=${id}&limit=20`);
+              asg = (ares.records || []).sort((a, b) =>
+                (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0)
+                || String(b.assigned_date || "").localeCompare(String(a.assigned_date || "")));
+            } catch (e) { asg = []; }
             await Promise.all([...new Set(asg.map(a => a.unit_id).filter(Boolean))]
               .map(async (uid) => {
                 try {
@@ -365,49 +366,51 @@
                   unitName[uid] = ur.name || ur.docname || ("#" + uid);
                 } catch (e) { unitName[uid] = "#" + uid; }
               }));
-            c._asg = asg.sort((a, b) => (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0)
-              || String(b.assigned_date || "").localeCompare(String(a.assigned_date || "")));
-          }));
-          host.innerHTML = rows.map(c => `
-            <div class="cmd-block">
-              <div class="cmd-head">
-                <a href="#/military/commanders/${c.id}/show">
-                  <b dir="auto">${esc(c.full_name || c.docname || "#" + c.id)}</b></a>
-                ${c.docname ? `<span class="badge mono">${esc(c.docname)}</span>` : ""}
-                ${c.rank_title ? `<span class="badge slate">${esc(c.rank_title)}</span>` : ""}
-                ${c.branch ? `<span class="badge slate">${esc(c.branch)}</span>` : ""}
-                ${c.status ? `<span class="badge ${c.status === "Active" ? "green" : "gray"}">${esc(c.status)}</span>` : ""}
-                ${c.commission_date ? `<span class="small muted">${esc(t("mil.cmd.commissioned"))}: ${esc(c.commission_date)}</span>` : ""}
-              </div>
+            /* the command record — database counts over this person's
+               appointments, never estimated */
+            try {
+              const lres = await A.api.get(
+                `/api/military/persons/${id}/leader-record`);
+              lrec = lres.leader_record || lres;
+            } catch (e) { lrec = null; }
+          }
+
+          const name = rec.name_en || rec.name_ar || rec.code || "";
+          if (!traits.length && !military) {
+            /* a civilian/other record with nothing category-specific to show */
+            card.remove();
+            return;
+          }
+          host.innerHTML = `
+            ${traits.length ? `
               <h4 class="mil-lead-sub">${esc(t("mil.lead.title"))}</h4>
-              ${(c._traits || []).length ? `
-                <div class="mil-lead-fan">${cmdFan(c._traits, c.full_name)}</div>
-                <div class="mil-lead-chips">${c._traits.slice(0, 6).map(tr => `
-                  <span class="badge ${CMD_LEVEL_COLOR[tr.level] || "slate"}">${esc(cmdVocabLabel("leadership_quality", tr.quality))}${tr.level ? " · " + esc(cmdVocabLabel("leadership_level", tr.level)) : ""}</span>`).join("")}
-                </div>` : `<div class="empty small">${esc(t("mil.lead.noAssessments"))}</div>`}
-              ${c._rec ? `
-                <h4 class="mil-lead-sub">${esc(t("mil.lead.recordTitle"))}</h4>
-                <div class="statgrid">
-                  <div class="statcard"><b>${fmtNum(c._rec.units_commanded)}</b><span>${esc(t("mil.lead.unitsCommanded"))}</span></div>
-                  <div class="statcard"><b>${esc(c._rec.max_echelon || "\u2014")}</b><span>${esc(t("mil.lead.maxEchelon"))}</span></div>
-                  <div class="statcard"><b>${fmtNum(c._rec.personnel_under_command)}</b><span>${esc(t("mil.lead.personnel"))}</span></div>
-                  <div class="statcard"><b>${fmtNum(c._rec.deployments_covered)}</b><span>${esc(t("mil.lead.deployments"))}</span></div>
-                  <div class="statcard"><b>${fmtNum(c._rec.appointments)}</b><span>${esc(t("mil.lead.appointments"))}</span></div>
-                  <div class="statcard"><b>${c._rec.years_of_service != null ? fmtNum(c._rec.years_of_service) : "\u2014"}</b><span>${esc(t("mil.lead.service"))}</span></div>
-                </div>` : ""}
-              ${(c._asg || []).length ? `<div class="table-wrap"><table class="data compact">
+              <div class="mil-lead-fan">${cmdFan(traits, name)}</div>
+              <div class="mil-lead-chips">${traits.slice(0, 6).map(tr => `
+                <span class="badge ${CMD_LEVEL_COLOR[tr.level] || "slate"}">${esc(cmdVocabLabel("leadership_quality", tr.quality))}${tr.level ? " · " + esc(cmdVocabLabel("leadership_level", tr.level)) : ""}</span>`).join("")}
+              </div>` : `<div class="empty small">${esc(t("mil.lead.noAssessments"))}</div>`}
+            ${lrec ? `
+              <h4 class="mil-lead-sub">${esc(t("mil.lead.recordTitle"))}</h4>
+              <div class="statgrid">
+                <div class="statcard"><b>${fmtNum(lrec.units_commanded)}</b><span>${esc(t("mil.lead.unitsCommanded"))}</span></div>
+                <div class="statcard"><b>${esc(lrec.max_echelon || "\u2014")}</b><span>${esc(t("mil.lead.maxEchelon"))}</span></div>
+                <div class="statcard"><b>${fmtNum(lrec.personnel_under_command)}</b><span>${esc(t("mil.lead.personnel"))}</span></div>
+                <div class="statcard"><b>${fmtNum(lrec.deployments_covered)}</b><span>${esc(t("mil.lead.deployments"))}</span></div>
+                <div class="statcard"><b>${fmtNum(lrec.appointments)}</b><span>${esc(t("mil.lead.appointments"))}</span></div>
+                <div class="statcard"><b>${lrec.years_of_service != null ? fmtNum(lrec.years_of_service) : "\u2014"}</b><span>${esc(t("mil.lead.service"))}</span></div>
+              </div>` : ""}
+            ${asg.length ? `<h4 class="mil-lead-sub">${esc(t("mil.cmd.appointment"))}</h4>
+              <div class="table-wrap"><table class="data compact">
                 <thead><tr><th>${esc(t("mil.cmd.appointment"))}</th>
                   <th>${esc(t("mil.cmd.unit"))}</th>
                   <th>${esc(t("mil.cmd.since"))}</th></tr></thead><tbody>
-                ${(c._asg || []).slice(0, 6).map(a => `<tr>
+                ${asg.slice(0, 6).map(a => `<tr>
                   <td>${esc(a.role || "\u2014")}${a.is_current
                     ? ` <span class="badge green">${esc(t("mil.cmd.current"))}</span>` : ""}</td>
                   <td><a href="#/military/units/${a.unit_id}/show">${esc(unitName[a.unit_id] || ("#" + a.unit_id))}</a></td>
                   <td class="nowrap">${esc(a.assigned_date || "\u2014")}${a.relieved_date
                     ? " \u2192 " + esc(a.relieved_date) : ""}</td>
                 </tr>`).join("")}</tbody></table></div>` : ""}
-              <div class="small muted mil-lead-basis">${esc(t("mil.lead.basisNote"))}</div>
-            </div>`).join("");
+            ${traits.length ? `<div class="small muted mil-lead-basis">${esc(t("mil.lead.basisNote"))}</div>` : ""}`;
         } catch (err) {
           host.innerHTML = `<div class="notice err small">${esc(err.message)}</div>`;
         }
@@ -963,6 +966,52 @@
       });
       form.appendChild(fs);
     });
+
+    /* ---- category-conditional attributes ------------------------------- */
+    /* Each category displays the attributes relevant to that specific
+       classification.  meta.category_fields maps a category code to the
+       fields that belong to it — a military person shows rank, branch,
+       commission date, service status and military biography.  Switching
+       the category reveals the fields it owns and clears the ones it does
+       not (the switch marks the form dirty; Cancel restores the record).
+       The server enforces the same rule on every write. */
+    (function initCategoryConditional() {
+      const catKey = spec.category_field;
+      const catMap = spec.category_fields || {};
+      if (!catKey || !Object.keys(catMap).length) return;
+      const owning = new Map();          /* field key -> Set(category codes) */
+      Object.keys(catMap).forEach(code =>
+        (catMap[code] || []).forEach(k => {
+          if (!owning.has(k)) owning.set(k, new Set());
+          owning.get(k).add(code);
+        }));
+      const catSelect = () => form.querySelector(`[data-k="${catKey}"]`);
+      const apply = (clear) => {
+        const el = catSelect();
+        const code = String((el && el.value) || "").trim();
+        owning.forEach((codes, key) => {
+          const w = form.querySelector(`[data-field="${key}"]`);
+          if (!w) return;
+          const show = codes.has(code);
+          w.classList.toggle("cat-hidden", !show);
+          if (!show && clear) {
+            w.querySelectorAll("[data-k]").forEach(inp => { inp.value = ""; });
+          }
+        });
+        /* a fieldset whose fields are all category-owned hides with them */
+        form.querySelectorAll("fieldset.field-group").forEach(fs => {
+          const ws = Array.from(fs.querySelectorAll("[data-field]"));
+          if (!ws.length) return;
+          if (ws.every(w => owning.has(w.dataset.field))) {
+            const anyShown = ws.some(w => !w.classList.contains("cat-hidden"));
+            fs.classList.toggle("cat-hidden", !anyShown);
+          }
+        });
+      };
+      const el = catSelect();
+      if (el) el.addEventListener("change", () => apply(true));
+      apply(false);
+    })();
 
     if ((spec.tags || []).length) {
       const fs = document.createElement("fieldset");

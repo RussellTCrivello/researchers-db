@@ -8,7 +8,7 @@ field or a whole new entity type is a change in this file only.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 # ---------------------------------------------------------------------------
@@ -43,6 +43,15 @@ TIME_AWARE_FIELDS = {
     ("relationship", "start_date"), ("relationship", "end_date"),
     ("source", "publication_date"), ("source", "access_date"),
     ("relationship", "last_review_date"),
+}
+
+# The service lifecycle of a military-categorized person: Active -> Reserve ->
+# Retired, and Retired is terminal.  Owner-reviewable policy data (design
+# record §8.3); enforced generically through EntitySpec.transition_policies.
+SERVICE_STATUS_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "Active": ("Reserve",),
+    "Reserve": ("Active", "Retired"),
+    "Retired": (),
 }
 
 
@@ -240,6 +249,18 @@ class EntitySpec:
     index_builder: Callable | None = None
     description_en: str = ""
     description_ar: str = ""
+    # -- category-conditional attributes ---------------------------------
+    # A record's *category* (e.g. a person's military / civilian / other
+    # classification) decides which of its attributes apply.  Each key is a
+    # category vocabulary code; the value lists the field keys that belong to
+    # that classification and appear only when it is selected.
+    category_field: str | None = None
+    category_fields: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # -- value-transition policies ----------------------------------------
+    # field key -> {current value: allowed next values}; only *changes* are
+    # constrained (a record may be created holding any state), an empty tuple
+    # marks a terminal state.
+    transition_policies: dict[str, dict[str, tuple[str, ...]]] = field(default_factory=dict)
     # -- engine capabilities ---------------------------------------------
     soft_delete: bool = True            # table has deleted_at; registry deletes
     freshness_col: str = "updated_at"   # column the KPI "recently updated" tile reads
@@ -422,6 +443,40 @@ person_fields: list[Field] = [
       help_ar="رمز اللغة أو اسمها، مثال: tr، fr، التركية العثمانية"),
     F("name_transliteration", "text", "Transliteration", "النقل الحرفي للاسم",
       group="identity", in_list=False),
+    F("category", "select", "Category", "الفئة", domain="person_category", store="code",
+      group="identity", sortable=True,
+      help_en="Military, civilian or other — the classification decides which "
+              "category attributes apply to this person (a military person shows "
+              "rank, branch, commission date, service status and military biography).",
+      help_ar="عسكري أو مدني أو آخر — تُحدّد الفئة الصفات الخاصة التي تنطبق على هذا "
+              "الشخص (يعرض الشخص العسكري الرتبة والسلاح وتاريخ التكليف وحالة الخدمة "
+              "والسيرة العسكرية)."),
+    F("rank_title", "text", "Rank", "الرتبة", group="military", in_list=False, max_len=120,
+      help_en="Military rank held (free text so any historical rank fits). "
+              "Shown only for people of the military category.",
+      help_ar="الرتبة العسكرية التي يحملها (نص حر لكي تتسع لأي رتبة تاريخية). "
+              "تُعرض فقط لمن هم من الفئة العسكرية."),
+    F("branch", "select", "Service branch", "السلاح", domain="military_branch", store="code",
+      group="military", in_list=False,
+      help_en="The armed branch the person serves in. Controlled vocabulary — "
+              "extend it under Vocabularies → Service branch.",
+      help_ar="السلاح الذي يخدم فيه الشخص. قائمة مرجعية — يمكن توسيعها من "
+              "القوائم المرجعية ← السلاح."),
+    F("commission_date", "date", "Commission date", "تاريخ التكليف", group="military",
+      in_list=False,
+      help_en="When the person was commissioned into service (a year alone is acceptable).",
+      help_ar="تاريخ تكليف الشخص بالخدمة (يكفي ذكر السنة وحدها)."),
+    F("service_status", "select", "Service status", "حالة الخدمة",
+      domain="military_service_status", store="code", group="military", in_list=False,
+      help_en="Active, Reserve or Retired — the person's standing in service. "
+              "The lifecycle runs Active → Reserve → Retired.",
+      help_ar="على قيد الخدمة أو احتياط أو متقاعد — الوضع الخدمي للشخص. "
+              "يمر المسار بمرحل: على قيد الخدمة ← احتياط ← متقاعد."),
+    F("military_biography", "textarea", "Military biography", "السيرة العسكرية",
+      group="military", in_list=False,
+      help_en="Service history, commands and campaigns — the military record "
+              "behind the rank.",
+      help_ar="المسيرة الخدمية والقيادات والحملات — السجل العسكري الذي يقف خلف الرتبة."),
     F("image_url", "url", "Image link", "رابط الصورة", group="identity", in_list=False,
       help_en="Portrait URL or an uploaded /api/media/… path (shown in card and gallery views)",
       help_ar="رابط الصورة أو ملف مرفوع بصيغة /api/media/… (يظهر في البطاقات والمعرض)"),
@@ -718,6 +773,12 @@ ENTITIES: dict[str, EntitySpec] = {
         name_fields=("name_en", "name_ar"), default_sort="updated_at", tags=("specialization",),
         has_positions=True,
         children=("positions", "specializations", "relationships", "sources", "attachments"),
+        category_field="category",
+        category_fields={
+            "military": ("rank_title", "branch", "commission_date",
+                         "service_status", "military_biography"),
+        },
+        transition_policies={"service_status": SERVICE_STATUS_TRANSITIONS},
         description_en="Researchers, scholars, officials and other individuals.",
         description_ar="الباحثون والعلماء والمسؤولون وسائر الشخصيات.",
     ),
@@ -788,6 +849,8 @@ def entity_meta(lang: str = "en") -> list[dict]:
             "description_en": e.description_en, "description_ar": e.description_ar,
             "tags": list(e.tags), "has_positions": e.has_positions,
             "children": list(e.children),
+            "category_field": e.category_field,
+            "category_fields": {k: list(v) for k, v in e.category_fields.items()},
         })
     return out
 

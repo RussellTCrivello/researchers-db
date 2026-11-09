@@ -10,7 +10,6 @@ from datetime import date
 from typing import Any
 
 from .vocab import (
-    COMMANDER_TRANSITIONS,
     DEPLOYMENT_TRANSITIONS,
     HOLDING_CONDITIONS,
     MISSION_TRANSITIONS,
@@ -20,7 +19,7 @@ from .vocab import (
 # map entity slug -> table, for target-existence checks
 _TABLES = {
     "region": "region", "division": "division", "classification": "classification",
-    "commander": "commander", "unit": "military_unit",
+    "person": "person", "unit": "military_unit",
     "deployment": "operational_deployment", "mission": "mission",
     "armament": "armament", "holding": "unit_armament", "training": "training",
     "assignment": "command_assignment", "note": "note",
@@ -139,8 +138,24 @@ def check_mission_transition(old: str | None, new: str) -> None:
     check_transition(MISSION_TRANSITIONS, "mission", old, new)
 
 
-def check_commander_transition(old: str | None, new: str) -> None:
-    check_transition(COMMANDER_TRANSITIONS, "commander", old, new)
+def check_commander_person(conn, person_id: Any, field: str = "commander_id") -> None:
+    """The commander of a unit/command appointment must be a military person.
+
+    The Leader is a categorized Person: command references point at person
+    rows, and only a person classified as 'military' may hold a command.
+    """
+    row = conn.execute(
+        "SELECT id, category FROM person WHERE id = ? AND deleted_at IS NULL",
+        (person_id,)).fetchone()
+    if not row:
+        raise RuleViolation("commander_not_found",
+                            f"the commander (person) {person_id} does not exist", field)
+    if row["category"] != "military":
+        raise RuleViolation(
+            "commander_must_be_military",
+            "a commander must be a person of the military category "
+            "(set the person's category to Military first)",
+            field)
 
 
 # --- deployment policy (§8.3) ---------------------------------------------
@@ -240,10 +255,8 @@ def check_assignment(conn, payload: dict[str, Any], exclude_id: int | None = Non
     if unit_id is not None and not conn.execute(
             "SELECT id FROM military_unit WHERE id = ?", (unit_id,)).fetchone():
         raise RuleViolation("unit_not_found", f"unit {unit_id} does not exist", "unit_id")
-    if commander_id is not None and not conn.execute(
-            "SELECT id FROM commander WHERE id = ?", (commander_id,)).fetchone():
-        raise RuleViolation("commander_not_found",
-                            f"commander {commander_id} does not exist", "commander_id")
+    if commander_id is not None:
+        check_commander_person(conn, commander_id)
     if not payload.get("assigned_date"):
         raise RuleViolation("assigned_date_required",
                             "an appointment needs an assigned date", "assigned_date")
@@ -273,15 +286,16 @@ def check_assignment(conn, payload: dict[str, Any], exclude_id: int | None = Non
             )
 
 
-def check_commander_retire(conn, commander_id: int) -> None:
+def check_service_retire(conn, person_id: int) -> None:
+    """Retired is terminal and needs a closed service record (§8.3)."""
     row = conn.execute(
         "SELECT COUNT(*) AS n FROM command_assignment WHERE commander_id = ? AND is_current = 1",
-        (commander_id,)).fetchone()
+        (person_id,)).fetchone()
     if row["n"]:
         raise RuleViolation(
             "unresolved_appointment",
-            "commander still holds a current appointment; relieve it before retiring",
-            "status",
+            "the person still holds a current appointment; relieve it before retiring",
+            "service_status",
         )
 
 
@@ -342,8 +356,6 @@ DELETE_DEPENDENCIES = {
     "region": [("division", "region_id"), ("military_unit", "region_id")],
     "division": [("military_unit", "division_id")],
     "classification": [("military_unit", "classification_id")],
-    "commander": [("military_unit", "commander_id"),
-                  ("command_assignment", "commander_id")],
     "unit": [("military_unit", "parent_id"),
              ("operational_deployment", "unit_id"), ("mission", "unit_id"),
              ("unit_armament", "unit_id"), ("training", "unit_id"),

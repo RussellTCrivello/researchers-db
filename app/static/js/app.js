@@ -36,7 +36,7 @@
     { re: /^\/maintenance$/, view: "maintenance" },
     /* military entities share the unified list engine, form engine and
        settings; only the record *dossier* keeps its military layout */
-    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|commander|assignment|note)\/(\d+)$/, view: "milDossier", keys: ["entity", "id"] },
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|assignment|trait|note)\/(\d+)$/, view: "milDossier", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)\/edit$/, view: "recordEdit", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)$/, view: "record", keys: ["entity", "id"] },

@@ -13,7 +13,7 @@ from . import rules
 from .dbm import now_iso
 
 FICTIONAL_DISCLAIMER = (
-    "ALL sample data is FICTIONAL. Every unit, commander, place, deployment and "
+    "ALL sample data is FICTIONAL. Every unit, person, place, deployment and "
     "operation shown here is invented for demonstration purposes and does not "
     "depict any real military organization."
 )
@@ -135,30 +135,61 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
     seed_reference_data(conn)      # the registry vocabulary (idempotent)
 
     def add_person(code: str, name_en: str, name_ar: str,
-                   born: str, position: str) -> dict[str, Any]:
+                   born: str, position: str, rank: str,
+                   commission: str, service_status: str,
+                   biography: str | None = None) -> dict[str, Any]:
         from .. import repo
         from ..schemas import ENTITIES
         rec = repo.create_record(
             conn, ENTITIES["person"],
             {"code": code, "name_en": name_en, "name_ar": name_ar,
              "birth_date": born, "current_position": position,
-             "birthplace_text": "Republic of Aldervale (fictional)"},
+             "birthplace_text": "Republic of Aldervale (fictional)",
+             # the Leader is a categorized Person: the sample's commanders are
+             # person rows of the military category with their service detail
+             "category": "military", "rank_title": rank, "branch": "Army",
+             "commission_date": commission, "service_status": service_status,
+             "military_biography": biography},
             actor, commit=False)
         counts["person"] = counts.get("person", 0) + 1
         return rec
 
-    vossen_person = add_person("SAMP-P-01", "Mara Vossen (fictional)",
-                               "مارا فوسن (خيالية)", "1974-03-09",
-                               "Brigadier General, Army (fictional)")
-    kalvere_person = add_person("SAMP-P-02", "Idris Kalvere (fictional)",
-                                "إدريس كالفير (خيالية)", "1977-11-22",
-                                "Colonel, Army (fictional)")
-    rendane_person = add_person("SAMP-P-03", "Sela Rendane (fictional)",
-                                "سيلا ريندان (خيالية)", "1982-06-30",
-                                "Lieutenant Colonel, Army (fictional)")
-    talvik_person = add_person("SAMP-P-04", "Oren Talvik (fictional)",
-                               "أورين تالفيك (خيالية)", "1985-02-14",
-                               "Major, Army (fictional)")
+    vossen_person = add_person(
+        "SAMP-P-01", "Mara Vossen (fictional)", "مارا فوسن (خيالية)",
+        "1974-03-09", "Brigadier General, Army (fictional)",
+        "Brigadier General", _date(1996, 7, 1), "Active",
+        biography="FICTIONAL officer biography for demonstration only.")
+    kalvere_person = add_person(
+        "SAMP-P-02", "Idris Kalvere (fictional)", "إدريس كالفير (خيالية)",
+        "1977-11-22", "Colonel, Army (fictional)",
+        "Colonel", _date(1999, 3, 15), "Active")
+    rendane_person = add_person(
+        "SAMP-P-03", "Sela Rendane (fictional)", "سيلا ريندان (خيالية)",
+        "1982-06-30", "Lieutenant Colonel, Army (fictional)",
+        "Lieutenant Colonel", _date(2004, 6, 20), "Reserve")
+    talvik_person = add_person(
+        "SAMP-P-04", "Oren Talvik (fictional)", "أورين تالفيك (خيالية)",
+        "1985-02-14", "Major, Army (fictional)",
+        "Major", _date(2010, 1, 10), "Retired")
+    # a civilian person — the category feature's contrast case: no military
+    # attributes appear for this record, only the civilian-relevant fields
+    def add_civilian(code: str, name_en: str, name_ar: str,
+                     born: str, position: str) -> dict[str, Any]:
+        from .. import repo
+        from ..schemas import ENTITIES
+        rec = repo.create_record(
+            conn, ENTITIES["person"],
+            {"code": code, "name_en": name_en, "name_ar": name_ar,
+             "birth_date": born, "current_position": position,
+             "birthplace_text": "Republic of Aldervale (fictional)",
+             "category": "civilian"},
+            actor, commit=False)
+        counts["person"] = counts.get("person", 0) + 1
+        return rec
+
+    serghani_person = add_civilian(
+        "SAMP-P-05", "Dr. Amina Serghani (fictional)", "د. أمينة سرغاني (خيالية)",
+        "1980-09-05", "Defence Policy Adviser (fictional)")
 
     # --- regions (self-tree) ------------------------------------------------
     theater = add("region", name="Northern Territorial Command", region_type="Theater",
@@ -188,46 +219,27 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
                       category="Reserve", readiness_tier="Low",
                       description="Reserve formation classification (fictional).")
 
-    # --- commanders (fictional people) -------------------------------------
-    vossen = add("commander", full_name="Brig. Gen. Mara Vossen (fictional)",
-                 person_id=vossen_person["id"],
-                 rank_title="Brigadier General", branch="Army",
-                 commission_date=_date(1996, 7, 1), status="Active",
-                 biography="FICTIONAL officer biography for demonstration only.")
-    kalvere = add("commander", full_name="Col. Idris Kalvere (fictional)",
-                  person_id=kalvere_person["id"],
-                  rank_title="Colonel", branch="Army",
-                  commission_date=_date(1999, 3, 15), status="Active")
-    rendane = add("commander", full_name="Lt. Col. Sela Rendane (fictional)",
-                  person_id=rendane_person["id"],
-                  rank_title="Lieutenant Colonel", branch="Army",
-                  commission_date=_date(2004, 6, 20), status="Reserve")
-    add("commander", full_name="Maj. Oren Talvik (fictional)",
-        person_id=talvik_person["id"],
-        rank_title="Major", branch="Army",
-        commission_date=_date(2010, 1, 10), status="Retired")
-
     # --- assessed leadership qualities (the demo leadership layer) ----------
     # What sets a leader apart: qualities WITH a basis, on the flagship
     # commander so the profile fan and level chips render in the sample world.
-    add("trait", commander_id=vossen["id"], quality="Strategic Vision",
+    add("trait", person_id=vossen_person["id"], quality="Strategic Vision",
         level="Exceptional", assessed_by="Higher Headquarters (fictional)",
         assessed_at=_date(2024, 5, 12),
         evidence_note="FICTIONAL evidence: authored the territorial defence "
                       "concept later adopted theatre-wide.",
         source="Annual Assessment Board (fictional)")
-    add("trait", commander_id=vossen["id"], quality="Leadership Under Fire",
+    add("trait", person_id=vossen_person["id"], quality="Leadership Under Fire",
         level="Outstanding", assessed_by="After-Action Review (fictional)",
         assessed_at=_date(2025, 2, 8),
         evidence_note="FICTIONAL evidence: held the brigade together through "
                       "the Brena floods of the sample storyline.",
         source="After-action review (fictional)")
-    add("trait", commander_id=vossen["id"], quality="Logistics Mastery",
+    add("trait", person_id=vossen_person["id"], quality="Logistics Mastery",
         level="Proficient", assessed_by="Inspectorate General (fictional)",
         assessed_at=_date(2025, 9, 30),
         evidence_note="FICTIONAL evidence: reorganised the supply chain so no "
                       "company went unfed during the sample deployment.")
-    add("trait", commander_id=kalvere["id"], quality="Discipline",
+    add("trait", person_id=kalvere_person["id"], quality="Discipline",
         level="Outstanding", assessed_by="Board of Officers (fictional)",
         assessed_at=_date(2025, 6, 14),
         evidence_note="FICTIONAL evidence: the cleanest inspection record in "
@@ -238,7 +250,7 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
     brigade = add("unit", name="12th Territorial Brigade", code="12-TB",
                   echelon="Brigade", classification_id=line_cls["id"],
                   division_id=mech["id"], region_id=district["id"],
-                  commander_id=vossen["id"], role="Territorial Defence",
+                  commander_id=vossen_person["id"], role="Territorial Defence",
                   status="Active", direct_personnel=120,
                   formation_date=_date(2001, 5, 6),
                   headquarters="Fort Kessamar (fictional)",
@@ -247,7 +259,7 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
     alpha = add("unit", name="1st Infantry Battalion", code="1-IB",
                 echelon="Battalion", parent_id=brigade["id"],
                 classification_id=line_cls["id"], division_id=mech["id"],
-                region_id=district["id"], commander_id=kalvere["id"],
+                region_id=district["id"], commander_id=kalvere_person["id"],
                 role="Line Infantry", status="Active", direct_personnel=85,
                 headquarters="Outpost Rennick (fictional)",
                 latitude=34.71000, longitude=36.05000,
@@ -375,19 +387,23 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
         assessment="Needs Improvement", location="Fort Kessamar (fictional)")
 
     # --- command appointments (history + exactly one current CO) -----------
-    add("assignment", unit_id=brigade["id"], commander_id=rendane["id"],
+    add("assignment", unit_id=brigade["id"], commander_id=rendane_person["id"],
         role="Commanding Officer", assigned_date=_date(2015, 2, 1),
         relieved_date=_date(2021, 8, 31), is_current=False,
         notes="Historic appointment (fictional).")
-    add("assignment", unit_id=brigade["id"], commander_id=vossen["id"],
+    add("assignment", unit_id=brigade["id"], commander_id=vossen_person["id"],
         role="Commanding Officer", assigned_date=_date(2021, 9, 1),
         is_current=True, notes="Current appointment (fictional).")
-    add("assignment", unit_id=brigade["id"], commander_id=kalvere["id"],
+    add("assignment", unit_id=brigade["id"], commander_id=kalvere_person["id"],
         role="Chief of Staff", assigned_date=_date(2022, 1, 10),
         is_current=True)
-    add("assignment", unit_id=alpha["id"], commander_id=kalvere["id"],
+    add("assignment", unit_id=alpha["id"], commander_id=kalvere_person["id"],
         role="Commanding Officer", assigned_date=_date(2023, 3, 1),
         is_current=True)
+    add("assignment", unit_id=alpha["id"], commander_id=talvik_person["id"],
+        role="Commanding Officer", assigned_date=_date(2018, 1, 5),
+        relieved_date=_date(2023, 2, 28), is_current=False,
+        notes="Historic appointment before retirement (fictional).")
 
     # --- notes (polymorphic, allowlisted targets) --------------------------
     add("note", entity_type="unit", target_id=brigade["id"],
@@ -396,9 +412,12 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
     add("note", entity_type="deployment", target_id=dep_active["id"],
         note_text="FICTIONAL operational note: supply corridor review pending.",
         author="sample-loader", note_at=_date(2026, 3, 1))
-    add("note", entity_type="commander", target_id=vossen["id"],
+    add("note", entity_type="person", target_id=vossen_person["id"],
         note_text="FICTIONAL personnel note: service biography refreshed for demo.",
         author="sample-loader", note_at=_date(2026, 9, 18))
+    add("note", entity_type="person", target_id=serghani_person["id"],
+        note_text="FICTIONAL advisory note: civilian policy review session scheduled.",
+        author="sample-loader", note_at=_date(2026, 4, 22))
 
     conn.execute("INSERT INTO mil_meta (key, value) VALUES (?, ?) "
                  "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -411,9 +430,9 @@ def clear_sample(conn, actor: str = "sample-loader",
                  keep_marker: bool = False) -> dict[str, Any]:
     """Remove all sample records (records only — the audit trail is append-only)."""
     tables = [
-        "note", "commander_trait", "command_assignment", "training",
+        "note", "person_trait", "command_assignment", "training",
         "unit_armament", "mission",
-        "operational_deployment", "military_unit", "commander", "classification",
+        "operational_deployment", "military_unit", "classification",
         "division", "region", "armament",
     ]
     removed = 0

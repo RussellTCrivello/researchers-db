@@ -34,7 +34,6 @@ ENTITY_AR = {
     "deployment": ("النشر", "عمليات النشر"),
     "mission": ("المهمة", "المهام"),
     "training": ("التدريب", "التدريبات"),
-    "commander": ("القائد", "القادة"),
     "trait": ("صفة قيادية", "الصفات القيادية"),
     "assignment": ("التعيين", "التعيينات"),
     "note": ("ملاحظة", "ملاحظات"),
@@ -68,7 +67,7 @@ FIELD_AR = {
     "target_id": "السجل المستهدف", "note_text": "نص الملاحظة", "author": "الكاتب",
     "note_at": "تاريخ الملاحظة", "path": "المسار", "depth": "العمق",
     "image_url": "رابط الشعار", "image_alt": "الوصف البديل للشعار",
-    "person_id": "الفرد", "latitude": "خط العرض", "longitude": "خط الطول",
+    "person_id": "الشخص", "latitude": "خط العرض", "longitude": "خط الطول",
     "geometry_source": "مصدر الإحداثيات",
     "quality": "الصفة", "level": "المستوى", "assessed_by": "قيّمه",
     "assessed_at": "تاريخ التقييم", "evidence_note": "الأساس", "source": "المصدر",
@@ -128,7 +127,6 @@ TITLE_FIELDS = {
     "deployment": ("name", "docname"),
     "mission": ("name", "docname"),
     "training": ("exercise_name", "docname"),
-    "commander": ("full_name", "docname"),
     "trait": ("quality", "docname"),
     "assignment": ("docname",),
     "note": ("docname",),
@@ -146,7 +144,6 @@ _DESCRIPTIONS = {
     "trait": ("Leadership quality assessments — what sets a leader apart, with its basis",
               "تقييمات الصفات القيادية — ما يميز القائد، مع الأساس"),
     "training": ("Training and exercises", "التدريبات والتمارين"),
-    "commander": ("Commanders", "القادة"),
     "assignment": ("Command appointments", "التعيينات القيادية"),
     "note": ("Notes on military records", "ملاحظات على السجلات العسكرية"),
 }
@@ -184,7 +181,7 @@ def _build_specs() -> dict[str, EntitySpec]:
         _ref("classification_id", "classification", group="structure", in_list=True),
         _sel("role", in_list=True),
         _sel("status", in_list=True),
-        _ref("commander_id", "commander", group="structure"),
+        _ref("commander_id", "person", group="structure"),
         # maintained by the one-current-deployment rule (service sets it when a
         # deployment starts/ends) — displayed, never hand-edited; the service's
         # editable field list intentionally has no such field
@@ -307,23 +304,9 @@ def _build_specs() -> dict[str, EntitySpec]:
         *_audit_fields(),
     ], "award")
 
-    s["commander"] = _spec("commander", "commander", [
+    s["trait"] = _spec("trait", "person_trait", [
         _docname(),
-        F("full_name", "text", group="identity", required=True, in_list=True),
-        # a commander is a person first: the link to the individual record whose
-        # identity, life, relationships and geography the dossier then shows
-        _ref("person_id", "person", group="identity", in_list=False),
-        _sel("rank_title", group="identity", in_list=True),
-        _sel("branch", in_list=True),
-        F("commission_date", "date", group="main"),
-        _sel("status", in_list=True),
-        F("biography", "textarea", group="main"),
-        *_audit_fields(),
-    ], "user")
-
-    s["trait"] = _spec("trait", "commander_trait", [
-        _docname(),
-        _ref("commander_id", "commander", group="structure", required=True, in_list=True),
+        _ref("person_id", "person", group="structure", required=True, in_list=True),
         _sel("quality", domain="leadership_quality", group="identity",
              required=True, in_list=True),
         _sel("level", domain="leadership_level", group="identity", in_list=True),
@@ -337,7 +320,7 @@ def _build_specs() -> dict[str, EntitySpec]:
     s["assignment"] = _spec("assignment", "command_assignment", [
         _docname(in_list=True),
         _ref("unit_id", "unit", group="structure", required=True, in_list=True),
-        _ref("commander_id", "commander", group="structure", required=True, in_list=True),
+        _ref("commander_id", "person", group="structure", required=True, in_list=True),
         _sel("role", group="main", in_list=True),
         F("assigned_date", "date", group="main", required=True, in_list=True),
         F("relieved_date", "date", group="main"),

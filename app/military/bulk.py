@@ -138,24 +138,30 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
                            name=f"{rng.choice(_ADJ)} {rng.choice(['Line', 'Support', 'Reserve', 'Training'])} Class-{i}{FICTIONAL_TAG}")
                        for i in range(max(12, scale // 300))]
 
-    # ---- commanders -----------------------------------------------------
+    # ---- military persons (the Leader is a categorized Person) ----------
     ranks = ["General", "Brigadier General", "Colonel", "Lieutenant Colonel",
              "Major", "Captain", "Lieutenant"]
-    # registry individuals to link commanders to (a commander is a person
-    # first); when the bulk loader runs alone the link is simply omitted
-    person_ids = [r["id"] for r in
-                  conn.execute("SELECT id FROM person ORDER BY id").fetchall()]
-    commanders = [add("commander",
-                      {"person_id": rng.choice(person_ids) if person_ids else None,
-                       "rank_title": rng.choice(ranks),
-                       "branch": rng.choice(["Army", "Air Force", "Navy", "Joint"]),
-                       "commission_date": _date(rng, 1992, 2018),
-                       "status": rng.choices(["Active", "Reserve", "Retired"],
-                                             weights=[7, 2, 1])[0],
-                       "biography": "FICTIONAL biography — invented career "
-                                    "record for demonstration purposes."},
-                      full_name=f"{rng.choice(ranks)} {rng.choice(_PLACES)} {i}{FICTIONAL_TAG}")
-                  for i in range(max(60, scale // 32))]
+    from .. import repo
+    from ..schemas import ENTITIES
+
+    def add_person(i: int) -> dict[str, Any]:
+        rank = rng.choice(ranks)
+        rec = repo.create_record(
+            conn, ENTITIES["person"],
+            {"name_en": f"{rank} {rng.choice(_PLACES)} {i}{FICTIONAL_TAG}",
+             "name_ar": f"ضابط {rng.choice(_PLACES)} {i} (خيالي)",
+             "category": "military", "rank_title": rank,
+             "branch": rng.choice(["Army", "Air Force", "Navy", "Joint"]),
+             "commission_date": _date(rng, 1992, 2018),
+             "service_status": rng.choices(["Active", "Reserve", "Retired"],
+                                           weights=[7, 2, 1])[0],
+             "military_biography": "FICTIONAL biography — invented career "
+                                   "record for demonstration purposes."},
+            actor, commit=False)
+        counts["person"] = counts.get("person", 0) + 1
+        return rec
+
+    commanders = [add_person(i) for i in range(max(60, scale // 32))]
 
     # ---- unit tree: brigade → battalion → company → platoon → squadron --
     echelons = ["Brigade", "Battalion", "Company", "Platoon", "Squadron", "Detachment"]
@@ -329,7 +335,7 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
                 "source": _name(rng, "Board", i),
                 "evidence_note": "FICTIONAL assessment evidence."}
             add("trait", optional,
-                commander_id=c["id"], quality=q,
+                person_id=c["id"], quality=q,
                 assessed_by=assessors[i % len(assessors)])
 
     # ---- command appointments (non-overlapping per unit+role) ---------
@@ -366,7 +372,7 @@ def load_bulk(conn, scale: int = 7000, actor: str = "bulk-loader") -> dict[str, 
     # ---- notes ---------------------------------------------------------
     targets = ([("unit", u["id"]) for u in rng.sample(units, min(150, len(units)))] +
                [("deployment", d["id"]) for d in rng.sample(deployments, min(80, len(deployments)))] +
-               [("commander", c["id"]) for c in rng.sample(commanders, min(60, len(commanders)))])
+               [("person", c["id"]) for c in rng.sample(commanders, min(60, len(commanders)))])
     for i, (etype, tid) in enumerate(targets):
         add("note",
             {"note_at": _date(rng, 2020, 2026)},

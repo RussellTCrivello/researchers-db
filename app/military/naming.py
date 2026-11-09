@@ -31,7 +31,6 @@ SERIES_CATALOG: list[tuple[str, str, bool]] = [
     ("region", "MIL-REG-", True),
     ("division", "MIL-DIV-", True),
     ("classification", "MIL-CLS-", True),
-    ("commander", "MIL-CMD-", True),
     ("unit", "MIL-UNIT-", True),
     ("unit", "MIL-BRG-", False),
     ("deployment", "MIL-DEP-.YYYY.-", True),

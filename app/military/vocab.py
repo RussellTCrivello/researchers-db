@@ -6,9 +6,13 @@ owner-reviewable: they are data, not scattered literals (design record §7.3).
 """
 from __future__ import annotations
 
+# The service-status lifecycle policy lives with the person schema (one source
+# of truth): re-exported here for the military layers.
+from ..schemas import SERVICE_STATUS_TRANSITIONS  # noqa: F401 - re-export
+
 # --- entity catalogue -------------------------------------------------------
 ENTITY_TYPES = [
-    "region", "division", "classification", "commander", "unit",
+    "region", "division", "classification", "unit",
     "deployment", "mission", "armament", "holding", "training",
     "assignment", "note", "trait",
 ]
@@ -18,7 +22,6 @@ ENTITY_LABELS = {
     "region": "Region",
     "division": "Division",
     "classification": "Classification",
-    "commander": "Commander",
     "unit": "Military Unit",
     "deployment": "Operational Deployment",
     "mission": "Mission",
@@ -44,12 +47,10 @@ DIVISION_TYPES = ["Mechanized", "Armored", "Infantry", "Artillery", "Support", "
 CLASS_CATEGORIES = ["Combat", "Support", "Reserve", "Training"]
 READINESS_TIERS = ["High", "Medium", "Low"]
 
-COMMANDER_STATUSES = ["Active", "Reserve", "Retired"]
-COMMANDER_RANKS = [
-    "General", "Brigadier General", "Colonel", "Lieutenant Colonel",
-    "Major", "Captain", "Lieutenant",
-]
-BRANCHES = ["Army", "Air Force", "Navy", "Joint"]
+# service status of a military-categorized person (020's vocabulary); the
+# lifecycle runs Active -> Reserve -> Retired and Retired is terminal —
+# the policy itself is defined once in app.schemas beside the person spec
+SERVICE_STATUS_VALUES = ["Active", "Reserve", "Retired"]
 
 DEPLOYMENT_STATUSES = ["Planned", "Active", "Completed", "Suspended"]
 DEPLOYMENT_TYPES = ["Operational", "Training", "Humanitarian", "Peacekeeping", "Reserve"]
@@ -102,7 +103,7 @@ LEADERSHIP_LEVELS = [
 # note targets allowed by the polymorphic link (design record §7.5, §8.1)
 NOTE_TARGET_TYPES = [
     "unit", "deployment", "mission", "training", "assignment",
-    "commander", "armament", "region", "division",
+    "person", "armament", "region", "division",
 ]
 
 # --- state transition tables (design record §8.3) ---------------------------
@@ -120,19 +121,11 @@ MISSION_TRANSITIONS = {
     "Executed": [],
     "Cancelled": [],
 }
-COMMANDER_TRANSITIONS = {
-    "Active": ["Reserve"],
-    "Reserve": ["Active", "Retired"],
-    "Retired": [],
-}
-
 # maps an entity slug to its vocabulary fields (drives API + UI validation)
 VOCAB_FIELDS = {
     "region": {"region_type": REGION_TYPES},
     "division": {"division_type": DIVISION_TYPES},
     "classification": {"category": CLASS_CATEGORIES, "readiness_tier": READINESS_TIERS},
-    "commander": {"rank_title": COMMANDER_RANKS, "branch": BRANCHES,
-                  "status": COMMANDER_STATUSES},
     "unit": {"echelon": UNIT_ECHELONS, "status": UNIT_STATUSES},
     "deployment": {"deployment_type": DEPLOYMENT_TYPES, "status": DEPLOYMENT_STATUSES},
     "mission": {"mission_type": MISSION_TYPES, "status": MISSION_STATUSES},

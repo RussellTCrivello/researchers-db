@@ -50,7 +50,10 @@ is stated explicitly.
 ## 1. What the system does
 
 1. Records the organisation of a military force: **regions, divisions,
-   classifications, commanders, and a hierarchy of military units**.
+   classifications, and a hierarchy of military units** — with the leaders
+   integrated into the registry's **People** table as categorized persons
+   (military, civilian or other; a military person carries rank, branch,
+   commission date, service status and military biography).
 2. Records what those units do: **operational deployments, missions, training**,
    and the **armament** they hold.
 3. Records who commands: **command appointments** over time, with exactly one
@@ -78,7 +81,7 @@ erDiagram
     region ||--o{ military_unit : located
     division ||--o{ military_unit : contains
     classification ||--o{ military_unit : classifies
-    commander ||--o{ military_unit : "commander pointer"
+    person ||--o{ military_unit : "commander pointer"
     military_unit ||--o{ military_unit : "parent unit (self-tree)"
     military_unit ||--o{ operational_deployment : deploys
     military_unit ||--o{ mission : tasks
@@ -86,13 +89,19 @@ erDiagram
     military_unit ||--o{ training : trains
     military_unit ||--o{ command_assignment : appoints
     operational_deployment ||--o{ mission : covers
-    commander ||--o{ command_assignment : serves
-    commander ||--o{ commander_trait : "assessed qualities"
+    person ||--o{ command_assignment : serves
+    person ||--o{ person_trait : "assessed qualities"
     armament ||--o{ unit_armament : issued
 ```
 
+The Leader table is gone: a commander **is** a registry `person` of the
+`military` category, so `military_unit.commander_id`,
+`command_assignment.commander_id` and `person_trait.person_id` all reference
+`person(id)` directly (migration `020_person_category.sql` folded every
+commander row into its person, preserving the data).
+
 Notes (`note`) link polymorphically to any allowlisted target type
-(`unit`, `deployment`, `mission`, `training`, `assignment`, `commander`,
+(`unit`, `deployment`, `mission`, `training`, `assignment`, `person`,
 `armament`, `region`, `division`) — validated to exist at write time.
 
 **Pointer fields** (synchronised, never hand-edited):
@@ -141,16 +150,27 @@ Legend: **R** = required on create, **U** = unique, choices are enumerated in
 | `readiness_tier` | choice | `High · Medium · Low` |
 | `description` | text | |
 
-### 3.4 Commander
+### 3.4 Person — the Leader, integrated (registry table)
+
+There is no separate Leader table: a commander is a registry **person** with a
+**category** classification, and the person record holds every relevant detail
+in one place (identity, life, career, leadership qualities, command record).
+The category decides which attributes apply:
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `full_name` | text | R |
-| `rank_title` | choice | `General · Brigadier General · Colonel · Lieutenant Colonel · Major · Captain · Lieutenant` |
-| `branch` | choice | `Army · Air Force · Navy · Joint` |
-| `commission_date` | date | |
-| `status` | choice | `Active · Reserve · Retired` (default `Active`) |
-| `biography` | text | |
+| `category` | choice | `military · civilian · other` (vocabulary `person_category`, owner-reviewable) |
+| `rank_title` | text | **military category** — free text so any historical rank fits |
+| `branch` | choice | **military category** — vocabulary `military_branch` (`Army · Navy · Air Force · Joint · Gendarmerie · Coast Guard`) |
+| `commission_date` | date | **military category** |
+| `service_status` | choice | **military category** — vocabulary `military_service_status` (`Active · Reserve · Retired`); the lifecycle runs `Active → Reserve → Retired`, `Retired` is terminal |
+| `military_biography` | text | **military category** — service history, commands, campaigns |
+
+Category-conditional attributes belong to their classification: holding a
+military attribute while the category is civilian or other is refused with a
+bilingual 422 naming the attribute, and the form shows each group only for its
+category. Only a **military** person may be referenced as a unit commander or
+command appointee.
 
 ### 3.5 Military Unit (self-tree)
 
@@ -163,7 +183,7 @@ Legend: **R** = required on create, **U** = unique, choices are enumerated in
 | `classification_id` | → classification | |
 | `division_id` | → division | |
 | `region_id` | → region | |
-| `commander_id` | → commander | **pointer** — synced from the current CO appointment |
+| `commander_id` | → person | **pointer** — synced from the current CO appointment (a military-category person) |
 | `role` | text | |
 | `status` | choice | `Active · Training · Standby · Mobilized · Attached · Reserve · Reorganizing · Stand-down · Disbanded` (default `Active`) |
 | `direct_personnel` | int ≥ 0 | **locally maintained** strength assigned directly to this unit |
@@ -241,28 +261,31 @@ by users (see [UI-8](#8-interface)). The API exposes it as `subtree_personnel`.
 | Field | Type | Notes |
 | --- | --- | --- |
 | `unit_id` | → unit | R |
-| `commander_id` | → commander | R |
+| `commander_id` | → person | R — a military-category person |
 | `role` | choice | `Commanding Officer · Deputy Commander · Chief of Staff · Acting Commander` (default `Commanding Officer`) |
 | `assigned_date` | date | R |
 | `relieved_date` | date | empty = ongoing |
 | `is_current` | bool | at most one current appointment per (unit, role) |
 | `notes` | text | |
 
-### 3.12 Command Trait (assessed leadership qualities)
+### 3.12 Person Trait (assessed leadership qualities, `person_trait`)
 
 What sets a leader apart: qualities **assessed with a basis**, never bare
-tags. Each row records one assessment of one commander.
+tags. Each row records one assessment of one person (leader). Leadership is
+not limited to the military category — any person may be assessed.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `commander_id` | → commander | R |
+| `person_id` | → person | R — any person |
 | `quality` | lookup `leadership_quality` | R — 12 vocabulary qualities (EN/AR labels) |
 | `level` | lookup `leadership_level` | `Exceptional · Outstanding · Proficient · Developing` (colour + sort order) |
 | `assessed_by`, `evidence_note`, `source` | text | R collectively — **basis_required**: at least one must be present (4.15) |
 | `assessed_at` | date | must not be in the future (4.16) |
 
 The vocabulary is seeded idempotently by migration `019_commander_trait.sql`
-and the lazy path (`seed.ensure_leadership_vocab`) — both converge.
+and the lazy path (`seed.ensure_leadership_vocab`) — both converge. Migration
+`020_person_category.sql` renamed the table to `person_trait` and re-pointed
+every assessment at the folded person.
 
 ### 3.13 Note
 
@@ -305,7 +328,7 @@ the in-flight state. Violations return a structured error:
 | 4.5 | **Mission consistency** — dates; `Executed` requires `end_date`; a linked deployment's unit must be the mission's unit or an **ancestor** of it (a parent formation's deployment covers subordinate missions) | `executed_needs_end`, `mission_deployment_mismatch`, `deployment_not_found` | 422 |
 | 4.6 | **Appointment overlap** — for the same (unit, role) two appointment windows may not overlap; an empty `relieved_date` counts as ongoing; `assigned_date` required | `appointment_overlap`, `assigned_date_required` | 409 / 422 |
 | 4.7 | **One current appointment** — at most one `is_current` appointment per (unit, role); the commander pointer mirrors the current `Commanding Officer` and is cleared when it ends | `one_current_appointment` (service hook) | 409 |
-| 4.8 | **Commander lifecycle** — `Active → Reserve → Retired` (Reserve may return to Active); `Retired` is terminal; a commander holding a current appointment cannot retire | `status_transition`, `unresolved_appointment` | 422 |
+| 4.8 | **Service-status lifecycle** — a military person's `service_status` moves `Active → Reserve`, `Reserve → Active/ Retired`; `Retired` is terminal; a person holding a current appointment cannot retire | `unresolved_appointment` (+ field error on `service_status`) | 422 |
 | 4.9 | **Training capacity** — `participant_count` ≤ subtree personnel (2, §3.5); `duration_days` must equal the inclusive date span | `participant_over_capacity`, `duration_mismatch` | 422 |
 | 4.10 | **Holdings quantity** — quantity > 0; condition in vocabulary; one row per (unit, armament) | `quantity_positive`, `condition_choice`, `duplicate_holding` (service hook) | 422 |
 | 4.11 | **Note targets** — `entity_type` in the allowlist; target must exist | `note_target_type`, `note_target_missing` | 422 |
@@ -314,6 +337,7 @@ the in-flight state. Violations return a structured error:
 | 4.14 | **Role policy** — see §6; every write is checked server-side | `forbidden` | 403 |
 | 4.15 | **Assessment basis** — a trait assessment must carry at least one of `assessed_by`, `evidence_note`, `source` (a bare quality tag is not a record) | `basis_required` | 422 |
 | 4.16 | **No future assessments** — `assessed_at` must not be in the future | `future_assessment` | 422 |
+| 4.17 | **Category-conditional attributes** — military attributes (rank, branch, commission date, service status, military biography) belong to the `military` category and are refused otherwise (bilingual field error); only a military-category person may hold a unit command or appointment | `commander_must_be_military`, `commander_not_found` (+ category field errors) | 422 |
 
 Unit status changes are set-valued only (all nine values always allowed): the
 unit transition policy is owner-reviewable and deliberately not hard-coded.
@@ -355,14 +379,13 @@ BODY[#+]
 * Adjusting a counter is **admin-only** and written to
   `naming_adjustment_log` (old/new value, actor, timestamp) plus the audit log.
 
-### 5.3 Catalogue (20 options)
+### 5.3 Catalogue (19 options)
 
 | Entity | Options (★ = default) |
 | --- | --- |
 | Region | ★`MIL-REG-` |
 | Division | ★`MIL-DIV-` |
 | Classification | ★`MIL-CLS-` |
-| Commander | ★`MIL-CMD-` |
 | Military Unit | ★`MIL-UNIT-`, `MIL-BRG-` |
 | Deployment | ★`MIL-DEP-.YYYY.-`, `MIL-DEP-` |
 | Mission | ★`MIL-MIS-.YYYY.-`, `MIL-MIS-` |
@@ -370,7 +393,7 @@ BODY[#+]
 | Unit Armament | ★`MIL-INV-` |
 | Training | ★`MIL-TRN-.YYYY.-`, `MIL-TRN-`, `MIL-TRN-.######` |
 | Command Assignment | ★`MIL-ASG-`, `MIL-ASG-.YYYY.-` |
-| Command Trait | ★`MIL-QUAL-` |
+| Person Trait | ★`MIL-QUAL-` |
 | Note | ★`MIL-NOTE-` |
 
 ---
@@ -396,7 +419,7 @@ audit trail (default `military-user`; the interface sends `ui:<role>`).
 ## 7. HTTP API
 
 All endpoints are rooted at `/api/military`. Entity URL slugs are plural
-(`regions`, `divisions`, `classifications`, `commanders`, `units`,
+(`regions`, `divisions`, `classifications`, `units`,
 `deployments`, `missions`, `armaments`, `holdings`, `trainings`, `assignments`,
 `notes`); singular slugs are accepted as aliases. Success envelope:
 `{"ok": true, ...}`; errors: `{"ok": false, "error": {code, message, field?}}`
@@ -409,6 +432,8 @@ inside FastAPI's `detail`.
 | `GET /units/tree`, `GET /regions/tree` | hierarchy trees (incl. `subtree_personnel`) | any |
 | `GET /units/{id}/force-summary` | unit briefing: subtree roll-up, current deployment, siblings, missions, top armament, children | any |
 | `GET /armaments/{id}/holdings` | armament distribution across units | any |
+| `GET /persons/{id}/leader-record` | the leader's command record over a categorized person (derived counts; traits at `GET /traits?person_id=`) | any |
+| `GET /units/{id}/geo` | the unit's OWN location for its dossier map (unit + deployment rows only — never the commander's location) | any |
 | `GET /{entity}`, `GET /{entity}/{id}` | list (`q`, filters, `sort`, `direction`, `limit`, `offset`) / read | any |
 | `GET /{entity}/export.csv` | CSV export of a list query (same `q`/filters/`sort`) | any |
 | `POST /{entity}/import.csv` | CSV import through the full rule engine (create/upsert; per-row report) | staff |
@@ -417,7 +442,7 @@ inside FastAPI's `detail`.
 
 ### 9.2 The unified data contract
 
-The thirteen military entities are also served by the generic SIRAJ endpoints,
+The twelve military entities are also served by the generic SIRAJ endpoints,
 in the exact shape the shared list engine speaks — the same contract that
 serves person / place / institution / source / relationship / event:
 
@@ -439,7 +464,7 @@ serves person / place / institution / source / relationship / event:
 
 Reads go through the shared query engine (`app/repo.py`, spec-driven);
 writes dispatch to `app/military/service` so business rules, automatic
-numbering and audit always apply. `app/military/specs.py` holds the thirteen
+numbering and audit always apply. `app/military/specs.py` holds the twelve
 `EntitySpec` definitions. **Import is unified the same way**: the shared
 import pipeline (`app/transfer.py`) serves every entity through the one
 wizard (`#/import`), and military rows are written through the military
@@ -482,7 +507,7 @@ domain's data tables and tools):
   **force summary** briefing.
 * **Deployment** — deployments and missions.
 * **Training** — trainings.
-* **Command** — commanders, command appointments and notes.
+* **Command** — the leaders (categorized persons), command appointments and notes.
 
 Each domain has a **command hub** (`#/military/forces` etc.): KPI cards per
 data table, a management grid (Manage / New / tree shortcuts per table), and
@@ -521,7 +546,7 @@ admin-only audited counter adjustment and a **counter history** log) and the
 
 The dashboard carries the design record's structure: 5 KPI cards (active
 units, current deployments, open missions, training this year, active
-commanders), 3 status charts (units by status / echelon / region), 5 action
+military persons), 3 status charts (units by status / echelon / region), 5 action
 lists (upcoming deployments, upcoming trainings, low-readiness units, unit
 readiness, recent activity) and the fictional-sample actions. A **data
 completeness** panel shows the optional-field fill distribution per entity
@@ -571,6 +596,9 @@ fictional**:
 written through the real service layer, so the dataset is rule-clean by
 construction and doubles as a live example:
 
+* five **categorized persons** — four military (rank, branch, commission date,
+  service status across Active/Reserve/Retired, military biography) and one
+  civilian (no military attributes: the category feature's contrast case);
 * a region tree (theatre → district → sector) and a six-unit force tree;
 * three classifications across the readiness tiers;
 * deployments covering all four statuses with exactly one current deployment;
@@ -578,10 +606,11 @@ construction and doubles as a live example:
 * armament across categories with per-unit holdings;
 * trainings within subtree participant capacity (the engine recomputes the
   subtree ceiling and rejects any exercise above it);
-* a CO history (relieved predecessor, current commander) plus staff roles;
+* a CO history (relieved predecessor, current commander) plus staff roles
+  — every commander is the person record itself;
 * assessed leadership qualities — what sets each leader apart — with a
-  basis (evidence, source or assessor) on the flagship commander;
-* polymorphic notes on a unit, a deployment and a commander.
+  basis (evidence, source or assessor) on the flagship leader (a military person);
+* polymorphic notes on a unit, a deployment and a person.
 
 Loading is idempotent (already-loaded → skip); `force` resets through a full
 clear that **preserves the append-only audit trail**; document names never

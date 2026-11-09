@@ -2,10 +2,10 @@
 
 The military tables live in the **same database as the registry**
 (``registry.db``): one database, one connection layer, one migration ledger.
-The schema arrives as migration ``015_military_org.sql`` (additive,
-idempotent) during ``db.init_db``; :func:`ensure` applies the same migration
-text lazily for callers that use the module before boot, so importing this
-module never touches disk.
+The schema arrives through the migration ledger (``015_military_org.sql``
+and later files, including ``020_person_category.sql``) during
+``db.init_db``; :func:`ensure` runs the same ledger lazily for callers that
+use the module before boot, so importing this module never touches disk.
 
 A separate file was deliberately rejected: the final structure is one
 unified database *and* one unified application.
@@ -18,9 +18,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import db
-from ..db import BASE_DIR
-
-MIGRATION_FILE = BASE_DIR / "migrations" / "015_military_org.sql"
 
 _lock = threading.Lock()
 _initialised = False
@@ -43,8 +40,13 @@ def _military_present(conn: sqlite3.Connection) -> bool:
 
 
 def init_db(conn: sqlite3.Connection) -> None:
-    """Apply the military migration to a connection (idempotent)."""
-    conn.executescript(MIGRATION_FILE.read_text(encoding="utf-8"))
+    """Bring a connection up to the current schema (idempotent).
+
+    The migration ledger does the real work (002..020 — including 020's fold
+    of the commander table into categorized persons); the _ensure_* helpers
+    remain as backups for pre-ledger databases.
+    """
+    db.run_migrations(conn)
     _ensure_emblem_columns(conn)
     _ensure_link_geo_columns(conn)
     _ensure_trait_table(conn)
@@ -67,11 +69,19 @@ def _ensure_emblem_columns(conn: sqlite3.Connection) -> None:
                          [("image_url", "TEXT"), ("image_alt", "TEXT")])
 
 
+def _ensure_person_columns(conn: sqlite3.Connection) -> None:
+    """Idempotent 020: category + military attributes on person."""
+    _add_missing_columns(conn, "person", [
+        ("category", "TEXT"), ("rank_title", "TEXT"), ("branch", "TEXT"),
+        ("commission_date", "TEXT"), ("service_status", "TEXT"),
+        ("military_biography", "TEXT")])
+
+
 def _ensure_link_geo_columns(conn: sqlite3.Connection) -> None:
-    """Idempotent 018: commander↔person link and own-coordinate columns."""
+    """Idempotent 018/020: person category columns and own-coordinate columns."""
     if not _military_present(conn):
         return
-    _add_missing_columns(conn, "commander", [("person_id", "INTEGER")])
+    _ensure_person_columns(conn)
     _add_missing_columns(conn, "military_unit", [
         ("latitude", "REAL"), ("longitude", "REAL"), ("geometry_source", "TEXT")])
     _add_missing_columns(conn, "operational_deployment", [
@@ -79,10 +89,10 @@ def _ensure_link_geo_columns(conn: sqlite3.Connection) -> None:
 
 
 TRAIT_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS commander_trait (
+CREATE TABLE IF NOT EXISTS person_trait (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     docname       TEXT NOT NULL UNIQUE,
-    commander_id  INTEGER NOT NULL REFERENCES commander(id) ON DELETE RESTRICT,
+    person_id     INTEGER NOT NULL REFERENCES person(id) ON DELETE RESTRICT,
     quality       TEXT NOT NULL,
     level         TEXT,
     assessed_by   TEXT,
@@ -94,13 +104,13 @@ CREATE TABLE IF NOT EXISTS commander_trait (
     modified_at   TEXT,
     modified_by   TEXT
 );
-CREATE INDEX IF NOT EXISTS ix_trait_commander ON commander_trait(commander_id);
-CREATE INDEX IF NOT EXISTS ix_trait_quality ON commander_trait(quality);
+CREATE INDEX IF NOT EXISTS ix_trait_person ON person_trait(person_id);
+CREATE INDEX IF NOT EXISTS ix_trait_quality ON person_trait(quality);
 """
 
 
 def _ensure_trait_table(conn: sqlite3.Connection) -> None:
-    """Idempotent 019: the leadership-quality table + its vocabularies."""
+    """Idempotent 019/020: the person-quality table + its vocabularies."""
     if not _military_present(conn):
         return
     conn.executescript(TRAIT_TABLE_SQL)
@@ -109,7 +119,7 @@ def _ensure_trait_table(conn: sqlite3.Connection) -> None:
 
 
 def ensure() -> None:
-    """Make sure the military tables exist — once per process, lazily."""
+    """Make sure the military schema is current — once per process, lazily."""
     global _initialised
     if _initialised:
         return
@@ -118,11 +128,7 @@ def ensure() -> None:
             return
         conn = connect()
         try:
-            if not _military_present(conn):
-                init_db(conn)
-            _ensure_emblem_columns(conn)   # pre-017 databases gain the columns
-            _ensure_link_geo_columns(conn)  # pre-018 databases gain the columns
-            _ensure_trait_table(conn)       # pre-019 databases gain the table
+            init_db(conn)                 # the ledger converges every world
             conn.commit()
         finally:
             conn.close()

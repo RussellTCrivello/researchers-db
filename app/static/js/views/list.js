@@ -16,13 +16,13 @@
     source: "book", relationship: "link", event: "calendar",
     unit: "shield", region: "map-pin", division: "layers", classification: "tag",
     armament: "target", holding: "package", deployment: "send", mission: "crosshair",
-    training: "award", commander: "user", assignment: "briefcase", note: "file-text"
+    training: "award", trait: "award", assignment: "briefcase", note: "file-text"
   };
   /* The twelve military entities share this engine through the unified API
      facade; registry-only affordances (typed query, soft delete, duplicates)
      are gated off for them. */
   const MIL = new Set(["unit", "region", "division", "classification", "armament",
-                       "holding", "deployment", "mission", "training", "commander",
+                       "holding", "deployment", "mission", "training", "trait",
                        "assignment", "note"]);
   const isMil = (entity) => MIL.has(entity);
   const MAP_ENTITIES = new Set(["person", "institution", "place", "event"]);
@@ -61,7 +61,6 @@
       deployment: ["deployment_type", "status", "start_date"],
       mission: ["mission_type", "status", "start_date"],
       training: ["training_type", "start_date", "participant_count"],
-      commander: ["rank_title", "branch", "status"],
       assignment: ["unit_id", "commander_id", "assigned_date"],
       note: ["entity_type", "author", "note_at"]
     }[entity] || [];
@@ -1232,10 +1231,14 @@
       </ul></div>`);
     if (o.commander) {
       const c = o.commander;
+      /* the Leader is a categorized Person: the link opens the Person page */
+      const cName = (A.state.lang === "ar"
+        ? (c.name_ar || c.full_name) : (c.name_en || c.full_name))
+        || c.docname || ("#" + c.id);
       sections.push(`<div class="inspect-section">
         <div class="inspect-section-title">${esc(t("mil.org.commander"))}</div>
         <ul class="inspect-rel-list">
-          ${orgRow(`#/military/commanders/${c.id}/show`, c.full_name || c.docname || ("#" + c.id),
+          ${orgRow(`#/entity/person/${c.person_id || c.id}`, cName,
             [badge(c.rank_title, "slate"), badge(c.docname, "gray mono-cell"),
              badge(c.status, c.status === "Active" ? "green" : "gray")])}
         </ul>
@@ -1249,7 +1252,7 @@
         ${appts.map(a => `<tr>
           <td>${esc(a.role || "—")}</td>
           <td>${a.commander_id
-            ? `<a href="#/military/commanders/${a.commander_id}/show" dir="auto">${esc(a.commander_name || ("#" + a.commander_id))}</a>`
+            ? `<a href="#/entity/person/${a.commander_id}" dir="auto">${esc(a.commander_name || ("#" + a.commander_id))}</a>`
             : "—"}</td>
           <td class="nowrap" dir="ltr">${esc(a.assigned_date || "—")}${a.relieved_date
             ? " → " + esc(a.relieved_date) : ""}</td>

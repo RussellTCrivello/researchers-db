@@ -139,8 +139,9 @@ def verify() -> int:
 
         # C.9 — naming: generated document names are unique
         def c9() -> str:
-            for table in ("region", "division", "classification", "commander",
-                          "military_unit", "operational_deployment", "mission",
+            for table in ("region", "division", "classification",
+                          "person_trait", "military_unit",
+                          "operational_deployment", "mission",
                           "armament", "unit_armament", "training",
                           "command_assignment", "note"):
                 row = conn.execute(
@@ -148,8 +149,8 @@ def verify() -> int:
                 assert row["n"] == row["d"], f"duplicate docname in {table}"
             series = conn.execute(
                 "SELECT COUNT(*) AS n FROM naming_series_option").fetchone()["n"]
-            assert series == 20, f"expected 20 naming series options, found {series}"
-            return "document names unique; 20 naming series options present"
+            assert series == 19, f"expected 19 naming series options, found {series}"
+            return "document names unique; 19 naming series options present"
         run("C.9 Naming — generated document names", c9)
 
         # C.10 — dataset invariants (sample or bulk: run whenever data exists)

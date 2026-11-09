@@ -150,17 +150,19 @@ def unit_force_summary(unit_id: int, conn=Depends(_conn)) -> dict[str, Any]:
     return {"ok": True, **data}
 
 
-@router.get("/commanders/{commander_id}/leader-record")
-def leader_record_route(commander_id: int, conn=Depends(_conn)) -> dict[str, Any]:
+@router.get("/persons/{person_id}/leader-record")
+def leader_record_route(person_id: int, conn=Depends(_conn)) -> dict[str, Any]:
     """The leader's command record — database counts over their appointments.
 
-    Derived facts only (units commanded, echelon reached, personnel, deployments
-    covered, years of service); the qualitative side lives in the assessed
-    traits, each with its basis.
+    The Leader is a categorized Person: this profile reads the person record
+    (category, rank, branch, service) alongside derived facts only (units
+    commanded, echelon reached, personnel, deployments covered, years of
+    service); the qualitative side lives in the assessed traits, each with its
+    basis (``GET /api/military/traits?person_id=…``).
     """
-    data = _call(service.leader_record, conn, commander_id)
+    data = _call(service.leader_record, conn, person_id)
     if data is None:
-        raise _not_found(f"commander {commander_id}")
+        raise _not_found(f"person {person_id}")
     return {"ok": True, **data}
 
 

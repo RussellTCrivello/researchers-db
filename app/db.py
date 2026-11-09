@@ -252,7 +252,13 @@ def run_migrations(conn: sqlite3.Connection) -> list[str]:
         sql = path.read_text(encoding="utf-8")
         checksum = hashlib.sha256(sql.encode("utf-8")).hexdigest()
         ok, note = 1, None
+        # PRAGMA statements (e.g. 020's foreign_keys toggle) only take effect
+        # on an idle connection, so the runner commits around them.
+        pragma_start = re.compile(r"(?is)^(?:--[^\n]*\n|/\*.*?\*/|\s)*pragma\b")
         for statement in split_sql_statements(sql):
+            is_pragma = pragma_start.match(statement) is not None
+            if is_pragma:
+                conn.commit()
             try:
                 conn.execute(statement)
             except sqlite3.OperationalError as exc:
@@ -262,6 +268,8 @@ def run_migrations(conn: sqlite3.Connection) -> list[str]:
                     continue
                 ok, note = 0, str(exc)
                 raise
+            if is_pragma:
+                conn.commit()
         conn.execute(
             "INSERT OR REPLACE INTO schema_migration (filename, checksum, ok, note) "
             "VALUES (?,?,?,?)", (path.name, checksum, ok, note))

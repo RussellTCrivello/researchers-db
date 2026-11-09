@@ -919,7 +919,86 @@ def _assert_required(spec: EntitySpec, values: dict, partial: bool = False) -> N
         raise ValidationError("Missing required field(s): " + ", ".join(missing))
 
 
+def _assert_category_fields(conn: sqlite3.Connection, spec: EntitySpec,
+                            values: dict) -> None:
+    """Category-conditional attributes require the matching category.
+
+    ``spec.category_fields`` maps each category code to the attributes that
+    belong to that classification (a military person shows rank, branch,
+    commission date, service status and military biography).  Holding one of
+    those attributes without the category is a contradictory record: the
+    request is refused and the message names the attribute in both languages.
+    """
+    if not spec.category_fields or not spec.category_field:
+        return
+    category = values.get(spec.category_field)
+    category_f = spec.field(spec.category_field)
+    cat_label_en = (category_f.label_en if category_f else spec.category_field)
+    cat_label_ar = (category_f.label_ar if category_f else spec.category_field)
+    for code, keys in spec.category_fields.items():
+        if str(category or "") == code:
+            continue
+        labels = None
+        if category_f and category_f.domain:
+            labels = conn.execute(
+                "SELECT label_en, label_ar FROM lookup WHERE domain=? AND code=?",
+                (category_f.domain, code),
+            ).fetchone()
+        code_en = labels["label_en"] if labels else code
+        code_ar = labels["label_ar"] if labels else code
+        for key in keys:
+            if values.get(key) in (None, ""):
+                continue
+            f = spec.field(key)
+            label_en = f.label_en if f else key
+            label_ar = f.label_ar if f else key
+            raise ValidationError({
+                key: (f"{label_en} belongs to a {code_en} person — set "
+                      f"{cat_label_en} to {code_en} first. / "
+                      f"{label_ar} صفة الشخص {code_ar} — اضبط {cat_label_ar} "
+                      f"على «{code_ar}» أولاً.")})
+
+
 PUBLISHED_STATUS_CODES = ("published", "verified")
+
+# Extra write guards registered by feature modules (the military module guards
+# person service rules such as "relieve appointments before retiring").  Each
+# guard is ``(conn, entity_key, before_row | None, values)``; they run inside
+# the write transaction after the schema-level checks.
+UPDATE_GUARDS: list = []
+
+
+def _assert_transitions(spec: EntitySpec, before: dict | None, values: dict) -> None:
+    """Value-transition policies: only *changes* are constrained.
+
+    ``spec.transition_policies`` maps a field to ``{current: allowed-next}``
+    (``app.schemas.SERVICE_STATUS_TRANSITIONS`` for a person's service
+    status — Active → Reserve → Retired, Retired terminal).  A record may be
+    created holding any state; an empty tuple marks a terminal state.
+    """
+    for key, policy in (spec.transition_policies or {}).items():
+        if key not in values or not before:
+            continue
+        old = before.get(key)
+        new = values.get(key)
+        if new in (None, "") or str(new) == str(old or ""):
+            continue
+        if old in (None, ""):
+            continue                      # entering the lifecycle: any state
+        allowed = policy.get(str(old), None)
+        if allowed is None:
+            continue                      # unknown origin state: do not guess
+        if str(new) not in allowed:
+            f = spec.field(key)
+            label_en = f.label_en if f else key
+            label_ar = f.label_ar if f else key
+            ok = " / ".join(a for a in allowed) or "—"
+            ok_ar = "، ".join(a for a in allowed) or "—"
+            raise ValidationError({
+                key: (f"{label_en} cannot move from {old!r} to {new!r} "
+                      f"(allowed next: {ok}). / "
+                      f"لا يمكن أن تنتقل {label_ar} من «{old}» إلى «{new}» "
+                      f"(المسموح: {ok_ar}).")})
 
 
 def _status_code(conn: sqlite3.Connection, status_id: Any) -> str | None:
@@ -1216,6 +1295,9 @@ def create_record(conn: sqlite3.Connection, spec: EntitySpec, data: dict,
         raise ValidationError(errors)
     _apply_precise_location(conn, spec, data or {}, values, None, actor, reason)
     _assert_required(spec, values)
+    _assert_category_fields(conn, spec, values)
+    for guard in UPDATE_GUARDS:
+        guard(conn, spec.key, None, values)
     _quality_gate(conn, spec, values)
     supplied_code = (data or {}).get("code")
     code = supplied_code or db.next_code(conn, spec.key)
@@ -1279,6 +1361,10 @@ def update_record(conn: sqlite3.Connection, spec: EntitySpec, rec_id: int, data:
         _unique_code(conn, spec, str(data["code"]).strip(), exclude_id=rec_id)
         values["code"] = str(data["code"]).strip()
     # policy applies to the state the record is about to have, not to the patch
+    _assert_category_fields(conn, spec, {**before, **values})
+    _assert_transitions(spec, before, values)
+    for guard in UPDATE_GUARDS:
+        guard(conn, spec.key, before, values)
     _quality_gate(conn, spec, {**before, **values}, rec_id=rec_id)
     values["updated_at"] = db.now()
     values["updated_by"] = actor
