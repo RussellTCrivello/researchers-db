@@ -1194,6 +1194,117 @@
       .filter((id, i, arr) => id && arr.indexOf(id) === i);
   }
 
+  /* A unit's relationships are organisational: the chain of command above it,
+     the units below, the commander and appointments, the deployments and
+     missions it carries. The data is served with the record (``rec.org``) so
+     the split paints in one round-trip. */
+  function orgCount(rec) {
+    const o = rec.org || {};
+    return (o.chain || []).length + (o.subunits || []).length +
+      (o.appointments || []).length + (o.deployments || []).length +
+      (o.missions || []).length + (o.commander ? 1 : 0) +
+      (o.division ? 1 : 0) + (o.region ? 1 : 0);
+  }
+
+  function orgRow(href, label, badges, sub) {
+    return `<li class="inspect-rel-row">
+      <a href="${esc(href)}" dir="auto">${esc(label)}</a>
+      ${(badges || []).filter(Boolean).join(" ")}
+      ${sub ? `<div class="small muted" dir="auto">${sub}</div>` : ""}</li>`;
+  }
+
+  /** The unit's relationships tab: its command chain and links, with the
+      leader-location distinction stated where the commander appears. */
+  function inspectUnitRelationsHtml(entity, rec) {
+    const o = rec.org || {};
+    const badge = (txt, cls) => txt ? `<span class="badge ${cls || "gray"}">${esc(txt)}</span>` : "";
+    const sections = [];
+    const chain = o.chain || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.chain"))}</div>
+      <ul class="inspect-rel-list">
+        ${chain.length ? chain.map(u => orgRow(`#/entity/unit/${u.id}`,
+          u.name || u.docname || ("#" + u.id),
+          [badge(u.echelon, "slate"), badge(u.docname, "gray mono-cell")])).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+        ${orgRow(`#/entity/unit/${rec.id}`, rec.name || rec.docname || ("#" + rec.id),
+          [badge(rec.echelon, "green"), badge(rec.docname, "gray mono-cell")])}
+      </ul></div>`);
+    if (o.commander) {
+      const c = o.commander;
+      sections.push(`<div class="inspect-section">
+        <div class="inspect-section-title">${esc(t("mil.org.commander"))}</div>
+        <ul class="inspect-rel-list">
+          ${orgRow(`#/military/commanders/${c.id}/show`, c.full_name || c.docname || ("#" + c.id),
+            [badge(c.rank_title, "slate"), badge(c.docname, "gray mono-cell"),
+             badge(c.status, c.status === "Active" ? "green" : "gray")])}
+        </ul>
+        <div class="small muted">${esc(t("mil.org.commanderNote"))}</div></div>`);
+    }
+    const appts = o.appointments || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.appointments"))}
+        ${appts.length ? `<span class="n">${fmtNum(appts.length)}</span>` : ""}</div>
+      ${appts.length ? `<table class="data compact"><tbody>
+        ${appts.map(a => `<tr>
+          <td>${esc(a.role || "—")}</td>
+          <td>${a.commander_id
+            ? `<a href="#/military/commanders/${a.commander_id}/show" dir="auto">${esc(a.commander_name || ("#" + a.commander_id))}</a>`
+            : "—"}</td>
+          <td class="nowrap" dir="ltr">${esc(a.assigned_date || "—")}${a.relieved_date
+            ? " → " + esc(a.relieved_date) : ""}</td>
+          <td>${a.is_current ? badge(t("mil.cmd.current"), "green") : ""}</td>
+        </tr>`).join("")}</tbody></table>`
+        : `<div class="small muted">${esc(t("mil.org.none"))}</div>`}
+    </div>`);
+    const subs = o.subunits || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.subunits"))}
+        ${subs.length ? `<span class="n">${fmtNum(subs.length)}</span>` : ""}</div>
+      <ul class="inspect-rel-list">
+        ${subs.length ? subs.map(u => orgRow(`#/entity/unit/${u.id}`,
+          u.name || u.docname || ("#" + u.id),
+          [badge(u.echelon, "slate"), badge(u.docname, "gray mono-cell"),
+           badge(u.status, u.status === "Active" ? "green" : "gray")])).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+      </ul></div>`);
+    const deps = o.deployments || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.deployments"))}
+        ${deps.length ? `<span class="n">${fmtNum(deps.length)}</span>` : ""}</div>
+      <ul class="inspect-rel-list">
+        ${deps.length ? deps.map(d => orgRow(`#/entity/deployment/${d.id}`,
+          d.name || ("#" + d.id),
+          [badge(d.status, d.is_current ? "green" : "gray"),
+           d.is_current ? badge(t("mil.cmd.current"), "green") : ""],
+          [d.location, d.start_date ? `<span dir="ltr">${esc(d.start_date)}${d.end_date
+            ? " → " + esc(d.end_date) : ""}</span>` : ""].filter(Boolean).join(" · "))).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+      </ul></div>`);
+    const mis = o.missions || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.missions"))}
+        ${mis.length ? `<span class="n">${fmtNum(mis.length)}</span>` : ""}</div>
+      <ul class="inspect-rel-list">
+        ${mis.length ? mis.map(m => orgRow(`#/entity/mission/${m.id}`,
+          m.name || ("#" + m.id), [badge(m.status, m.status === "Executed" ? "green" : "gray")],
+          m.start_date ? `<span dir="ltr">${esc(m.start_date)}${m.end_date
+            ? " → " + esc(m.end_date) : ""}</span>` : "")).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+      </ul></div>`);
+    const refs = [];
+    if (o.parent) refs.push(orgRow(`#/entity/unit/${o.parent.id}`,
+      o.parent.name || ("#" + o.parent.id), [badge(t("mil.org.parent"), "slate")]));
+    if (o.division) refs.push(orgRow(`#/entity/division/${o.division.id}`,
+      o.division.name || ("#" + o.division.id), [badge(t("mil.org.division"), "slate")]));
+    if (o.region) refs.push(orgRow(`#/entity/region/${o.region.id}`,
+      o.region.name || ("#" + o.region.id), [badge(t("mil.org.region"), "slate")]));
+    if (refs.length) sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.title"))}</div>
+      <ul class="inspect-rel-list">${refs.join("")}</ul></div>`);
+    return sections.join("");
+  }
+
   /* Each entity's tabs answer its own questions: a relationship is about its
      two parties and the evidence for it; a source about what it claims and
      where those claims reach; an event about who came and when. The map closes
@@ -1203,6 +1314,12 @@
     const evN = (rec.citations || rec.evidence || []).length ||
       ((rec.evidence_summary || {}).total || 0);
     const sets = {
+      unit: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "relationships", label: t("inspect.tab.relationships"),
+          n: orgCount(rec) },
+        { key: "map", label: t("inspect.tab.map") }
+      ],
       person: [
         { key: "details", label: t("inspect.tab.details") },
         { key: "relationships", label: t("inspect.tab.relationships"), n: relN },
@@ -1280,7 +1397,11 @@
       return;
     }
     showMapTab(entity, false);
-    if (tab === "relationships") body.innerHTML = inspectRelationshipsHtml(entity, rec);
+    if (tab === "relationships") {
+      body.innerHTML = entity === "unit"
+        ? inspectUnitRelationsHtml(entity, rec)
+        : inspectRelationshipsHtml(entity, rec);
+    }
     else if (tab === "parties") body.innerHTML = inspectPartiesHtml(entity, rec);
     else if (tab === "evidence") body.innerHTML = inspectEvidenceTabHtml(entity, rec);
     else if (tab === "claims") body.innerHTML = inspectClaimsTabHtml(entity, rec);
@@ -1292,7 +1413,7 @@
     body.setAttribute("data-inspect-ready", "1");
     hydrateIcons(body);
     wireInspectTab(entity, rec, body);
-    if (tab === "relationships") renderRelGraph(entity, rec, body);
+    if (tab === "relationships" && entity !== "unit") renderRelGraph(entity, rec, body);
     if (tab === "parties") loadPartiesAnalysis(entity, rec, body);
     if (tab === "claims") loadClaimsTab(entity, rec, body);
     if (tab === "coverage") loadCoverageTab(entity, rec, body);
@@ -2377,6 +2498,35 @@
       relationship's two sides, and what the caption should say. */
   async function mapModelFor(entity, rec) {
     const model = { label: "", points: [], link: false, distance: null };
+    if (entity === "unit") {
+      /* The unit's OWN location: its own coordinates and those of its
+         deployments — served by /units/{id}/geo. The commander's (leader's)
+         personal coordinates are deliberately never consulted: the map must
+         never substitute the leader's position for the unit's own. */
+      const geo = await api.get(`/api/military/units/${rec.id}/geo`);
+      const u = geo.unit || {};
+      if (u.lat != null && u.lon != null) {
+        model.points.push({
+          lat: Number(u.lat), lon: Number(u.lon),
+          label: u.label || rec.name || rec._title || "",
+          primary: true, position: "own", placeId: null, via: null,
+          entityType: "unit", recId: u.id != null ? u.id : rec.id
+        });
+      }
+      (geo.deployments || []).forEach(d => {
+        if (d.lat == null || d.lon == null) return;
+        model.points.push({
+          lat: Number(d.lat), lon: Number(d.lon),
+          label: d.label || "", primary: model.points.length === 0,
+          position: "own", placeId: null, via: "deployment",
+          entityType: "deployment", recId: d.id
+        });
+      });
+      model.unitOwn = true;
+      model.label = u.label || rec.name || rec._title || "";
+      model.hq = u.headquarters || "";
+      return model;
+    }
     try {
       const net = await api.get(`/api/map/network?entity=${encodeURIComponent(entity)}&id=${rec.id}&depth=2&limit=120`);
       (net.points || []).forEach(p => {
@@ -2583,7 +2733,12 @@
       if (located) {
         const mainAssociated = main.position === "associated";
         cap.hidden = false;
-        cap.innerHTML = `<span>${esc(mainAssociated ? t("inspect.anchor." + entity) : t("geo.ownPosition"))}</span>
+        /* For a unit the caption leads with the distinction: these are the
+           unit's OWN positions — the leader's location is never substituted. */
+        const lead = model && model.unitOwn
+          ? `<span>${esc(t("inspect.map.unitOwn"))}</span>`
+          : `<span>${esc(mainAssociated ? t("inspect.anchor." + entity) : t("geo.ownPosition"))}</span>`;
+        cap.innerHTML = `${lead}
           ${mainAssociated ? `<span class="badge gray">${esc(t("geo.associatedPoint"))}</span>` : ""}
           ${multi ? `<span class="badge gray">${esc(t("inspect.map.multi").replace("{n}", String(pts.length)))}</span>` : ""}
           ${model && model.distance != null ? `<span class="badge amber">${esc(t("inspect.map.distance"))} ${fmtNum(model.distance)} km</span>` : ""}

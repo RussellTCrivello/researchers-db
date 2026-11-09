@@ -1712,7 +1712,15 @@ def entity_get(entity: str, rec_id: int, include_deleted: bool = False,
         rec = mil_service.get_record(conn, entity, rec_id)
         if rec is None:
             raise HTTPException(404, f"{entity} {rec_id} not found")
-        return mil_query_shim(rec, MIL_SPECS[entity])
+        rec = mil_query_shim(rec, MIL_SPECS[entity])
+        # the registry detail convention: resolved lookup labels + ref names,
+        # so the shared record page and list inspector read names, not ids
+        repo._decorate(conn, MIL_SPECS[entity], rec)
+        if entity == "unit":
+            # the split view's relationships half (the map half reads
+            # /units/{id}/geo — the unit's OWN location, never the commander's)
+            rec["org"] = mil_service.unit_org(conn, rec_id)
+        return rec
     return repo.get_record(conn, spec_of(entity), rec_id, include_deleted)
 
 

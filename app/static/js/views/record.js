@@ -265,8 +265,62 @@
     /* ---- command service: the military side of an individual -------------
        A commander is a person first. When a commander record is linked to this
        individual (commander.person_id), the individual's page carries the
-       service record with it: rank, branch, status and appointments. The link
-       is the same one the commander dossier shows from the other side. */
+       full leadership picture: rank, branch, status, the assessed qualities
+       that set the leader apart (always with their basis), the command record
+       counts, and the appointment history. The link is the same one the
+       commander dossier shows from the other side. */
+    const CMD_LEVEL_COLOR = {
+      Exceptional: "green", Outstanding: "blue", Proficient: "slate",
+      Developing: "amber"
+    }; /* mirrors the leadership vocabulary in app/military/vocab.py */
+    const CMD_LEVEL_HEX = {
+      green: "#2f8f5b", blue: "#3b7dd8", slate: "#7a8b99", amber: "#c98a1b"
+    };
+    const CMD_LEVEL_RANK = { Exceptional: 4, Outstanding: 3, Proficient: 2, Developing: 1 };
+
+    function cmdVocabLabel(domain, code) {
+      const o = (A.domainOptions(domain) || [])
+        .find(x => x.code === code || String(x.id) === String(code));
+      if (!o) return code || "";
+      return A.state.lang === "ar"
+        ? (o.label_ar || o.label_en || code) : (o.label_en || o.label_ar || code);
+    }
+
+    /* The signature fan: one spoke per assessed quality, its length the
+       recorded level — identical language to the commander dossier. */
+    function cmdFan(rows, name) {
+      const shown = rows.slice(0, 8);
+      if (!shown.length) return "";
+      const W = 560, H = 320, cx = W / 2, cy = H / 2 + 4;
+      const spokes = shown.map((r, i) => {
+        const ang = (i / shown.length) * Math.PI * 2 - Math.PI / 2;
+        const lvl = CMD_LEVEL_RANK[r.level] || 1;
+        const len = 38 + lvl * 24;
+        const cos = Math.cos(ang), sin = Math.sin(ang);
+        return {
+          r, lvl,
+          x: cx + len * cos, y: cy + len * sin,
+          lx: cx + (len + 16) * cos, ly: cy + (len + 16) * sin,
+          color: CMD_LEVEL_HEX[CMD_LEVEL_COLOR[r.level] || "slate"] || CMD_LEVEL_HEX.slate,
+          anchor: cos < -0.15 ? "end" : (cos > 0.15 ? "start" : "middle")
+        };
+      });
+      return `<svg class="mil-lead-fan-svg" viewBox="0 0 ${W} ${H}" role="img">
+        ${[1, 2, 3, 4].map(lvl => `<circle cx="${cx}" cy="${cy}" r="${38 + lvl * 24}"
+          fill="none" stroke="rgba(125,139,150,.18)" stroke-dasharray="3 5"/>`).join("")}
+        ${spokes.map(sp => `
+          <line x1="${cx}" y1="${cy}" x2="${sp.x}" y2="${sp.y}"
+            stroke="${sp.color}" stroke-width="${1.5 + sp.lvl * 0.6}" stroke-linecap="round"/>
+          <circle cx="${sp.x}" cy="${sp.y}" r="${3 + sp.lvl}" fill="${sp.color}"/>
+          <text class="mil-lead-label" x="${sp.lx}" y="${sp.ly + 4}"
+            text-anchor="${sp.anchor}">${esc(cmdVocabLabel("leadership_quality", sp.r.quality))}</text>`).join("")}
+        <circle cx="${cx}" cy="${cy}" r="26" fill="rgba(125,139,150,.14)"
+          stroke="rgba(125,139,150,.35)"/>
+        <text x="${cx}" y="${cy + 4}" text-anchor="middle"
+          style="font-weight:700">${esc(A.initials(name || ""))}</text>
+      </svg>`;
+    }
+
     function commandServiceCard() {
       const card = document.createElement("div");
       card.className = "card";
@@ -291,6 +345,18 @@
                 `/api/military/assignments?commander_id=${c.id}&limit=20`);
               asg = ares.records || [];
             } catch (e) { /* the commander row still lists without appointments */ }
+            /* the leadership layer: assessed qualities (with their basis) and
+               the command-record counts — real rows, fetched live */
+            try {
+              const tres = await A.api.get(
+                `/api/military/traits?commander_id=${c.id}&limit=50`);
+              c._traits = tres.records || [];
+            } catch (e) { c._traits = []; }
+            try {
+              const lres = await A.api.get(
+                `/api/military/commanders/${c.id}/leader-record`);
+              c._rec = lres.leader_record || lres;
+            } catch (e) { c._rec = null; }
             await Promise.all([...new Set(asg.map(a => a.unit_id).filter(Boolean))]
               .map(async (uid) => {
                 try {
@@ -313,17 +379,34 @@
                 ${c.status ? `<span class="badge ${c.status === "Active" ? "green" : "gray"}">${esc(c.status)}</span>` : ""}
                 ${c.commission_date ? `<span class="small muted">${esc(t("mil.cmd.commissioned"))}: ${esc(c.commission_date)}</span>` : ""}
               </div>
+              <h4 class="mil-lead-sub">${esc(t("mil.lead.title"))}</h4>
+              ${(c._traits || []).length ? `
+                <div class="mil-lead-fan">${cmdFan(c._traits, c.full_name)}</div>
+                <div class="mil-lead-chips">${c._traits.slice(0, 6).map(tr => `
+                  <span class="badge ${CMD_LEVEL_COLOR[tr.level] || "slate"}">${esc(cmdVocabLabel("leadership_quality", tr.quality))}${tr.level ? " · " + esc(cmdVocabLabel("leadership_level", tr.level)) : ""}</span>`).join("")}
+                </div>` : `<div class="empty small">${esc(t("mil.lead.noAssessments"))}</div>`}
+              ${c._rec ? `
+                <h4 class="mil-lead-sub">${esc(t("mil.lead.recordTitle"))}</h4>
+                <div class="statgrid">
+                  <div class="statcard"><b>${fmtNum(c._rec.units_commanded)}</b><span>${esc(t("mil.lead.unitsCommanded"))}</span></div>
+                  <div class="statcard"><b>${esc(c._rec.max_echelon || "\u2014")}</b><span>${esc(t("mil.lead.maxEchelon"))}</span></div>
+                  <div class="statcard"><b>${fmtNum(c._rec.personnel_under_command)}</b><span>${esc(t("mil.lead.personnel"))}</span></div>
+                  <div class="statcard"><b>${fmtNum(c._rec.deployments_covered)}</b><span>${esc(t("mil.lead.deployments"))}</span></div>
+                  <div class="statcard"><b>${fmtNum(c._rec.appointments)}</b><span>${esc(t("mil.lead.appointments"))}</span></div>
+                  <div class="statcard"><b>${c._rec.years_of_service != null ? fmtNum(c._rec.years_of_service) : "\u2014"}</b><span>${esc(t("mil.lead.service"))}</span></div>
+                </div>` : ""}
               ${(c._asg || []).length ? `<div class="table-wrap"><table class="data compact">
                 <thead><tr><th>${esc(t("mil.cmd.appointment"))}</th>
                   <th>${esc(t("mil.cmd.unit"))}</th>
                   <th>${esc(t("mil.cmd.since"))}</th></tr></thead><tbody>
                 ${(c._asg || []).slice(0, 6).map(a => `<tr>
-                  <td>${esc(a.role || "—")}${a.is_current
+                  <td>${esc(a.role || "\u2014")}${a.is_current
                     ? ` <span class="badge green">${esc(t("mil.cmd.current"))}</span>` : ""}</td>
                   <td><a href="#/military/units/${a.unit_id}/show">${esc(unitName[a.unit_id] || ("#" + a.unit_id))}</a></td>
-                  <td class="nowrap">${esc(a.assigned_date || "—")}${a.relieved_date
-                    ? " → " + esc(a.relieved_date) : ""}</td>
+                  <td class="nowrap">${esc(a.assigned_date || "\u2014")}${a.relieved_date
+                    ? " \u2192 " + esc(a.relieved_date) : ""}</td>
                 </tr>`).join("")}</tbody></table></div>` : ""}
+              <div class="small muted mil-lead-basis">${esc(t("mil.lead.basisNote"))}</div>
             </div>`).join("");
         } catch (err) {
           host.innerHTML = `<div class="notice err small">${esc(err.message)}</div>`;

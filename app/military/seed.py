@@ -125,6 +125,41 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
         counts[entity] = counts.get(entity, 0) + 1
         return rec
 
+    # --- the commanders' individual identities ------------------------------
+    # A commander is a person first: each sample commander links to its OWN
+    # fictional individual record so the Person page carries the full
+    # leadership picture (assessed qualities, command record, appointments)
+    # end-to-end. Sample-created persons are removed again by clear_sample;
+    # the registry's own rows are never touched.
+    from ..seed import seed_reference_data
+    seed_reference_data(conn)      # the registry vocabulary (idempotent)
+
+    def add_person(code: str, name_en: str, name_ar: str,
+                   born: str, position: str) -> dict[str, Any]:
+        from .. import repo
+        from ..schemas import ENTITIES
+        rec = repo.create_record(
+            conn, ENTITIES["person"],
+            {"code": code, "name_en": name_en, "name_ar": name_ar,
+             "birth_date": born, "current_position": position,
+             "birthplace_text": "Republic of Aldervale (fictional)"},
+            actor, commit=False)
+        counts["person"] = counts.get("person", 0) + 1
+        return rec
+
+    vossen_person = add_person("SAMP-P-01", "Mara Vossen (fictional)",
+                               "مارا فوسن (خيالية)", "1974-03-09",
+                               "Brigadier General, Army (fictional)")
+    kalvere_person = add_person("SAMP-P-02", "Idris Kalvere (fictional)",
+                                "إدريس كالفير (خيالية)", "1977-11-22",
+                                "Colonel, Army (fictional)")
+    rendane_person = add_person("SAMP-P-03", "Sela Rendane (fictional)",
+                                "سيلا ريندان (خيالية)", "1982-06-30",
+                                "Lieutenant Colonel, Army (fictional)")
+    talvik_person = add_person("SAMP-P-04", "Oren Talvik (fictional)",
+                               "أورين تالفيك (خيالية)", "1985-02-14",
+                               "Major, Army (fictional)")
+
     # --- regions (self-tree) ------------------------------------------------
     theater = add("region", name="Northern Territorial Command", region_type="Theater",
                   country="Republic of Aldervale (fictional)",
@@ -155,16 +190,20 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
 
     # --- commanders (fictional people) -------------------------------------
     vossen = add("commander", full_name="Brig. Gen. Mara Vossen (fictional)",
+                 person_id=vossen_person["id"],
                  rank_title="Brigadier General", branch="Army",
                  commission_date=_date(1996, 7, 1), status="Active",
                  biography="FICTIONAL officer biography for demonstration only.")
     kalvere = add("commander", full_name="Col. Idris Kalvere (fictional)",
+                  person_id=kalvere_person["id"],
                   rank_title="Colonel", branch="Army",
                   commission_date=_date(1999, 3, 15), status="Active")
     rendane = add("commander", full_name="Lt. Col. Sela Rendane (fictional)",
+                  person_id=rendane_person["id"],
                   rank_title="Lieutenant Colonel", branch="Army",
                   commission_date=_date(2004, 6, 20), status="Reserve")
     add("commander", full_name="Maj. Oren Talvik (fictional)",
+        person_id=talvik_person["id"],
         rank_title="Major", branch="Army",
         commission_date=_date(2010, 1, 10), status="Retired")
 
@@ -202,31 +241,43 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
                   commander_id=vossen["id"], role="Territorial Defence",
                   status="Active", direct_personnel=120,
                   formation_date=_date(2001, 5, 6),
-                  headquarters="Fort Kessamar (fictional)")
+                  headquarters="Fort Kessamar (fictional)",
+                  latitude=34.62000, longitude=36.15000,
+                  geometry_source="sample (fictional)")
     alpha = add("unit", name="1st Infantry Battalion", code="1-IB",
                 echelon="Battalion", parent_id=brigade["id"],
                 classification_id=line_cls["id"], division_id=mech["id"],
                 region_id=district["id"], commander_id=kalvere["id"],
                 role="Line Infantry", status="Active", direct_personnel=85,
-                headquarters="Outpost Rennick (fictional)")
+                headquarters="Outpost Rennick (fictional)",
+                latitude=34.71000, longitude=36.05000,
+                geometry_source="sample (fictional)")
     bravo = add("unit", name="2nd Support Battalion", code="2-SB",
                 echelon="Battalion", parent_id=brigade["id"],
                 classification_id=support_cls["id"], division_id=support["id"],
                 region_id=sector["id"], role="Logistics",
                 status="Training", direct_personnel=60,
-                headquarters="Camp Derrowan (fictional)")
+                headquarters="Camp Derrowan (fictional)",
+                latitude=35.02000, longitude=36.48000,
+                geometry_source="sample (fictional)")
     add("unit", name="A Company (Rifle)", code="A-CO", echelon="Company",
         parent_id=alpha["id"], classification_id=line_cls["id"],
         division_id=mech["id"], region_id=district["id"], role="Rifle Company",
-        status="Active", direct_personnel=30)
+        status="Active", direct_personnel=30,
+        latitude=34.69000, longitude=36.02000,
+        geometry_source="sample (fictional)")
     add("unit", name="B Company (Rifle)", code="B-CO", echelon="Company",
         parent_id=alpha["id"], classification_id=line_cls["id"],
         division_id=mech["id"], region_id=district["id"], role="Rifle Company",
-        status="Standby", direct_personnel=28)
+        status="Standby", direct_personnel=28,
+        latitude=34.73000, longitude=36.08000,
+        geometry_source="sample (fictional)")
     add("unit", name="3rd Reserve Battalion", code="3-RB", echelon="Battalion",
         parent_id=brigade["id"], classification_id=reserve_cls["id"],
         division_id=support["id"], region_id=theater["id"], role="Reserve",
-        status="Reserve", direct_personnel=45)
+        status="Reserve", direct_personnel=45,
+        latitude=35.31000, longitude=36.72000,
+        geometry_source="sample (fictional)")
 
     # --- deployments (dates coherent; one current per unit) -----------------
     dep_active = add("deployment", name="Operation Glass Meadow (fictional)",
@@ -234,21 +285,29 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
                      start_date=_date(2026, 2, 1), status="Active",
                      is_current=True, location="Sector Brena (fictional)",
                      area_of_operations="Brena river line (fictional)",
+                     latitude=34.88000, longitude=36.30000,
+                     geometry_source="sample (fictional)",
                      notes="FICTIONAL operation for demonstration only.")
     dep_done = add("deployment", name="Operation Quiet Ledger (fictional)",
                    unit_id=brigade["id"], deployment_type="Humanitarian",
                    start_date=_date(2024, 6, 3), end_date=_date(2024, 9, 12),
                    status="Completed", is_current=False,
-                   location="Coastal Watch Zone (fictional)")
+                   location="Coastal Watch Zone (fictional)",
+                   latitude=35.55000, longitude=35.90000,
+                   geometry_source="sample (fictional)")
     add("deployment", name="Winter Shield Exercise (fictional)",
         unit_id=alpha["id"], deployment_type="Training",
         start_date=_date(2026, 12, 1), status="Planned",
-        location="District Aldervale (fictional)")
+        location="District Aldervale (fictional)",
+        latitude=34.51000, longitude=35.73000,
+        geometry_source="sample (fictional)")
     add("deployment", name="Operation Pale Harbor (fictional)",
         unit_id=bravo["id"], deployment_type="Peacekeeping",
         start_date=_date(2025, 3, 1), end_date=_date(2025, 8, 30),
         status="Suspended", is_current=False,
-        location="Coastal Watch Zone (fictional)")
+        location="Coastal Watch Zone (fictional)",
+        latitude=35.58000, longitude=35.94000,
+        geometry_source="sample (fictional)")
 
     # --- missions (deployment link = same unit or ancestor) -----------------
     add("mission", name="Meadow Sweep Alpha (fictional)", unit_id=brigade["id"],
@@ -372,6 +431,16 @@ def clear_sample(conn, actor: str = "sample-loader",
                 pass
         else:
             conn.execute(f"DELETE FROM {table}")
+    # the sample's individual records (a commander is a person first) — hard
+    # delete through the registry path so its dependents (search index, tags,
+    # links) go with it; the registry's own rows (other authors) are untouched
+    from .. import repo
+    from ..schemas import ENTITIES
+    for r in conn.execute("SELECT id FROM person WHERE created_by = ?",
+                          (actor,)).fetchall():
+        repo.hard_delete(conn, ENTITIES["person"], r["id"], actor=actor,
+                         reason="sample reset")
+        removed += 1
     if not keep_marker:
         conn.execute("DELETE FROM mil_meta WHERE key = ?", (_MARK,))
     conn.execute(

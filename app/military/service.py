@@ -1123,6 +1123,94 @@ def leader_record(conn, commander_id: int) -> dict[str, Any] | None:
     }
 
 
+def unit_org(conn, unit_id: int) -> dict[str, Any] | None:
+    """A unit's organisational relationships — its command chain and links.
+
+    The relationships half of the unit's split view: the chain of command up
+    to the root, its sub-units, the commander and appointments, deployments
+    (current first), missions, and the division/region it belongs to.
+
+    This is relationship data only.  Geography is served separately by
+    ``unit_geo`` — the map shows the unit's OWN location, and the commander's
+    personal coordinates must never leak into either payload as a substitute.
+    """
+    unit = conn.execute("SELECT * FROM military_unit WHERE id = ?",
+                        (unit_id,)).fetchone()
+    if not unit:
+        return None
+
+    def _unit_brief(row: sqlite3.Row) -> dict[str, Any]:
+        return {"id": row["id"], "name": row["name"], "docname": row["docname"],
+                "echelon": row["echelon"], "status": row["status"]}
+
+    # chain of command: walk up the parent pointers to the root
+    chain: list[dict[str, Any]] = []
+    seen: set[int] = {unit_id}
+    pid = unit["parent_id"]
+    while pid and pid not in seen:
+        seen.add(pid)
+        row = conn.execute("SELECT * FROM military_unit WHERE id = ?",
+                           (pid,)).fetchone()
+        if not row:
+            break
+        chain.append(_unit_brief(row))
+        pid = row["parent_id"]
+    chain.reverse()                      # root first, direct parent last
+
+    subunits = [_unit_brief(r) for r in conn.execute(
+        "SELECT * FROM military_unit WHERE parent_id = ? ORDER BY name",
+        (unit_id,)).fetchall()]
+
+    commander = None
+    if unit["commander_id"]:
+        c = conn.execute("SELECT * FROM commander WHERE id = ?",
+                         (unit["commander_id"],)).fetchone()
+        if c:
+            commander = {"id": c["id"], "full_name": c["full_name"],
+                         "docname": c["docname"], "rank_title": c["rank_title"],
+                         "status": c["status"], "person_id": c["person_id"]}
+    appointments = []
+    for a in conn.execute(
+            "SELECT * FROM command_assignment WHERE unit_id = ? "
+            "ORDER BY is_current DESC, assigned_date DESC", (unit_id,)).fetchall():
+        who = conn.execute("SELECT full_name FROM commander WHERE id = ?",
+                           (a["commander_id"],)).fetchone() if a["commander_id"] else None
+        appointments.append({
+            "id": a["id"], "role": a["role"], "commander_id": a["commander_id"],
+            "commander_name": who["full_name"] if who else None,
+            "assigned_date": a["assigned_date"], "relieved_date": a["relieved_date"],
+            "is_current": bool(a["is_current"]),
+        })
+    deployments = [{"id": d["id"], "name": d["name"], "status": d["status"],
+                    "is_current": bool(d["is_current"]), "location": d["location"],
+                    "start_date": d["start_date"], "end_date": d["end_date"]}
+                   for d in conn.execute(
+                       "SELECT * FROM operational_deployment WHERE unit_id = ? "
+                       "ORDER BY is_current DESC, start_date DESC", (unit_id,)).fetchall()]
+    missions = [{"id": m["id"], "name": m["name"], "status": m["status"],
+                 "start_date": m["start_date"], "end_date": m["end_date"]}
+                for m in conn.execute(
+                    "SELECT * FROM mission WHERE unit_id = ? "
+                    "ORDER BY start_date DESC", (unit_id,)).fetchall()]
+    division = None
+    if unit["division_id"]:
+        row = conn.execute("SELECT id, name FROM division WHERE id = ?",
+                           (unit["division_id"],)).fetchone()
+        if row:
+            division = dict(row)
+    region = None
+    if unit["region_id"]:
+        row = conn.execute("SELECT id, name FROM region WHERE id = ?",
+                           (unit["region_id"],)).fetchone()
+        if row:
+            region = dict(row)
+    return {"unit_id": unit_id, "chain": chain,
+            "parent": chain[-1] if chain else None,
+            "subunits": subunits, "commander": commander,
+            "appointments": appointments, "deployments": deployments,
+            "missions": missions, "division": division, "region": region}
+
+
 def armament_holdings(conn, armament_id: int) -> dict[str, Any] | None:
     arm = conn.execute("SELECT * FROM armament WHERE id = ?", (armament_id,)).fetchone()
     if not arm:
