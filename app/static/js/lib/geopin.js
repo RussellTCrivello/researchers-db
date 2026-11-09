@@ -19,6 +19,8 @@
     institution: "#5ec8f0",
     place: "#7dcea0",
     event: "#d4a5e8",
+    unit: "#e8a13c",
+    deployment: "#9d7bd8",
     selection: "#c6ff00",
     temp: "#ff6b5a",
     default: "#b8e000"

@@ -53,7 +53,11 @@ def test_health(client):
 
 def test_meta_has_entities_and_vocabularies(client):
     meta = client.get("/api/meta").json()
-    assert len(meta["entities"]) == 6
+    # the unified catalogue serves registry + military entities from one meta;
+    # the registry six must all be there (military additions are pinned in
+    # tests/test_military.py::TestUnifiedMeta)
+    keys = {e["key"] for e in meta["entities"]}
+    assert {"person", "place", "institution", "relationship", "source", "event"} <= keys
     assert len(meta["lookup_domains"]) >= 20
     assert meta["lookups"]["record_status"]
     for e in ("person", "place", "institution", "relationship", "source", "event"):
@@ -92,7 +96,7 @@ def test_auto_code_and_sequence(client):
 # ---------------------------------------------------------------------------
 def test_create_update_audit(client):
     created = client.post("/api/person", json={
-        "name_ar": "سجل تجريبي", "name_en": "Test Person",
+        "name_ar": "سجل تجريبي", "name_en": "Test Person", "category": "civilian",
         "classification_id": 1, "birth_date": "1955", "_reason": "unit test"}).json()["record"]
     pid = created["id"]
     assert created["version"] == 1
@@ -112,7 +116,7 @@ def test_create_update_audit(client):
 def test_one_edit_is_one_transaction_in_the_history(client):
     """A form that changes five fields is one act of editing: every row it writes
     shares a transaction id, so the history can be read as an event, not a list."""
-    rec = client.post("/api/person", json={"name_ar": "تعديل واحد",
+    rec = client.post("/api/person", json={"name_ar": "تعديل واحد", "category": "civilian",
                                           "name_en": "Tx grouping unit"}).json()["record"]
     rid = rec["id"]
     out = client.patch(f"/api/person/{rid}", json={

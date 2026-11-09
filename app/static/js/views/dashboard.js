@@ -124,7 +124,8 @@
     const qn = root.querySelector("#quickNew");
     if (qn) qn.onclick = () => {
       const first = (A.state.meta.entities || [])[0];
-      location.hash = `#/entity/${first.key}/new`;
+      /* in place: the form opens over the dashboard and saving keeps us here */
+      A.forms.open(first.key, null);
     };
   };
 })();

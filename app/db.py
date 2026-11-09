@@ -9,6 +9,7 @@ requires replacing this module (the SQL used elsewhere is standard).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -249,9 +250,15 @@ def run_migrations(conn: sqlite3.Connection) -> list[str]:
         if path.name in applied:
             continue
         sql = path.read_text(encoding="utf-8")
-        checksum = str(hash(sql))
+        checksum = hashlib.sha256(sql.encode("utf-8")).hexdigest()
         ok, note = 1, None
-        for statement in [x.strip() for x in sql.split(";") if x.strip()]:
+        # PRAGMA statements (e.g. 020's foreign_keys toggle) only take effect
+        # on an idle connection, so the runner commits around them.
+        pragma_start = re.compile(r"(?is)^(?:--[^\n]*\n|/\*.*?\*/|\s)*pragma\b")
+        for statement in split_sql_statements(sql):
+            is_pragma = pragma_start.match(statement) is not None
+            if is_pragma:
+                conn.commit()
             try:
                 conn.execute(statement)
             except sqlite3.OperationalError as exc:
@@ -261,6 +268,8 @@ def run_migrations(conn: sqlite3.Connection) -> list[str]:
                     continue
                 ok, note = 0, str(exc)
                 raise
+            if is_pragma:
+                conn.commit()
         conn.execute(
             "INSERT OR REPLACE INTO schema_migration (filename, checksum, ok, note) "
             "VALUES (?,?,?,?)", (path.name, checksum, ok, note))
@@ -268,6 +277,33 @@ def run_migrations(conn: sqlite3.Connection) -> list[str]:
     ensure_audit_guards(conn)
     conn.commit()
     return done
+
+
+def split_sql_statements(sql: str) -> list[str]:
+    """Split a SQL script into complete statements.
+
+    Unlike a naive ``split(";")`` this respects semicolons inside ``--``
+    comments and string literals: sqlite3's own parser decides where each
+    statement ends (via :func:`sqlite3.complete_statement`), and comment-only
+    fragments are dropped.
+    """
+    statements: list[str] = []
+    buf: list[str] = []
+    for line in sql.splitlines(keepends=True):
+        buf.append(line)
+        candidate = "".join(buf)
+        if sqlite3.complete_statement(candidate):
+            stripped = "\n".join(
+                ln for ln in candidate.splitlines()
+                if not ln.strip().startswith("--")).strip()
+            if stripped:
+                statements.append(candidate.strip())
+            buf = []
+    tail = "\n".join(ln for ln in "".join(buf).splitlines()
+                     if not ln.strip().startswith("--")).strip()
+    if tail:
+        statements.append(tail)
+    return statements
 
 
 def init_db(seed_demo: bool = False) -> None:

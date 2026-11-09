@@ -78,11 +78,11 @@
           `<option value="${e.key}">${esc(A.state.lang === "ar" ? e.plural_ar : e.plural_en)}</option>`).join("")}</select></div>
       <div class="field"><label>${t("rep.groupBy")}</label><select id="pvGroup"></select></div>
       <div class="field"><label>${t("rep.metric")}</label>
-        <select id="pvMetric"><option value="count">count</option><option value="sum">sum</option>
-          <option value="avg">avg</option><option value="min">min</option><option value="max">max</option></select></div>
+        <select id="pvMetric">${["count", "sum", "avg", "min", "max"].map(v =>
+          `<option value="${v}">${esc(t("rep.value.metric." + v))}</option>`).join("")}</select></div>
       <div class="field"><label>${t("rep.chart")}</label>
-        <select id="pvChart"><option value="bar">bar</option><option value="pie">pie</option>
-          <option value="table">table</option><option value="timeline">timeline</option></select></div>
+        <select id="pvChart">${["bar", "pie", "table", "timeline"].map(v =>
+          `<option value="${v}">${esc(t("rep.value.chart." + v))}</option>`).join("")}</select></div>
       <button class="btn primary" id="pvRun">${t("rep.generate")}</button>`;
     const eSel = card.querySelector("#pvEntity");
     const gSel = card.querySelector("#pvGroup");

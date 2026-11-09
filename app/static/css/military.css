@@ -1,0 +1,240 @@
+/* ============================================================================
+   SIRAJ · military.css — Military Organization (Brigade Command workspace)
+   Feature styles only; everything else uses the house layers
+   (base / components / views).  Kept small and namespaced `mil-`.
+   ========================================================================== */
+
+/* workspace sub-navigation: the design record's three groups as a chip bar */
+.mil-nav {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 8px 0 14px;
+}
+.mil-nav-group {
+  flex-basis: 100%;
+  font-size: 11px; letter-spacing: .10em; text-transform: uppercase;
+  color: var(--muted); margin: 8px 2px 2px;
+}
+.mil-nav-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 999px; text-decoration: none;
+  font-size: 12.5px; color: var(--ink); background: var(--chip, #eef1f5);
+  border: 1px solid transparent;
+}
+.mil-nav-item:hover { border-color: var(--line, #d5dbe3); }
+.mil-nav-item.on {
+  background: var(--nav, #17395c); color: #fff;
+}
+[dir="rtl"] .mil-nav-group { letter-spacing: normal; text-transform: none; }
+
+/* tree explorers */
+.mil-tree-bar {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; margin-bottom: 12px;
+}
+.mil-tree-bar [data-tree-sels] {
+  display: flex; flex-wrap: wrap; gap: 12px 14px;
+  align-items: start;
+}
+.mil-tree ul { list-style: none; margin: 0; padding-inline-start: 20px; }
+.mil-tree > ul { padding-inline-start: 4px; }
+.mil-tree li { margin: 2px 0; }
+.mil-tree details > summary { list-style: none; cursor: pointer; }
+.mil-tree details > summary::-webkit-details-marker { display: none; }
+.mil-node {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 5px 8px; border-radius: 8px;
+}
+.mil-node:hover { background: var(--chip, #f2f5f9); }
+.mil-node a { text-decoration: none; }
+.mil-toggle {
+  width: 18px; height: 18px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: 11px; color: var(--muted);
+}
+details:not([open]) > summary .mil-toggle { transform: rotate(-90deg); }
+
+/* form validation, mirroring the registry forms */
+.field.invalid input,
+.field.invalid select,
+.field.invalid textarea { border-color: var(--red, #a4302e); }
+.field .err { color: var(--red, #a4302e); font-size: 11.5px; min-height: 14px; }
+.field label .req { color: var(--red, #a4302e); }
+
+/* ---------- searchable ref dropdown (combobox) ---------- */
+.refcombo { position: relative; }
+.refcombo-input {
+  width: 100%; padding: 7px 10px; border: 1px solid var(--line, #d5dbe3);
+  border-radius: 8px; font: inherit; font-size: 13px;
+  background: var(--card, #fff); color: var(--text, #1b2733);
+}
+.refcombo-input:focus { outline: none; border-color: var(--accent, #26507d); }
+.refcombo-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+  max-height: 260px; overflow: auto; background: var(--card, #fff);
+  border: 1px solid var(--line, #d5dbe3); border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 25, 40, .14);
+}
+.refcombo-item {
+  padding: 7px 10px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.refcombo-item:hover, .refcombo-item.active { background: var(--chip, #f2f5f9); }
+.refcombo-empty { padding: 8px 10px; font-size: 12.5px; color: var(--muted, #6b7784); }
+
+/* ---------- live document-name preview ---------- */
+.name-preview {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  padding: 8px 10px; border-radius: 8px; background: var(--chip, #f2f5f9);
+}
+
+/* ---------- sortable list headers ---------- */
+table.data th.sortable { cursor: pointer; user-select: none; }
+table.data th.sortable::after { content: " ↕"; color: var(--muted, #9aa5b1); font-size: 11px; }
+table.data th.sortable[aria-sort="ascending"]::after { content: " ↑"; color: var(--accent, #26507d); }
+table.data th.sortable[aria-sort="descending"]::after { content: " ↓"; color: var(--accent, #26507d); }
+
+/* ---------- record dossier ---------- */
+.dossier-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px 18px; margin: 0;
+}
+.dfield dt { font-size: 11px; letter-spacing: .02em; color: var(--muted, #6b7784); }
+.dfield dd { margin: 2px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+
+/* ---------- data-quality bars ---------- */
+.qrow { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
+.qlabel { width: 120px; flex: none; font-size: 12px; }
+.qbar {
+  flex: 1; height: 12px; border-radius: 6px; overflow: hidden;
+  display: flex; background: var(--chip, #f2f5f9);
+}
+.qseg { height: 100%; }
+.qnum { width: 56px; flex: none; text-align: right; }
+.chip.q0, .qseg.q0 { background: var(--red-soft, #f6dedd); color: var(--red, #a4302e); }
+.chip.q1, .qseg.q1 { background: var(--amber-soft, #fbeed3); color: var(--amber, #b5751a); }
+.chip.q2, .qseg.q2 { background: #fde6cf; color: #a05a12; }
+.chip.q3, .qseg.q3 { background: #dfe9f6; color: #26507d; }
+.chip.q4, .qseg.q4 { background: var(--green-soft, #d9f0e5); color: var(--green, #1d7a52); }
+.chip.q0, .chip.q1, .chip.q2, .chip.q3, .chip.q4 { border: none; }
+
+/* ---------- two-tier domain navigation ---------- */
+.mil-nav-sub {
+  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line, #d5dbe3);
+}
+
+/* ---------- list view modes + import ---------- */
+.vmodes { display: inline-flex; gap: 4px; }
+.import-panel {
+  margin: 10px 0 14px; padding: 12px; border-radius: 8px;
+  background: var(--chip, #f2f5f9); border: 1px dashed var(--line, #d5dbe3);
+}
+.card.inner { box-shadow: none; border: 1px solid var(--line, #d5dbe3); }
+
+/* ---------- unit dossier: emblem + profile polish ---------- */
+.hero .portrait { position: relative; }
+.hero .portrait .emblem-btn {
+  position: absolute; inset-block-end: 5px; inset-inline-end: 5px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border: 1px solid var(--border, #d5dbe3); border-radius: 8px;
+  padding: 3px 5px; cursor: pointer; display: flex; line-height: 0;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, .12));
+}
+.hero .portrait .emblem-btn svg { width: 15px; height: 15px; }
+.hero .portrait .emblem-btn:hover { background: var(--surface-2, #eef2f7); }
+#milDossTabs { margin-top: 14px; }
+#milDossTabs .badge { margin-inline-start: 5px; }
+#tabBody .statcard b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+
+/* ---------------------------------------------------------------
+   Quick-add menu + saved-row flash (details-integrated creation)
+   --------------------------------------------------------------- */
+.mil-add-menu { position: relative; display: inline-block; }
+.mil-add-menu summary { list-style: none; cursor: pointer; }
+.mil-add-menu summary::-webkit-details-marker { display: none; }
+.mil-add-menu-list {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
+  display: grid; gap: 4px; min-width: 230px;
+  background: var(--card, #fff); border: 1px solid var(--line);
+  border-radius: var(--radius, 10px); padding: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+[dir="rtl"] .mil-add-menu-list { left: auto; right: 0; }
+.mil-add-menu-list .btn { justify-content: flex-start; }
+.row-flash { animation: milRowFlash 2.2s ease-out 1; }
+@keyframes milRowFlash {
+  0% { background: rgba(127, 179, 211, 0.55); }
+  100% { background: transparent; }
+}
+
+/* ---------------------------------------------------------------
+   Unit map (the unit's OWN location) + commander↔individual panels
+   --------------------------------------------------------------- */
+.mil-map-caption {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline;
+  padding: 2px 2px 10px;
+}
+.mil-map-canvas {
+  height: 380px; border-radius: var(--radius, 10px); overflow: hidden;
+  border: 1px solid var(--line); background: #e8eef4;
+}
+.mil-map-canvas.is-empty {
+  display: flex; align-items: center; justify-content: center; height: 200px;
+  background: var(--card, #fff);
+}
+.mil-map-strip { margin-top: 10px; display: grid; gap: 6px; }
+.mil-map-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+.mil-map-key { display: inline-flex; align-items: center; gap: 6px; }
+.mil-map-dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+.mil-map-dot.own { background: #e8a13c; }
+.mil-map-dot.dep { background: #9d7bd8; }
+.mil-map-row {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+  padding: 7px 10px; border: 1px solid var(--line);
+  border-radius: var(--radius, 10px);
+}
+.mil-map-row.own { border-left: 3px solid #e8a13c; }
+[dir="rtl"] .mil-map-row.own { border-left: 1px solid var(--line); border-right: 3px solid #e8a13c; }
+
+.mil-ind-hero {
+  display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px;
+}
+.mil-ind-portrait {
+  width: 96px; height: 96px; border-radius: 14px; object-fit: cover;
+  border: 1px solid var(--line); display: flex; align-items: center;
+  justify-content: center; font-size: 26px; font-weight: 700; flex: none;
+}
+.mil-ind-sec { margin-top: 12px; }
+.mil-ind-sec h4 { margin: 0 0 6px; }
+.mil-ind-rel {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+  padding: 5px 2px; border-bottom: 1px dashed var(--line);
+}
+.mil-ind-rel:last-child { border-bottom: 0; }
+.mil-ind-cand {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
+  padding: 8px 6px; border-bottom: 1px dashed var(--line); text-align: start;
+}
+.mil-ind-cand:last-child { border-bottom: 0; }
+
+/* command-service panel on the individual's record page */
+.cmd-block { margin: 4px 0 12px; }
+.cmd-head {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline;
+  margin-bottom: 6px;
+}
+
+/* ---------------------------------------------------------------
+   Leadership profile — what sets a leader apart (recorded, evidenced)
+   --------------------------------------------------------------- */
+.mil-lead-card .mil-lead-fan { display: flex; justify-content: center; padding: 4px 0; }
+.mil-lead-fan-svg { width: 100%; max-width: 560px; height: auto; }
+.mil-lead-fan-svg .mil-lead-label { font-size: 11px; fill: var(--text, #24313c); }
+.mil-lead-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  margin: 4px 0 12px;
+}
+.mil-lead-sub { margin: 12px 0 6px; font-size: 14px; }
+.mil-lead-record .statgrid { margin: 0; }
+.mil-lead-basis { margin-top: 10px; }

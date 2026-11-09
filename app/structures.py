@@ -48,6 +48,32 @@ MAX_LEAVES = 48
 NOT_RECORDED = ("not recorded", "غير مسجّل")
 NOT_RECORDED_KEY = "__none__"
 
+
+def _spec(entity: str):
+    """Registry *or* military entity spec — one structure contract for both."""
+    from .military.specs import MIL_SPECS
+    return MIL_SPECS.get(entity) or ENTITIES.get(entity)
+
+
+def _soft_delete(spec) -> bool:
+    """Registry tables are soft-deleted; military tables have no deleted_at."""
+    from .military.specs import MIL_SPECS
+    return spec.key not in MIL_SPECS
+
+
+def _label_cols(spec) -> tuple[str, str, str | None]:
+    """(name column, alt-label column, code column) for one entity.
+
+    A second name field on a military spec is the document-name, not a
+    translation of the first — never show a doc-number as an Arabic label.
+    """
+    names = list(spec.name_fields or ())
+    name = names[0] if names else "code"
+    alt = names[1] if (len(names) > 1 and _soft_delete(spec)) else name
+    field_keys = {f.key for f in spec.fields}
+    code = "docname" if "docname" in field_keys else ("code" if "code" in field_keys else None)
+    return name, alt, code
+
 SOURCES: list[dict[str, Any]] = [
     {
         "id": "people",
@@ -117,6 +143,87 @@ SOURCES: list[dict[str, Any]] = [
                    "ومع إظهار السجلات ينفتح كل حدث على الأشخاص والمؤسسات المرتبطة به.",
         "chain": ["event_type_id", "place_id", "documentation_id"],
     },
+
+    # ---- military modules: hierarchies and structural compositions ----------
+    {
+        "id": "units",
+        "kind": "hierarchy",
+        "family": "modules",
+        "entity": "unit",
+        "parent": "parent_id",
+        "label_en": "Units — command hierarchy",
+        "label_ar": "الوحدات — التسلسل القيادي",
+        "note_en": "The order of battle as a tree: every unit under its parent, "
+                   "sized by how many units stand at or below it. Personnel and "
+                   "readiness ride each node.",
+        "note_ar": "التنظيم القتالي على شكل شجرة: كل وحدة تحت وحدتها الأم، وحجمها "
+                   "بحسب عدد الوحدات فيها وتحتها. وتظهر الأفراد والحالة على كل عقدة.",
+        "levels": [("unit", "Unit", "الوحدة")],
+    },
+    {
+        "id": "regions",
+        "kind": "hierarchy",
+        "family": "modules",
+        "entity": "region",
+        "parent": "parent_id",
+        "label_en": "Regions — command areas",
+        "label_ar": "المناطق — القيادة الإقليمية",
+        "note_en": "Command regions under their parent regions, sized by the number "
+                   "of regions at or below, with the units stationed in each subtree.",
+        "note_ar": "المناطق القيادية تحت مناطقها الأم، وبحسب عدد المناطق فيها "
+                   "وتحتها، مع الوحدات المتمركزة في كل فرع.",
+        "levels": [("region", "Region", "المنطقة")],
+    },
+    {
+        "id": "regions-units",
+        "kind": "composite",
+        "family": "modules",
+        "entity": "region",
+        "label_en": "Regions × Units — where the forces sit",
+        "label_ar": "المناطق × الوحدات — موقع القوات",
+        "note_en": "Two modules read together: the region tree, with each region's "
+                   "units nested inside it and their own subordination preserved.",
+        "note_ar": "وحدتان معًا: شجرة المناطق، وداخل كل منطقة وحداتها مع الحفاظ "
+                   "على تسلسلها القيادي.",
+        "levels": [("region", "Region", "المنطقة"), ("unit", "Unit", "الوحدة")],
+        "layers": [
+            {"entity": "region", "parent": "parent_id"},
+            {"entity": "unit", "link": "region_id", "parent": "parent_id"},
+        ],
+    },
+    {
+        "id": "units-ops",
+        "kind": "composite",
+        "family": "modules",
+        "entity": "unit",
+        "label_en": "Units × Operations — what stands under each unit",
+        "label_ar": "الوحدات × العمليات — ما تحت كل وحدة",
+        "note_en": "The unit tree with the deployments, missions and trainings "
+                   "nested under the unit that owns them.",
+        "note_ar": "شجرة الوحدات مع نشراتها ومهامها وتدريباتها تحت كل وحدة تملكها.",
+        "levels": [("unit", "Unit", "الوحدة"), ("deployment", "Deployment", "النشرة"),
+                   ("mission", "Mission", "المهمة"), ("training", "Training", "التدريب")],
+        "layers": [
+            {"entity": "unit", "parent": "parent_id"},
+            {"entity": "deployment", "link": "unit_id"},
+            {"entity": "mission", "link": "unit_id"},
+            {"entity": "training", "link": "unit_id"},
+        ],
+    },
+    {
+        "id": "forces",
+        "kind": "chain",
+        "family": "modules",
+        "entity": "unit",
+        "label_en": "Forces — echelon, status, classification",
+        "label_ar": "القوات — الإطار، الحالة، التصنيف",
+        "note_en": "The order of battle read as categories: echelon, then readiness "
+                   "status, then classification. With leaves on, the deepest branch "
+                   "lists the units themselves.",
+        "note_ar": "التنظيم القتالي كتصنيفات: الإطار، ثم حالة الجاهزية، ثم التصنيف. "
+                   "ومع إظهار السجلات تظهر كل وحدة في أعمق فرع.",
+        "chain": ["echelon", "status", "classification_id"],
+    },
 ]
 
 
@@ -124,15 +231,22 @@ def sources(conn: sqlite3.Connection) -> list[dict]:
     """The source registry, with the live total for each source."""
     out = []
     for src in SOURCES:
-        spec = ENTITIES[src["entity"]]
+        spec = _spec(src["entity"])
+        where = " WHERE deleted_at IS NULL" if _soft_delete(spec) else ""
         total = conn.execute(
-            f"SELECT COUNT(*) FROM {spec.table} WHERE deleted_at IS NULL").fetchone()[0]
+            f"SELECT COUNT(*) FROM {spec.table}{where}").fetchone()[0]
+        if src.get("levels"):
+            chain = [{"en": en, "ar": ar} for (_k, en, ar) in src["levels"]]
+        else:
+            chain = [_dimension(spec, key)["label"] for key in src["chain"]]
         out.append({
             "id": src["id"], "entity": src["entity"],
+            "family": src.get("family", "registry"),
+            "kind": src.get("kind", "chain"),
             "label_en": src["label_en"], "label_ar": src["label_ar"],
             "note_en": src["note_en"], "note_ar": src["note_ar"],
             "total": total,
-            "chain": [_dimension(spec, key)["label"] for key in src["chain"]],
+            "chain": chain,
         })
     return out
 
@@ -164,6 +278,15 @@ def _dimension(spec, key: str) -> dict:
         # Joining on the wrong side silently dumps every row into "not recorded".
         if field.store == "code":
             domain = (field.domain or "").replace("'", "''")
+            if not field.domain:
+                # a free-code vocabulary (options on the field itself): the value
+                # IS the label, group by it as it stands
+                return {
+                    "key": key, "label": label, "field": field, "join": "",
+                    "key_sql": f"COALESCE({col}, '{NOT_RECORDED_KEY}')",
+                    "en_sql": f"COALESCE({col}, '{NOT_RECORDED[0]}')",
+                    "ar_sql": f"COALESCE({col}, '{NOT_RECORDED[1]}')",
+                }
             join = (f"LEFT JOIN lookup {alias} ON {alias}.domain = '{domain}' "
                     f"AND {alias}.code = {col}")
         else:
@@ -176,19 +299,20 @@ def _dimension(spec, key: str) -> dict:
             "ar_sql": f"COALESCE({alias}.label_ar, '{NOT_RECORDED[1]}')",
         }
     if field.type == "fk":
-        ref = ENTITIES.get(field.ref or "")
+        ref = _spec(field.ref or "")
         if ref is None:
             raise Unsupported(f"{spec.key}.{key} points at an unknown entity")
         alias = f"d_{field.key}"
-        name_en, name_ar = ref.name_fields
+        name_en, name_ar, code_col = _label_cols(ref)
+        soft = f" AND {alias}.deleted_at IS NULL" if _soft_delete(ref) else ""
+        fallback = (f"{alias}.{code_col}" if code_col else f"{alias}.id")
         return {
             "key": key, "label": label, "field": field,
-            "join": f"LEFT JOIN {ref.table} {alias} "
-                    f"ON {alias}.id = {col} AND {alias}.deleted_at IS NULL",
+            "join": f"LEFT JOIN {ref.table} {alias} ON {alias}.id = {col}{soft}",
             "key_sql": f"COALESCE({alias}.id, -1)",
-            "en_sql": f"COALESCE({alias}.{name_en}, {alias}.code, '{NOT_RECORDED[0]}')",
+            "en_sql": f"COALESCE({alias}.{name_en}, {fallback}, '{NOT_RECORDED[0]}')",
             "ar_sql": f"COALESCE({alias}.{name_ar}, {alias}.{name_en}, "
-                      f"{alias}.code, '{NOT_RECORDED[1]}')",
+                      f"{fallback}, '{NOT_RECORDED[1]}')",
         }
     if field.type == "bool":
         return {
@@ -306,15 +430,18 @@ def build(conn: sqlite3.Connection, source_id: str, depth: int = 3,
     src = next((s for s in SOURCES if s["id"] == source_id), None)
     if src is None:
         raise KeyError(source_id)
-    spec = ENTITIES[src["entity"]]
+    if src.get("kind", "chain") != "chain":
+        # hierarchies and cross-module compositions: parent-linked trees, built
+        # under the very same payload contract the kernel draws
+        return _build_structural(conn, src, t0,
+                                 depth=depth, max_children=max_children)
+    spec = _spec(src["entity"])
     depth = max(1, min(MAX_DEPTH, int(depth)))
     max_leaves = max(1, min(120, int(max_leaves)))
     chain = [_dimension(spec, key) for key in src["chain"][:depth]]
-    name_fields = list(spec.name_fields or ())
-    name_en = name_fields[0] if name_fields else "code"
-    name_ar = name_fields[1] if len(name_fields) > 1 else name_en
+    name_en, name_ar, code_col = _label_cols(spec)
 
-    where = ["t.deleted_at IS NULL"]
+    where = ["t.deleted_at IS NULL"] if _soft_delete(spec) else []
 
     def table_sql(level: int) -> str:
         """The FROM clause for ``level``: the entity plus every join above it."""
@@ -324,10 +451,11 @@ def build(conn: sqlite3.Connection, source_id: str, depth: int = 3,
 
     def rows_at(level: int, conditions: list[str], params: list[Any]) -> list[dict]:
         dim = chain[level]
+        cond = where + conditions
+        cond_sql = (" WHERE " + " AND ".join(cond)) if cond else ""
         sql = (f"SELECT {dim['key_sql']} AS k, {dim['en_sql']} AS en, {dim['ar_sql']} AS ar, "
-               f"COUNT(*) AS n FROM {table_sql(level)} WHERE "
-               + " AND ".join(where + conditions)
-               + " GROUP BY 1, 2, 3 ORDER BY n DESC")
+               f"COUNT(*) AS n FROM {table_sql(level)}{cond_sql}"
+               f" GROUP BY 1, 2, 3 ORDER BY n DESC")
         return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
     def attach_leaves(node: dict, conditions: list[str], params: list[Any],
@@ -338,11 +466,14 @@ def build(conn: sqlite3.Connection, source_id: str, depth: int = 3,
         # the joins of the deepest dimension already bound the group.
         if chain and level >= 1:
             from_sql = table_sql(level - 1)
+        cond = where + conditions
+        cond_sql = (" WHERE " + " AND ".join(cond)) if cond else ""
+        code_sql = f"t.{code_col}" if code_col else "NULL"
         sql = (
-            f"SELECT t.id AS rid, t.code AS code, "
-            f"COALESCE(NULLIF(t.{name_en}, ''), NULLIF(t.{name_ar}, ''), t.code) AS en, "
-            f"COALESCE(NULLIF(t.{name_ar}, ''), NULLIF(t.{name_en}, ''), t.code) AS ar "
-            f"FROM {from_sql} WHERE " + " AND ".join(where + conditions)
+            f"SELECT t.id AS rid, {code_sql} AS code, "
+            f"COALESCE(NULLIF(t.{name_en}, ''), NULLIF(t.{name_ar}, ''), {code_sql}) AS en, "
+            f"COALESCE(NULLIF(t.{name_ar}, ''), NULLIF(t.{name_en}, ''), {code_sql}) AS ar "
+            f"FROM {from_sql}{cond_sql}"
             + " ORDER BY en COLLATE NOCASE LIMIT ?"
         )
         rows = [dict(r) for r in conn.execute(sql, params + [max_leaves + 1]).fetchall()]
@@ -475,5 +606,193 @@ def build(conn: sqlite3.Connection, source_id: str, depth: int = 3,
         "max_leaves": max_leaves,
         "root": root,
         "total": root["value"],
+        "computed_ms": round((time.perf_counter() - t0) * 1000, 2),
+    }
+
+
+# --------------------------------------------------------------------------- #
+# structural sources: hierarchies and cross-module compositions
+# --------------------------------------------------------------------------- #
+def _load_layer(conn, spec, extra_cols: list[str | None]):
+    """All rows of one entity, keyed by id, with its label/code columns."""
+    name_en, name_ar, code_col = _label_cols(spec)
+    cols = ["id", name_en]
+    if name_ar != name_en:
+        cols.append(name_ar)
+    if code_col and code_col not in cols:
+        cols.append(code_col)
+    for c in extra_cols:
+        if c and c not in cols:
+            cols.append(c)
+    where = " WHERE deleted_at IS NULL" if _soft_delete(spec) else ""
+    sql = f"SELECT {', '.join('t.' + c for c in cols)} FROM {spec.table} t{where}"
+    rows = {int(r["id"]): dict(r) for r in conn.execute(sql).fetchall()}
+    return rows, name_en, name_ar, code_col
+
+
+def _struct_node(spec, row: dict, name_en: str, name_ar: str,
+                 code_col: str | None, value: int, depth: int) -> dict:
+    """One node of a structural model — a record the kernel can open."""
+    code = row.get(code_col) if code_col else None
+    fallback = code or f"#{row['id']}"
+    meta = {
+        "dimension": spec.key, "raw": str(row["id"]), "depth": depth,
+        "record": True, "record_id": int(row["id"]), "entity": spec.key,
+        "code": code,
+    }
+    return {
+        "id": f"{spec.key}={row['id']}",
+        "label_en": row.get(name_en) or row.get(name_ar) or fallback,
+        "label_ar": row.get(name_ar) or row.get(name_en) or fallback,
+        "value": value,
+        "meta": meta,
+    }
+
+
+def _fold_nodes(nodes: list[dict], budget: int, parent_id: str) -> list[dict]:
+    """Keep the biggest branches, fold the rest — with their exact sum."""
+    if len(nodes) <= budget:
+        return nodes
+    nodes = sorted(nodes, key=lambda n: n["value"], reverse=True)
+    kept, rest = nodes[:budget], nodes[budget:]
+    folded = sum(n["value"] for n in rest)
+    kept.append({
+        "id": f"{parent_id}/rest",
+        "label_en": f"{len(rest)} smaller groups",
+        "label_ar": f"{len(rest)} مجموعة أصغر",
+        "value": folded,
+        "meta": {"dimension": "rest", "synthetic": True,
+                 "count": len(rest), "folded": folded},
+    })
+    return kept
+
+
+def _attach_group(spec, rows: list[dict], lay: dict, depth: int,
+                  max_children: int) -> tuple[list[dict], int]:
+    """Records attached under a structural node: flat, or nested by their own
+    parent when the layer carries one (units keep their subordination)."""
+    name_en, name_ar, code_col = _label_cols(spec)
+    parent_col = lay.get("parent")
+
+    def assemble(row: dict, d: int) -> tuple[dict, int]:
+        kids = []
+        total = 1
+        if parent_col:
+            children = [r for r in rows
+                        if r.get(parent_col) and int(r[parent_col]) == int(row["id"])]
+            for c in sorted(children, key=lambda r: r["id"]):
+                node, t = assemble(c, d + 1)
+                kids.append(node)
+                total += t
+        node = _struct_node(spec, row, name_en, name_ar, code_col, total, d)
+        node["children"] = _fold_nodes(kids, max_children, node["id"])
+        return node, total
+
+    if not parent_col:
+        nodes = []
+        total = 0
+        for r in sorted(rows, key=lambda r: r["id"]):
+            node, t = assemble(r, depth)
+            nodes.append(node)
+            total += t
+        return _fold_nodes(nodes, max_children, f"{spec.key}@{depth}"), total
+
+    in_group = {int(r["id"]) for r in rows}
+    tops = [r for r in rows
+            if not (r.get(parent_col) and int(r[parent_col]) in in_group)]
+    nodes, total = [], 0
+    for r in sorted(tops, key=lambda r: r["id"]):
+        node, t = assemble(r, depth)
+        nodes.append(node)
+        total += t
+    return _fold_nodes(nodes, max_children, f"{spec.key}@{depth}"), total
+
+
+def _build_structural(conn, src: dict, t0: float, depth: int = 3,
+                      max_children: int = MAX_CHILDREN) -> dict:
+    """A parent-linked hierarchy, possibly composed across modules.
+
+    Layer 0 is the hierarchy (``parent`` column).  Further layers attach their
+    records under the layer-0 node their ``link`` column points at; a layer that
+    also carries ``parent`` keeps its own subordination inside each group.
+    Every node is a real record with an exact record count at or below it, and
+    wide levels fold their tail exactly like the dimension chains do.
+    """
+    depth = max(1, min(MAX_DEPTH, int(depth)))
+    max_children = max(3, min(40, int(max_children)))
+    layers = src.get("layers") or [{"entity": src["entity"], "parent": src.get("parent")}]
+    main = layers[0]
+    spec0 = _spec(main["entity"])
+    rows0, n_en, n_ar, code0 = _load_layer(conn, spec0, [main.get("parent")])
+    parent_col = main.get("parent")
+
+    children_map: dict[int, list[int]] = {rid: [] for rid in rows0}
+    tops: list[int] = []
+    for rid, row in rows0.items():
+        p = row.get(parent_col) if parent_col else None
+        if p is not None and int(p) in rows0:
+            children_map[int(p)].append(rid)
+        else:
+            tops.append(rid)
+
+    attached = []
+    for lay in layers[1:]:
+        spec_l = _spec(lay["entity"])
+        rows_l, l_en, l_ar, l_code = _load_layer(
+            conn, spec_l, [lay.get("link"), lay.get("parent")])
+        by_link: dict[int, list[dict]] = {}
+        for r in rows_l.values():
+            link = r.get(lay.get("link"))
+            by_link.setdefault(int(link) if link is not None else 0, []).append(r)
+        attached.append((spec_l, by_link, lay))
+
+    def assemble(rid: int, d: int) -> tuple[dict, int]:
+        kids: list[dict] = []
+        total = 1  # the record itself
+        for k in sorted(children_map[rid]):
+            node, t = assemble(k, d + 1)
+            total += t
+            if d + 1 <= depth:
+                kids.append(node)
+        for spec_l, by_link, lay in attached:
+            group = by_link.get(rid, [])
+            if not group:
+                continue
+            nodes, t = _attach_group(spec_l, group, lay,
+                                     min(depth, d + 1), max_children)
+            if d + 1 <= depth:
+                kids.extend(nodes)
+            total += t
+        node = _struct_node(spec0, rows0[rid], n_en, n_ar, code0, total, d)
+        node["children"] = _fold_nodes(kids, max_children, node["id"])
+        return node, total
+
+    top_nodes, grand = [], 0
+    for rid in sorted(tops):
+        node, t = assemble(rid, 1)
+        top_nodes.append(node)
+        grand += t
+    root = {"id": src["id"], "label_en": src["label_en"], "label_ar": src["label_ar"],
+            "value": grand, "meta": {"dimension": None, "depth": 0}}
+    root["children"] = _fold_nodes(top_nodes, max_children * 2, src["id"])
+
+    chain_meta = [{"key": k, "label_en": en, "label_ar": ar}
+                  for (k, en, ar) in src.get("levels", [])]
+    return {
+        "ok": True,
+        "source": {
+            "id": src["id"], "entity": src["entity"],
+            "label_en": src["label_en"], "label_ar": src["label_ar"],
+            "note_en": src["note_en"], "note_ar": src["note_ar"],
+        },
+        "chain": chain_meta,
+        "depth": depth,
+        "max_children": max_children,
+        "include_leaves": False,
+        "include_links": False,
+        "linked": 0,
+        "max_leaves": MAX_LEAVES,
+        "root": root,
+        "total": grand,
         "computed_ms": round((time.perf_counter() - t0) * 1000, 2),
     }

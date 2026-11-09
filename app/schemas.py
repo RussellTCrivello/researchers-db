@@ -8,7 +8,7 @@ field or a whole new entity type is a change in this file only.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 # ---------------------------------------------------------------------------
@@ -43,6 +43,15 @@ TIME_AWARE_FIELDS = {
     ("relationship", "start_date"), ("relationship", "end_date"),
     ("source", "publication_date"), ("source", "access_date"),
     ("relationship", "last_review_date"),
+}
+
+# The service lifecycle of a military-categorized person: Active -> Reserve ->
+# Retired, and Retired is terminal.  Owner-reviewable policy data (design
+# record §8.3); enforced generically through EntitySpec.transition_policies.
+SERVICE_STATUS_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "Active": ("Reserve",),
+    "Reserve": ("Active", "Retired"),
+    "Retired": (),
 }
 
 
@@ -240,6 +249,22 @@ class EntitySpec:
     index_builder: Callable | None = None
     description_en: str = ""
     description_ar: str = ""
+    # -- category-conditional attributes ---------------------------------
+    # A record's *category* (e.g. a person's military / civilian / other
+    # classification) decides which of its attributes apply.  Each key is a
+    # category vocabulary code; the value lists the field keys that belong to
+    # that classification and appear only when it is selected.
+    category_field: str | None = None
+    category_fields: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # -- value-transition policies ----------------------------------------
+    # field key -> {current value: allowed next values}; only *changes* are
+    # constrained (a record may be created holding any state), an empty tuple
+    # marks a terminal state.
+    transition_policies: dict[str, dict[str, tuple[str, ...]]] = field(default_factory=dict)
+    # -- engine capabilities ---------------------------------------------
+    soft_delete: bool = True            # table has deleted_at; registry deletes
+    freshness_col: str = "updated_at"   # column the KPI "recently updated" tile reads
+    full_text_index: bool = True        # rows live in search_doc (FTS)
 
     # -- derived helpers ---------------------------------------------------
     def field(self, key: str) -> Field | None:
@@ -304,19 +329,31 @@ REF_TITLE_SQL = {
     "event": "COALESCE(NULLIF(title_en,''), NULLIF(title_ar,''), code)",
 }
 
+# Entities whose key differs from their table name (the unified military schema
+# keeps its historical table names).  resolve_ref consults this before falling
+# back to the key itself as a table name.
+REF_TABLES: dict[str, str] = {
+    "unit": "military_unit",
+    "deployment": "operational_deployment",
+    "assignment": "command_assignment",
+    "holding": "unit_armament",
+}
+
 
 def resolve_ref(conn, ref: str, ref_id: int | None) -> dict | None:
     if not ref_id:
         return None
-    table = ENTITIES[ref].table if ref in ENTITIES else ref
+    table = ENTITIES[ref].table if ref in ENTITIES else REF_TABLES.get(ref, ref)
     row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (ref_id,)).fetchone()
     if not row:
         return {"id": ref_id, "code": None, "name_en": None, "name_ar": None, "label": f"#{ref_id}"}
     d = dict(row)
-    name_en = d.get("name_en") or d.get("title_en") or d.get("title")
-    name_ar = d.get("name_ar") or d.get("title_ar")
-    return {"id": ref_id, "code": d.get("code"), "name_en": name_en, "name_ar": name_ar,
-            "label": name_en or name_ar or d.get("code") or f"#{ref_id}"}
+    name_en = (d.get("name_en") or d.get("title_en") or d.get("title")
+               or d.get("name") or d.get("full_name") or d.get("exercise_name"))
+    name_ar = d.get("name_ar") or d.get("title_ar") or name_en
+    return {"id": ref_id, "code": d.get("code") or d.get("docname"),
+            "name_en": name_en, "name_ar": name_ar,
+            "label": name_en or name_ar or d.get("code") or d.get("docname") or f"#{ref_id}"}
 
 
 def resolve_all_labels(conn, spec: EntitySpec, row: dict,
@@ -400,11 +437,46 @@ person_fields: list[Field] = [
       group="identity", max_len=250),
     F("name_en", "text", "Name in English", "الاسم بالإنجليزية", group="identity",
       max_len=250, in_list=False),
-    F("name_original_lang", "text", "Original name language", "لغة الاسم الأصلي",
+    F("name_original_lang", "select", "Original name language", "لغة الاسم الأصلي",
+      domain="language", store="code",
       group="identity", in_list=False, help_en="BCP-47 or plain name, e.g. tr, fr, Ottoman Turkish",
       help_ar="رمز اللغة أو اسمها، مثال: tr، fr، التركية العثمانية"),
     F("name_transliteration", "text", "Transliteration", "النقل الحرفي للاسم",
       group="identity", in_list=False),
+    F("category", "select", "Category", "الفئة", domain="person_category", store="code",
+      group="identity", sortable=True,
+      help_en="Military, civilian or other — the classification decides which "
+              "category attributes apply to this person (a military person shows "
+              "rank, branch, commission date, service status and military biography).",
+      help_ar="عسكري أو مدني أو آخر — تُحدّد الفئة الصفات الخاصة التي تنطبق على هذا "
+              "الشخص (يعرض الشخص العسكري الرتبة والسلاح وتاريخ التكليف وحالة الخدمة "
+              "والسيرة العسكرية)."),
+    F("rank_title", "text", "Rank", "الرتبة", group="military", in_list=False, max_len=120,
+      help_en="Military rank held (free text so any historical rank fits). "
+              "Shown only for people of the military category.",
+      help_ar="الرتبة العسكرية التي يحملها (نص حر لكي تتسع لأي رتبة تاريخية). "
+              "تُعرض فقط لمن هم من الفئة العسكرية."),
+    F("branch", "select", "Service branch", "السلاح", domain="military_branch", store="code",
+      group="military", in_list=False,
+      help_en="The armed branch the person serves in. Controlled vocabulary — "
+              "extend it under Vocabularies → Service branch.",
+      help_ar="السلاح الذي يخدم فيه الشخص. قائمة مرجعية — يمكن توسيعها من "
+              "القوائم المرجعية ← السلاح."),
+    F("commission_date", "date", "Commission date", "تاريخ التكليف", group="military",
+      in_list=False,
+      help_en="When the person was commissioned into service (a year alone is acceptable).",
+      help_ar="تاريخ تكليف الشخص بالخدمة (يكفي ذكر السنة وحدها)."),
+    F("service_status", "select", "Service status", "حالة الخدمة",
+      domain="military_service_status", store="code", group="military", in_list=False,
+      help_en="Active, Reserve or Retired — the person's standing in service. "
+              "The lifecycle runs Active → Reserve → Retired.",
+      help_ar="على قيد الخدمة أو احتياط أو متقاعد — الوضع الخدمي للشخص. "
+              "يمر المسار بمرحل: على قيد الخدمة ← احتياط ← متقاعد."),
+    F("military_biography", "textarea", "Military biography", "السيرة العسكرية",
+      group="military", in_list=False,
+      help_en="Service history, commands and campaigns — the military record "
+              "behind the rank.",
+      help_ar="المسيرة الخدمية والقيادات والحملات — السجل العسكري الذي يقف خلف الرتبة."),
     F("image_url", "url", "Image link", "رابط الصورة", group="identity", in_list=False,
       help_en="Portrait URL or an uploaded /api/media/… path (shown in card and gallery views)",
       help_ar="رابط الصورة أو ملف مرفوع بصيغة /api/media/… (يظهر في البطاقات والمعرض)"),
@@ -468,7 +540,8 @@ place_fields: list[Field] = [
     F("name_original", "text", "Original name", "الاسم الأصلي", group="identity", max_len=250),
     F("name_en", "text", "Original name (English)", "الاسم الأصلي (بالإنجليزية)",
       group="identity", max_len=250),
-    F("name_original_lang", "text", "Original name language", "لغة الاسم الأصلي",
+    F("name_original_lang", "select", "Original name language", "لغة الاسم الأصلي",
+      domain="language", store="code",
       group="identity", in_list=False),
     F("place_type_id", "select", "Place type", "نوع المكان", domain="place_type", group="identity"),
     F("image_url", "url", "Image / photo link", "رابط الصورة", group="identity", in_list=False,
@@ -485,14 +558,26 @@ place_fields: list[Field] = [
       help_en="Only governorates of the selected country are listed. Choosing one fills the country.",
       help_ar="تُعرض محافظات البلد المحدد فقط. اختيار محافظة يملأ البلد تلقائياً."),
     F("city", "text", "City", "المدينة", group="location", max_len=250),
-    F("district_id", "select", "District", "القضاء", domain="district", group="location",
+    F("district_id", "select", "District / region", "القضاء / المنطقة", domain="district", group="location",
       in_list=False,
-      help_en="Only districts of the selected governorate are listed.",
-      help_ar="تُعرض أقضية المحافظة المحددة فقط."),
+      help_en="Only districts of the selected governorate are listed. Choosing one fills the governorate and country.",
+      help_ar="تُعرض أقضية المحافظة المحددة فقط. اختيار القضاء يملأ المحافظة والبلد تلقائياً."),
+    F("municipality_id", "select", "Municipality", "البلدية", domain="municipality",
+      group="location", in_list=False,
+      help_en="Only municipalities of the selected district are listed.",
+      help_ar="تُعرض بلديات القضاء المحدد فقط."),
+    F("village_id", "select", "Neighborhood / village", "الحي / القرية", domain="village",
+      group="location", in_list=False,
+      help_en="Only neighborhoods and villages of the selected municipality are listed.",
+      help_ar="تُعرض أحياء وقرى البلدية المحددة فقط."),
+    F("community_id", "select", "Community / cluster", "التجمع السكاني", domain="community",
+      group="location", in_list=False,
+      help_en="Only communities of the selected village are listed.",
+      help_ar="تُعرض تجمعات القرية المحددة فقط."),
     F("parent_place_id", "fk", "Part of (parent place)", "يتبع (المكان الأعلى)",
       ref="place", group="location", in_list=False,
-      help_en="Builds the geographic hierarchy: country → governorate → city → quarter.",
-      help_ar="يبني التسلسل الجغرافي: البلد ← المحافظة ← المدينة ← الحي."),
+      help_en="Builds the physical hierarchy of places: a site may belong to a larger site.",
+      help_ar="يبني التسلسل المكاني: قد ينتمي الموقع إلى موقع أكبر."),
     F("latitude", "float", "Latitude", "خط العرض", group="geo", in_list=False,
       help_en="A location is this coordinate, not the place name. Type the latitude or pick the point on the map beside it.",
       help_ar="الموقع هو هذا الإحداثي لا اسم المكان. أدخل خط العرض أو حدّد النقطة على الخريطة بجانبه."),
@@ -537,7 +622,8 @@ institution_fields: list[Field] = [
     F("name_original", "text", "Original name", "الاسم الأصلي", group="identity", max_len=300),
     F("name_en", "text", "Original name (English)", "الاسم الأصلي (بالإنجليزية)",
       group="identity", max_len=300),
-    F("name_original_lang", "text", "Original name language", "لغة الاسم الأصلي",
+    F("name_original_lang", "select", "Original name language", "لغة الاسم الأصلي",
+      domain="language", store="code",
       group="identity", in_list=False),
     F("abbreviation", "text", "Abbreviation", "الاختصار", group="identity", max_len=64),
     F("institution_type_id", "select", "Type of institution", "نوع المؤسسة",
@@ -630,7 +716,8 @@ source_fields: list[Field] = [
     F("publication_precision", "select", "Publication date precision", "دقة تاريخ النشر",
       domain="date_precision", group="identity", in_list=False),
     F("access_date", "date", "Access date", "تاريخ الاطلاع", group="identity", in_list=False),
-    F("language", "text", "Language", "اللغة", group="identity", max_len=64, in_list=False),
+    F("language", "select", "Language", "اللغة", domain="language", store="code",
+      group="identity", in_list=False),
     F("isbn_issn", "text", "ISBN / ISSN", "ردمك / ردمد", group="identity", max_len=64,
       in_list=False),
     F("archive_reference", "text", "Archive reference", "المرجع الأرشيفي", group="identity",
@@ -686,6 +773,15 @@ ENTITIES: dict[str, EntitySpec] = {
         name_fields=("name_en", "name_ar"), default_sort="updated_at", tags=("specialization",),
         has_positions=True,
         children=("positions", "specializations", "relationships", "sources", "attachments"),
+        category_field="category",
+        category_fields={
+            "military": ("rank_title", "branch", "commission_date",
+                         "service_status", "military_biography"),
+            "civilian": ("classification_id", "current_position",
+                         "declared_affiliation", "cv_url", "public_activity"),
+            "other": (),
+        },
+        transition_policies={"service_status": SERVICE_STATUS_TRANSITIONS},
         description_en="Researchers, scholars, officials and other individuals.",
         description_ar="الباحثون والعلماء والمسؤولون وسائر الشخصيات.",
     ),
@@ -756,6 +852,8 @@ def entity_meta(lang: str = "en") -> list[dict]:
             "description_en": e.description_en, "description_ar": e.description_ar,
             "tags": list(e.tags), "has_positions": e.has_positions,
             "children": list(e.children),
+            "category_field": e.category_field,
+            "category_fields": {k: list(v) for k, v in e.category_fields.items()},
         })
     return out
 

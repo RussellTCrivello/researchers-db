@@ -18,6 +18,7 @@ try {
 <link rel="stylesheet" href="/static/css/views.css">
 <link rel="stylesheet" href="/static/css/viz.css">
 <link rel="stylesheet" href="/static/css/desk.css">
+<link rel="stylesheet" href="/static/css/military.css">
 <link rel="stylesheet" href="/static/css/maplib.css">
 <!-- MapLibre GL JS, served from the application itself: the map must work
      with no CDN, no tile server and no network at all -->
@@ -44,56 +45,93 @@ try {
     </div>
 
     <nav class="nav" id="nav">
-      <div class="nav-group" data-i18n="nav.workspace">Workspace</div>
-      <a class="nav-item" data-route="dashboard" href="#/dashboard">
-        <span class="ico" data-icon="grid"></span><span data-i18n="nav.dashboard">Dashboard</span>
-      </a>
-      <a class="nav-item" data-route="search" href="#/search">
-        <span class="ico" data-icon="search"></span><span data-i18n="nav.search">Deep search</span>
-      </a>
-      <a class="nav-item" data-route="map" href="#/map">
-        <span class="ico" data-icon="share"></span><span data-i18n="nav.map">Relationship map</span>
-      </a>
-      <a class="nav-item" data-route="desk" href="#/desk">
-        <span class="ico" data-icon="compass"></span><span data-i18n="nav.desk">Map desk</span>
-      </a>
-      <a class="nav-item" data-route="geomap" href="#/geo">
-        <span class="ico" data-icon="globe"></span><span data-i18n="nav.geomap">Geographic map</span>
-      </a>
-      <a class="nav-item" data-route="structures" href="#/structures">
-        <span class="ico" data-icon="layers"></span><span data-i18n="nav.structures">Structures</span>
-      </a>
-      <a class="nav-item" data-route="reports" href="#/reports">
-        <span class="ico" data-icon="chart"></span><span data-i18n="nav.reports">Reports</span>
-      </a>
+      <section class="nav-sec open" data-sec="workspace">
+        <button class="nav-sec-head" type="button" aria-expanded="true">
+          <span class="nav-sec-title" data-i18n="nav.workspace">Workspace</span>
+          <span class="nav-sec-caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-sec-body"><div class="nav-sec-inner">
+          <a class="nav-item" data-route="dashboard" href="#/dashboard">
+            <span class="ico" data-icon="grid"></span><span data-i18n="nav.dashboard">Dashboard</span>
+          </a>
+          <a class="nav-item" data-route="search" href="#/search">
+            <span class="ico" data-icon="search"></span><span data-i18n="nav.search">Deep search</span>
+          </a>
+          <a class="nav-item" data-route="map" href="#/map">
+            <span class="ico" data-icon="share"></span><span data-i18n="nav.map">Relationship map</span>
+          </a>
+          <a class="nav-item" data-route="desk" href="#/desk">
+            <span class="ico" data-icon="compass"></span><span data-i18n="nav.desk">Map desk</span>
+          </a>
+          <a class="nav-item" data-route="geomap" href="#/geo">
+            <span class="ico" data-icon="globe"></span><span data-i18n="nav.geomap">Geographic map</span>
+          </a>
+          <a class="nav-item" data-route="structures" href="#/structures">
+            <span class="ico" data-icon="layers"></span><span data-i18n="nav.structures">Structures</span>
+          </a>
+          <a class="nav-item" data-route="military" href="#/military">
+            <span class="ico" data-icon="shield"></span><span data-i18n="nav.military">Brigade Command</span>
+          </a>
+          <a class="nav-item" data-route="reports" href="#/reports">
+            <span class="ico" data-icon="chart"></span><span data-i18n="nav.reports">Reports</span>
+          </a>
+        </div></div>
+      </section>
 
-      <div class="nav-group" data-i18n="nav.entities">Entities</div>
-      <div id="entityNav"></div>
+      <section class="nav-sec" data-sec="mil">
+        <button class="nav-sec-head" type="button" aria-expanded="false">
+          <span class="nav-sec-title" data-i18n="nav.milorg">Military Organization</span>
+          <span class="nav-sec-caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-sec-body"><div class="nav-sec-inner" id="milNav"></div></div>
+      </section>
 
-      <div class="nav-group" data-i18n="nav.data">Data operations</div>
-      <a class="nav-item" data-route="import" href="#/import">
-        <span class="ico" data-icon="upload"></span><span data-i18n="nav.import">Import</span>
-      </a>
-      <a class="nav-item" data-route="export" href="#/export">
-        <span class="ico" data-icon="download"></span><span data-i18n="nav.export">Export</span>
-      </a>
-      <a class="nav-item" data-route="changelog" href="#/changelog">
-        <span class="ico" data-icon="history"></span><span data-i18n="nav.changelog">Change log</span>
-      </a>
+      <section class="nav-sec" data-sec="registry">
+        <button class="nav-sec-head" type="button" aria-expanded="false">
+          <span class="nav-sec-title" data-i18n="nav.entities">Entities</span>
+          <span class="nav-sec-caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-sec-body"><div class="nav-sec-inner" id="entityNav"></div></div>
+      </section>
 
-      <div class="nav-group" data-i18n="nav.admin">Administration</div>
-      <a class="nav-item" data-route="vocabularies" href="#/vocabularies">
-        <span class="ico" data-icon="list"></span><span data-i18n="nav.vocabularies">Vocabularies</span>
-      </a>
-      <a class="nav-item" data-route="numbering" href="#/numbering">
-        <span class="ico" data-icon="hash"></span><span data-i18n="nav.numbering">Numbering</span>
-      </a>
-      <a class="nav-item" data-route="settings" href="#/settings">
-        <span class="ico" data-icon="settings"></span><span data-i18n="nav.settings">Settings</span>
-      </a>
-      <a class="nav-item" data-route="maintenance" href="#/maintenance">
-        <span class="ico" data-icon="database"></span><span data-i18n="nav.maintenance">Maintenance</span>
-      </a>
+      <section class="nav-sec" data-sec="data">
+        <button class="nav-sec-head" type="button" aria-expanded="false">
+          <span class="nav-sec-title" data-i18n="nav.data">Data operations</span>
+          <span class="nav-sec-caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-sec-body"><div class="nav-sec-inner">
+          <a class="nav-item" data-route="import" href="#/import">
+            <span class="ico" data-icon="upload"></span><span data-i18n="nav.import">Import</span>
+          </a>
+          <a class="nav-item" data-route="export" href="#/export">
+            <span class="ico" data-icon="download"></span><span data-i18n="nav.export">Export</span>
+          </a>
+          <a class="nav-item" data-route="changelog" href="#/changelog">
+            <span class="ico" data-icon="history"></span><span data-i18n="nav.changelog">Change log</span>
+          </a>
+        </div></div>
+      </section>
+
+      <section class="nav-sec" data-sec="admin">
+        <button class="nav-sec-head" type="button" aria-expanded="false">
+          <span class="nav-sec-title" data-i18n="nav.admin">Administration</span>
+          <span class="nav-sec-caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-sec-body"><div class="nav-sec-inner">
+          <a class="nav-item" data-route="vocabularies" href="#/vocabularies">
+            <span class="ico" data-icon="list"></span><span data-i18n="nav.vocabularies">Vocabularies</span>
+          </a>
+          <a class="nav-item" data-route="numbering" href="#/numbering">
+            <span class="ico" data-icon="hash"></span><span data-i18n="nav.numbering">Numbering</span>
+          </a>
+          <a class="nav-item" data-route="settings" href="#/settings">
+            <span class="ico" data-icon="settings"></span><span data-i18n="nav.settings">Settings</span>
+          </a>
+          <a class="nav-item" data-route="maintenance" href="#/maintenance">
+            <span class="ico" data-icon="database"></span><span data-i18n="nav.maintenance">Maintenance</span>
+          </a>
+        </div></div>
+      </section>
     </nav>
 
     <div class="sidebar-foot">
@@ -162,6 +200,7 @@ try {
 <script src="/static/js/views/geomap.js"></script>
 <script src="/static/js/views/desk.js"></script>
 <script src="/static/js/views/admin.js"></script>
+<script src="/static/js/views/military.js"></script>
 <!-- shell: bootstrap + hash router (must load last) -->
 <script src="/static/js/app.js"></script>
 </body>

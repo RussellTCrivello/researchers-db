@@ -15,6 +15,18 @@
     { re: /^\/map$/, view: "map" },
     { re: /^\/geo$/, view: "geomap" },
     { re: /^\/desk$/, view: "desk" },
+    { re: /^\/military$/, view: "military" },
+    { re: /^\/military\/(forces|operations|training|command)$/, view: "milDomain", keys: ["domain"] },
+    { re: /^\/military\/(units|regions)\/tree$/, view: "milTree", keys: ["kind"] },
+    { re: /^\/military\/units\/(\d+)\/force$/, view: "milForce", keys: ["id"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)\/show$/, view: "milDossier", keys: ["entity", "id"] },
+    { re: /^\/military\/armaments\/(\d+)\/holdings$/, view: "milHoldings", keys: ["id"] },
+    { re: /^\/military\/naming$/, view: "milNaming" },
+    { re: /^\/military\/audit$/, view: "milAudit" },
+    { re: /^\/military\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)\/edit$/, view: "recordEdit", keys: ["entity", "id"] },
+    { re: /^\/military\/([\w-]+)\/(\d+)$/, view: "recordEdit", keys: ["entity", "id"] },
+    { re: /^\/military\/([\w-]+)$/, view: "milList", keys: ["entity"] },
     { re: /^\/import$/, view: "import" },
     { re: /^\/export$/, view: "export" },
     { re: /^\/changelog$/, view: "changelog" },
@@ -22,6 +34,9 @@
     { re: /^\/numbering$/, view: "numbering" },
     { re: /^\/settings$/, view: "settings" },
     { re: /^\/maintenance$/, view: "maintenance" },
+    /* military entities share the unified list engine, form engine and
+       settings; only the record *dossier* keeps its military layout */
+    { re: /^\/entity\/(unit|region|division|classification|armament|holding|deployment|mission|training|assignment|trait|note)\/(\d+)$/, view: "milDossier", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/new$/, view: "recordNew", keys: ["entity"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)\/edit$/, view: "recordEdit", keys: ["entity", "id"] },
     { re: /^\/entity\/([\w-]+)\/(\d+)$/, view: "record", keys: ["entity", "id"] },
@@ -49,6 +64,12 @@
   async function render() {
     const route = parseHash();
     App.state.route = route;
+    /* stay-in-place: remember the screen a record form was opened from — the
+       shared record forms return to it after save/cancel, they do not
+       navigate the person away */
+    if (!/\/(new|edit)$/.test(location.hash || "")) {
+      App.state.formOrigin = location.hash || "";
+    }
     syncShellChrome();
     /* A record form may live in a dialog.  Any navigation that is not *that*
        form closes it, so a dialog can never float over somebody else's page —
@@ -56,8 +77,10 @@
     const openForm = App.forms && App.forms.active && App.forms.active();
     if (openForm) {
       const here = "#" + String(location.hash || "").replace(/^#/, "");
-      const belongs = (route.view === "recordNew" || route.view === "recordEdit") &&
-        openForm.back.dataset.formRoute === here;
+      /* the form "belongs" on the screen it was opened over — an in-place
+         overlay or a route dialog alike.  Its opening address is recorded on
+         its backdrop; only a real navigation outlives the form */
+      const belongs = openForm.back.dataset.formRoute === here;
       if (!belongs) {
         if (App.forms.dirty && App.forms.dirty()) {
           const discard = await App.confirmDialog({
@@ -79,11 +102,21 @@
       a.classList.toggle("active", route.path === target ||
         (a.dataset.route && route.path.startsWith("/" + a.dataset.route)));
     });
-    // entity nav highlight
+    // entity nav highlight — a pre-filtered link (Commanders) claims its
+    // exact query; the plain link stays active for any other query
     document.querySelectorAll("[data-entity-nav]").forEach(a => {
-      a.classList.toggle("active", route.params.entity === a.dataset.entityNav &&
-        route.view.startsWith("list") || route.params.entity === a.dataset.entityNav && route.view.startsWith("record"));
+      const onEntity = route.params.entity === a.dataset.entityNav &&
+        (route.view.startsWith("list") || route.view.startsWith("record"));
+      const haveQ = route.params.q || "";
+      let active = onEntity;
+      if (active && (a.dataset.q || "") !== haveQ) {
+        const claimed = [...document.querySelectorAll(
+          `[data-entity-nav="${a.dataset.entityNav}"][data-q]`)].map(x => x.dataset.q);
+        active = a.dataset.q ? false : !claimed.includes(haveQ);
+      }
+      a.classList.toggle("active", active);
     });
+    revealActiveNav();
     const token = String((App._seq = (App._seq || 0) + 1));
     view.dataset.render = token;
     document.getElementById("sidebar").classList.remove("open");
@@ -108,7 +141,9 @@
       if (route.view !== "geomap" && App.geoDispose) App.geoDispose();
       const fn = App.views[route.view];
       const ent = route.params && route.params.entity;
-      if (ent && !(App.state.meta.entities || []).some(e => e.key === ent)) {
+      /* the registry owns /entity/<key> routes; /military/* has its own meta */
+      if (ent && !route.path.startsWith("/military") &&
+          !(App.state.meta.entities || []).some(e => e.key === ent)) {
         view.innerHTML = `<div class="card"><h2>${esc(t("common.error"))}</h2>
           <div class="notice">${esc(ent)} — ${esc(t("ui.unknownEntity"))}</div>
           <div class="btn-row" style="margin-top:12px">
@@ -122,7 +157,9 @@
       await fn(view, route.params, route);
       App._dispose = typeof fn.__dispose === "function" ? fn.__dispose : null;
       hydrateIcons(view);
-      window.scrollTo({ top: 0, behavior: "auto" });
+      /* an in-place form refresh keeps the reader's eye where it was */
+      if (App._keepScroll) App._keepScroll = false;
+      else window.scrollTo({ top: 0, behavior: "auto" });
       if (shellFullscreen()) notifyLayout();
     } catch (err) {
       console.error(err);
@@ -139,14 +176,110 @@
   App.go = (hash) => { location.hash = hash; };
   App.parseHash = parseHash;
 
-  function buildEntityNav() {
-    const box = document.getElementById("entityNav");
-    box.innerHTML = (App.state.meta.entities || []).map(e => `
+  /* ------------------------------------------------- sidebar accordion ---
+     The sidebar is a layered accordion: sections fold their content away and
+     the military twelve sit inside themed sub-groups (Organization, Operations,
+     Logistics, Leadership, Records) so no wall of links greets the user.  Open
+     state persists per browser and the section holding the active page opens
+     itself, so deep links always land with their item visible. */
+  const MIL_NAV_GROUPS = [
+    { key: "org", i18n: "nav.mil.org", items: [
+      { ent: "unit", label: "nav.mil.units", icon: "shield" },
+      { ent: "region", label: "nav.mil.regions", icon: "globe" },
+      { ent: "division", label: "nav.mil.branches", icon: "layers" },
+      { ent: "classification", label: "nav.mil.categories", icon: "list" }] },
+    { key: "ops", i18n: "nav.mil.ops", items: [
+      { ent: "deployment", label: "nav.mil.deployments", icon: "compass" },
+      { ent: "mission", label: "nav.mil.tasks", icon: "check" },
+      { ent: "training", label: "nav.mil.training", icon: "activity" }] },
+    { key: "logi", i18n: "nav.mil.logi", items: [
+      { ent: "armament", label: "nav.mil.armaments", icon: "crosshair" },
+      { ent: "holding", label: "nav.mil.holdings", icon: "database" }] },
+    { key: "lead", i18n: "nav.mil.lead", items: [
+      /* the Leader is a person: Commanders is the military-category register */
+      { ent: "person", label: "nav.mil.commanders", icon: "user",
+        q: "category:military" },
+      { ent: "trait", label: "nav.mil.traits", icon: "chart" },
+      { ent: "assignment", label: "nav.mil.assignments", icon: "calendar" }] },
+    { key: "rec", i18n: "nav.mil.rec", items: [
+      { ent: "note", label: "nav.mil.notes", icon: "edit" }] },
+  ];
+  const MIL_NAV_ENTS = new Set(MIL_NAV_GROUPS.flatMap(g => g.items.map(i => i.ent))
+    .filter(k => k !== "person"));
+
+  function navAccState() {
+    try { return JSON.parse(localStorage.getItem("siraj.navAcc") || "{}"); }
+    catch (e) { return {}; }
+  }
+  function navAccStore(state) {
+    try { localStorage.setItem("siraj.navAcc", JSON.stringify(state)); } catch (e) {}
+  }
+  function navAccSet(box, open) {
+    box.classList.toggle("open", open);
+    const head = box.querySelector(":scope > .nav-sec-head, :scope > .nav-sub-head");
+    if (head) head.setAttribute("aria-expanded", String(open));
+    const k = (box.classList.contains("nav-sub") ? "sub:" : "sec:") +
+      (box.dataset.sub || box.dataset.sec || "");
+    const state = navAccState();
+    state[k] = open;
+    navAccStore(state);
+  }
+  /** Restore persisted folds; default: Workspace open, everything else closed. */
+  function navAccApply() {
+    const state = navAccState();
+    document.querySelectorAll("#nav .nav-sec, #nav .nav-sub").forEach(box => {
+      const isSub = box.classList.contains("nav-sub");
+      const key = (isSub ? "sub:" : "sec:") + (box.dataset.sub || box.dataset.sec || "");
+      const def = isSub ? false : box.dataset.sec === "workspace";
+      const open = key in state ? !!state[key] : def;
+      box.classList.toggle("open", open);
+      const head = box.querySelector(":scope > .nav-sec-head, :scope > .nav-sub-head");
+      if (head) head.setAttribute("aria-expanded", String(open));
+    });
+  }
+  /** Deep links land with their item visible: open the folds around it. */
+  function revealActiveNav() {
+    const active = document.querySelector("#nav .nav-item.active");
+    if (!active) return;
+    let el = active.parentElement;
+    while (el && el.id !== "nav") {
+      if (el.classList && (el.classList.contains("nav-sub") ||
+                           el.classList.contains("nav-sec"))) {
+        if (!el.classList.contains("open")) navAccSet(el, true);
+      }
+      el = el.parentElement;
+    }
+  }
+
+  function buildNav() {
+    const box = document.getElementById("milNav");
+    box.innerHTML = MIL_NAV_GROUPS.map(g => `
+      <div class="nav-sub" data-sub="${g.key}">
+        <button class="nav-sub-head" type="button" aria-expanded="false">
+          <span class="nav-sub-title">${esc(t(g.i18n))}</span>
+          <span class="nav-sub-caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-sub-body"><div class="nav-sub-inner">
+          ${g.items.map(it => `
+            <a class="nav-item" data-entity-nav="${it.ent}"${it.q ? ` data-q="${esc(it.q)}"` : ""}
+               href="#/entity/${it.ent}${it.q ? `?q=${encodeURIComponent(it.q)}` : ""}">
+              <span class="ico" data-icon="${it.icon}"></span>
+              <span>${esc(t(it.label))}</span>
+            </a>`).join("")}
+        </div></div>
+      </div>`).join("");
+    const reg = document.getElementById("entityNav");
+    reg.innerHTML = (App.state.meta.entities || [])
+      .filter(e => !MIL_NAV_ENTS.has(e.key))
+      .map(e => `
       <a class="nav-item" data-entity-nav="${e.key}" href="#/entity/${e.key}">
         <span class="ico" data-icon="${e.icon}"></span>
         <span>${esc(App.state.lang === "ar" ? e.plural_ar : e.plural_en)}</span>
       </a>`).join("");
     hydrateIcons(box);
+    hydrateIcons(reg);
+    navAccApply();
+    revealActiveNav();
     syncShellChrome();
   }
 
@@ -285,6 +418,12 @@
   }
 
   function wireShell() {
+    /* one delegated listener: section and sub-group heads fold their content */
+    document.getElementById("nav").addEventListener("click", (e) => {
+      const head = e.target.closest(".nav-sec-head, .nav-sub-head");
+      if (!head) return;
+      navAccSet(head.parentElement, !head.parentElement.classList.contains("open"));
+    });
     document.getElementById("langToggle").onclick = async () => {
       const list = App.state.locales || [];
       const idx = list.findIndex(l => l.code === App.state.lang);
@@ -292,7 +431,7 @@
                    (App.state.lang === "ar" ? "en" : "ar");
       await App.loadMessages(next);
       App.setLang(next);
-      buildEntityNav(); buildActors();
+      buildNav(); buildActors();
       document.getElementById("globalSearch").placeholder = t("search.placeholder");
       document.getElementById("buildInfo").textContent =
         `SIRAJ v1.0 · ${(App.state.meta.entities || []).length} entities`;
@@ -382,7 +521,7 @@
     }
     App.setLang(App.state.lang, { silent: true });
     App.applyAppearance();
-    buildEntityNav();
+    buildNav();
     buildActors();
     wireShell();
     document.getElementById("buildInfo").textContent =
@@ -391,6 +530,22 @@
     document.getElementById("footStats").textContent = `SQLite · ${size} KB · schema 1.0.0`;
     measureChrome();
     window.addEventListener("resize", measureChrome);
+    /* Add and edit buttons never navigate.  A plain click on a form link opens
+       the shared record form as an overlay on the current screen; modified
+       clicks keep their link semantics (new tab, new window). */
+    document.addEventListener("click", (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey
+          || e.shiftKey || e.altKey) return;
+      const a = e.target && e.target.closest && e.target.closest('a[href^="#/"]');
+      if (!a || (a.target && a.target !== "_self")) return;
+      const href = a.getAttribute("href") || "";
+      const m = href.match(/^#\/entity\/([\w-]+)\/(?:new|(\d+)\/edit)$/)
+        || href.match(/^#\/military\/([\w-]+)\/(?:new|(\d+)\/edit)$/);
+      if (!m) return;
+      e.preventDefault();
+      Promise.resolve(App.forms.open(m[1], m[2] ? Number(m[2]) : null))
+        .catch(err => console.error(err));
+    });
     if (!location.hash) location.hash = "#/dashboard";
     window.addEventListener("hashchange", render);
     render();

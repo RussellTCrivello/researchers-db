@@ -262,7 +262,15 @@
   /* -------------------------------------------------------------- API --- */
   async function request(method, url, body, opts) {
     opts = opts || {};
-    const headers = { "X-Actor": App.state.actor };
+    const headers = Object.assign({
+      "X-Actor": App.state.actor,
+      /* every request may touch the military facade; the workspace role
+         selector persists this key and the API re-checks it server-side */
+      "X-Military-Role": (function () {
+        try { return localStorage.getItem("siraj.mil.role") || "admin"; }
+        catch (e) { return "admin"; }
+      })()
+    }, opts.headers || {});
     let payload;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) { headers["Content-Type"] = "application/json"; payload = JSON.stringify(body); }
@@ -323,6 +331,57 @@
   }
   function domainOptions(domain) {
     return ((App.state.meta.lookups || {})[domain] || []);
+  }
+
+  /* The geographical knowledge structure — one strict administrative chain
+     (app/geo_chain.py is the source of truth; a test enforces parity).
+     country → governorate (province) → district (region) → municipality
+     → village (neighborhood) → community (cluster).  Every hierarchical
+     selector in the UI walks this chain: a level lists ONLY the children of
+     the unit selected above it. */
+  const ADMIN_CHAIN = ["country", "governorate", "district", "municipality", "village", "community"];
+  function adminParentOf(domain) {
+    const i = ADMIN_CHAIN.indexOf(domain);
+    return i > 0 ? ADMIN_CHAIN[i - 1] : null;
+  }
+  function isAdminFieldKey(key) {
+    return typeof key === "string" && /_id$/.test(key)
+      && ADMIN_CHAIN.indexOf(key.replace(/_id$/, "")) >= 0;
+  }
+  /* vocabulary VALUES shown in dropdowns (free-code choices): the value is
+     data, its label is language.  Resolution order for the label:
+     mil.value.<field>.<value> (a field-specific wording) → mil.value.<value>
+     (the shared wording) → the value itself.  Same convention as the
+     settings' adm.value.* labels, so any language bundle can carry them. */
+  function optLabel(value, fieldKey, lang) {
+    if (value === null || value === undefined || value === "") return "";
+    const v = String(value);
+    const bundle = App.state.messages[lang || App.state.lang] || {};
+    const en = App.state.messages.en || {};
+    const keys = fieldKey
+      ? ["mil.value." + fieldKey + "." + v, "mil.value." + v]
+      : ["mil.value." + v];
+    for (const k of keys) {
+      const hit = bundle[k] || en[k];
+      if (hit) return hit;
+    }
+    return v;
+  }
+  /* free-code option lists as bilingual option objects {id, code, label_en,
+     label_ar} — the shape every dropdown renderer already speaks.  A server
+     that grows real bilingual options keeps its own labels. */
+  function optChoices(options, fieldKey) {
+    return (options || []).map(o => {
+      const obj = (o && typeof o === "object") ? o : {};
+      const code = typeof o === "string" ? o
+        : String(obj.code != null ? obj.code : (obj.id != null ? obj.id : ""));
+      return {
+        id: code,
+        code: code,
+        label_en: obj.label_en || optLabel(code, fieldKey, "en"),
+        label_ar: obj.label_ar || optLabel(code, fieldKey, "ar"),
+      };
+    });
   }
   function lookupById(id) {
     if (id == null || id === "") return null;
@@ -423,7 +482,8 @@
     "panel-right": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
     maximize: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
     minimize: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
-    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/>'
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/>',
+    shield: '<path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-4.5"/>'
   };
   function icon(name, cls) {
     const p = PATHS[name] || PATHS.grid;
@@ -611,13 +671,30 @@
          every confirmation resolve to "cancelled". */
       let settled = false;
       const answer = (value) => { if (!settled) { settled = true; resolve(value); } };
+      /* requirePhrase: destructive actions make the person type the exact
+         phrase (e.g. "CLEAR ALL DATA") before the confirm button engages. */
+      const phrase = opts.requirePhrase || "";
       const m = modal({
         title: opts.title || t("common.confirm"), size: "slim",
-        body: `<p>${opts.message || ""}</p>` + (opts.extra || ""),
+        body: `<p>${opts.message || ""}</p>` + (opts.extra || "") +
+          (phrase ? `<div class="field" style="margin-top:10px">
+            <label class="small muted">${esc(t("common.typeToConfirm"))}</label>
+            <input type="text" id="__confirmPhrase" class="grow" autocomplete="off"
+                   spellcheck="false" placeholder="${esc(phrase)}">
+          </div>` : ""),
         buttons: [
           { label: opts.cancelLabel || t("common.cancel"), cls: "", onClick: (c) => { answer(false); c(); } },
           { label: opts.confirmLabel || t("common.confirm"),
-            cls: opts.danger ? "danger" : "primary", onClick: (c) => { answer(true); c(); } }
+            cls: opts.danger ? "danger" : "primary", onClick: (c, bodyEl) => {
+              if (phrase) {
+                const inp = bodyEl ? bodyEl.querySelector("#__confirmPhrase") : null;
+                if (!inp || inp.value.trim() !== phrase) {
+                  toast(t("common.typeToConfirm"), "err");
+                  return;                       // keep the dialog open
+                }
+              }
+              answer(true); c();
+            } }
         ],
         onClose: () => answer(false)
       });
@@ -737,6 +814,8 @@
   /* -------------------------------------------------------- bootstrap --- */
   Object.assign(App, {
     t, api, label, fieldLabel, dispTitle, domainOptions, lookupById,
+    ADMIN_CHAIN, adminParentOf, isAdminFieldKey,
+    optLabel, optChoices,
     fmtDate, fmtNum, ago, esc, truncate, initials,
     toast, modal, confirmDialog, drawer,
     badge, statusBadge, icon, chart, setLang, setTheme, applyDir,

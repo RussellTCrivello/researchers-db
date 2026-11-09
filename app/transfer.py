@@ -73,6 +73,28 @@ def coerce_excel_date(value: Any) -> Any:
     return value
 
 
+# ---------------------------------------------------------------------------
+# Extension points.  The pipeline is generic over EntitySpec; these two hooks
+# let a module *outside* the registry join the same import/export machinery
+# without this layer importing it (no cycle, no duplicated pipeline):
+#   register_ref_source(spec, label_cols)  -> FK/lookup resolution for its rows
+#   register_write_hook(entity, fn)        -> row writes routed through its own
+#                                             service (military rules/numbering
+#                                             /roles/audit apply on import too)
+# Hook signature: fn(conn, spec, values, actor, record_id=None) -> written row
+# ---------------------------------------------------------------------------
+_REF_SOURCES: list[tuple[EntitySpec, tuple[str, ...]]] = []
+_WRITE_HOOKS: dict[str, Any] = {}
+
+
+def register_ref_source(spec: EntitySpec, label_cols: tuple[str, ...]) -> None:
+    _REF_SOURCES.append((spec, tuple(label_cols)))
+
+
+def register_write_hook(entity: str, fn) -> None:
+    _WRITE_HOOKS[entity] = fn
+
+
 def build_resolvers(conn: sqlite3.Connection) -> dict:
     """Lookup-domain and FK resolvers (id | code | English label | Arabic label)."""
     lookup_index: dict[str, dict[str, int]] = {}
@@ -94,6 +116,16 @@ def build_resolvers(conn: sqlite3.Connection) -> dict:
             idx[str(d["id"])] = d["id"]
             for c in ("code",) + name_cols:
                 if d.get(c):
+                    idx.setdefault(norm_key(d[c]), d["id"])
+    for spec, name_cols in _REF_SOURCES:
+        idx = ref_index.setdefault(spec.key, {})
+        have = {r["name"] for r in conn.execute(f"PRAGMA table_info({spec.table})")}
+        cols = [c for c in ("id", "code", "docname", *name_cols) if c in have]
+        for r in conn.execute(f"SELECT {', '.join(cols)} FROM {spec.table}"):
+            d = dict(r)
+            idx[str(d["id"])] = d["id"]
+            for c in cols:
+                if c != "id" and d.get(c):
                     idx.setdefault(norm_key(d[c]), d["id"])
     return {"lookup": lookup_index, "ref": ref_index}
 
@@ -333,6 +365,10 @@ def _resolve_value(conn, spec: EntitySpec, field, value, resolvers, errors: list
     if field.type == "date":
         value = coerce_excel_date(value)
     if field.type == "select":
+        if getattr(field, "store", None) == "code" or not field.domain:
+            # free-code vocabulary (e.g. military status/category codes):
+            # the value IS the code; the owning service validates it
+            return str(value).strip()
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             return int(value)
         raw = str(value).strip()
@@ -383,14 +419,17 @@ def _register_written(resolvers: dict, spec: EntitySpec, conn: sqlite3.Connectio
     """
     if not code:
         return
-    row = conn.execute(f"SELECT id FROM {spec.table} WHERE code=?", (code,)).fetchone()
+    match_col = "docname" if spec.field("docname") else "code"
+    row = conn.execute(f"SELECT id FROM {spec.table} WHERE {match_col}=?",
+                       (code,)).fetchone()
     if not row:
         return
     idx = resolvers["ref"].setdefault(spec.key, {})
     rid = row["id"]
     idx[str(rid)] = rid
     idx.setdefault(norm_key(code), rid)
-    for nkey in ("name_en", "name_ar", "title", "title_ar"):
+    for nkey in ("name_en", "name_ar", "title", "title_ar", "name",
+                 "full_name", "exercise_name", "docname"):
         if values.get(nkey):
             idx.setdefault(norm_key(str(values[nkey])), rid)
 
@@ -404,8 +443,14 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
     """Validate (and optionally write) rows.  Returns a detailed report."""
     resolvers = build_resolvers(conn)
     known = {f.key for f in spec.fields}
-    default_status_id = repo._lookup_id(conn, "record_status", default_status or "in_review")
-    match_on = [m for m in (match_on or ["code"]) if m in known | {"id"}]
+    hook = _WRITE_HOOKS.get(spec.key)
+    # registry rows key on `code`; military rows key on the generated `docname`
+    match_col = "docname" if spec.field("docname") else ("code" if spec.field("code") else None)
+    if hook is not None:
+        default_status_id = None          # a registry concept; the service sets its own
+    else:
+        default_status_id = repo._lookup_id(conn, "record_status", default_status or "in_review")
+    match_on = [m for m in (match_on or [match_col or "code"]) if m in known | {"id"}]
     mapping = {h: k for h, k in mapping.items() if k in known | {"id"} or k.startswith("_")}
     unknown_targets = sorted({k for k in mapping.values() if k not in known and k != "id"})
 
@@ -438,18 +483,19 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
                     row_errors.append({"row": i, "field": field.key, "message": err})
                 else:
                     values[field.key] = coerced
-        code = values.get("code") or (raw_row.get(mapping and list(mapping)[0]) if False else None)
-        if not code and "code" in mapping:
-            code = str(raw_row.get([h for h, k in mapping.items() if k == "code"][0]) or "").strip() or None
+        code = values.get(match_col or "") or values.get("code")
+        if not code and match_col and match_col in mapping:
+            code = str(raw_row.get([h for h, k in mapping.items() if k == match_col][0]) or "").strip() or None
 
         existing = None
-        if code:
+        if code and match_col:
             if norm_key(code) in seen_codes:
-                row_errors.append({"row": i, "field": "code",
+                row_errors.append({"row": i, "field": match_col,
                                    "message": f"Duplicate identification number '{code}' inside the file"})
             seen_codes[norm_key(code)] = i
-            existing = conn.execute(f"SELECT * FROM {spec.table} WHERE code=?", (code,)).fetchone()
-        elif mode in ("upsert", "update_only", "update") and match_on != ["code"]:
+            existing = conn.execute(f"SELECT * FROM {spec.table} WHERE {match_col}=?",
+                                    (code,)).fetchone()
+        elif mode in ("upsert", "update_only", "update") and match_on != [match_col or "code"]:
             clause = " AND ".join(f"{m}=?" for m in match_on if m in values)
             params = [values[m] for m in match_on if m in values]
             if clause:
@@ -481,6 +527,19 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
         # -- write inside a savepoint so one bad row cannot poison the batch
         conn.execute("SAVEPOINT imp_row")
         try:
+            if hook is not None:
+                # service-owned entity: rules / numbering / roles / audit apply
+                payload = dict(values)
+                if existing:
+                    written = hook(conn, spec, payload, actor, record_id=existing["id"])
+                    report["updated"] += 1
+                else:
+                    written = hook(conn, spec, payload, actor)
+                    report["created"] += 1
+                conn.execute("RELEASE SAVEPOINT imp_row")
+                wkey = (written or {}).get(match_col) if match_col else None
+                _register_written(resolvers, spec, conn, wkey or code, values)
+                continue
             if existing:
                 payload = dict(values)
                 payload.pop("code", None)
@@ -493,12 +552,14 @@ def process_rows(conn: sqlite3.Connection, spec: EntitySpec, rows: list[dict],
                     payload["record_status_id"] = default_status_id
                 if code:
                     payload["code"] = code
-                repo.create_record(conn, spec, payload, actor=actor,
-                                   reason=reason or "bulk import", commit=False)
+                created = repo.create_record(conn, spec, payload, actor=actor,
+                                             reason=reason or "bulk import", commit=False)
                 report["created"] += 1
+                if not code:
+                    code = (created or {}).get("code") or code
             conn.execute("RELEASE SAVEPOINT imp_row")
             _register_written(resolvers, spec, conn, code, values)
-        except (repo.RepoError, sqlite3.Error) as exc:
+        except Exception as exc:  # repo/SQL errors and service RuleViolation alike
             try:
                 conn.execute("ROLLBACK TO SAVEPOINT imp_row")
                 conn.execute("RELEASE SAVEPOINT imp_row")

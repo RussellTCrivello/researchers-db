@@ -11,7 +11,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from . import db, settings
+from . import db, geo_chain, settings
 
 _RESOURCES = Path(__file__).resolve().parent / "resources"
 
@@ -34,7 +34,10 @@ DOMAINS: list[tuple[str, str, str, str]] = [
     ("entity_type", "Entity type", "نوع الكيان", 40),
     ("country", "Country", "البلد", 50),
     ("governorate", "Governorates / provinces", "المحافظات / الأقاليم", 52),
-    ("district", "Districts", "الأقضية", 54),
+    ("district", "Districts / regions", "الأقضية / المناطق", 54),
+    ("municipality", "Municipalities", "البلديات", 56),
+    ("village", "Neighborhoods & villages", "الأحياء والقرى", 58),
+    ("community", "Communities / clusters", "التجمعات السكانية", 61),
     ("person_classification", "Person classification", "تصنيف الأشخاص", 60),
     ("person_status", "Person status", "حالة الشخص", 65),
     ("place_type", "Place types", "أنواع الأماكن", 70),
@@ -335,7 +338,18 @@ def _governorates() -> list[dict]:
     return _load_json("governorates.json")
 
 
-DISTRICTS: list[tuple[str, str, str, str, int]] = [
+def _districts() -> list[dict]:
+    return _load_json("districts.json")
+
+
+def _admin_units() -> list[dict]:
+    """municipality / village / community rows (resources/admin_units.json)."""
+    return _load_json("admin_units.json")
+
+
+# Stable centre rows from earlier releases: referenced by _OBSOLETE_DIST and
+# live place backfills. The full Arab-world set lives in resources/districts.json.
+LEGACY_DISTRICTS: list[tuple[str, str, str, str, int]] = [
     # code, governorate_code (ISO 3166-2), label_en, label_ar, sort
     ("IQ-NI-DW", "IQ-NI", "al-Dawwasa", "الدوّاسة", 10),
     ("IQ-BG-RS", "IQ-BG", "Rusafa", "الرصافة", 10),
@@ -425,6 +439,63 @@ def _retire_obsolete_governorates(conn: sqlite3.Connection) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Historical dimensions: units that existed, were renamed, merged or dissolved
+# stay in the structure with validity bounds and successors (meta), never
+# deleted.  Historical names of living units ride as meta.aliases.
+# ---------------------------------------------------------------------------
+def _flag_emoji(iso2: str) -> str:
+    """Regional-indicator flag for a two-letter code — the unit's visual emblem."""
+    code = (iso2 or "").strip().upper()
+    if len(code) != 2 or not code.isalpha():
+        return ""
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code)
+
+
+# code, label_en, label_ar, meta — rows in the 'country' domain (level 0)
+HISTORICAL_UNITS: list[tuple[str, str, str, dict]] = [
+    ("SU", "Soviet Union", "الاتحاد السوفيتي",
+     {"historical": True, "iso3": "SUN", "valid_from": "1922-12-30", "valid_to": "1991-12-26",
+      "successors": ["RU", "UA", "BY", "KZ", "UZ", "TM", "KG", "TJ", "AM", "AZ", "GE", "MD", "LT", "LV", "EE"]}),
+    ("YU", "Yugoslavia", "يوغوسلافيا",
+     {"historical": True, "iso3": "YUG", "valid_from": "1918-12-01", "valid_to": "2003-02-04",
+      "successors": ["SI", "HR", "BA", "RS", "ME", "MK"]}),
+    ("CS", "Czechoslovakia", "تشيكوسلوفاكيا",
+     {"historical": True, "iso3": "CSK", "valid_from": "1918-10-28", "valid_to": "1992-12-31",
+      "successors": ["CZ", "SK"]}),
+    ("DD", "German Democratic Republic", "ألمانيا الديمقراطية",
+     {"historical": True, "iso3": "DDR", "valid_from": "1949-10-07", "valid_to": "1990-10-03",
+      "successors": ["DE"]}),
+    ("YD", "People's Democratic Republic of Yemen", "اليمن الديمقراطية",
+     {"historical": True, "iso3": "YMD", "valid_from": "1967-11-30", "valid_to": "1990-05-22",
+      "successors": ["YE"]}),
+    ("NT", "United Arab Republic", "الجمهورية العربية المتحدة",
+     {"historical": True, "iso3": "UAR", "valid_from": "1958-02-01", "valid_to": "1971-09-02",
+      "successors": ["EG", "SY"]}),
+    ("SCG", "Serbia and Montenegro", "صربيا والجبل الأسود",
+     {"historical": True, "iso3": "SCG", "valid_from": "2003-02-04", "valid_to": "2006-06-05",
+      "successors": ["RS", "ME"]}),
+]
+
+# historical names of living units (meta.aliases on the country row)
+COUNTRY_ALIASES: dict[str, list[str]] = {
+    "IR": ["Persia", "بلاد فارس"],
+    "TH": ["Siam", "سيام"],
+    "MM": ["Burma", "بورما"],
+    "SZ": ["Swaziland", "سوازيلاند"],
+    "TL": ["East Timor", "تيمور الشرقية"],
+    "CV": ["Cape Verde", "الرأس الأخضر"],
+    "CZ": ["Czech Republic", "التشيك"],
+    "TR": ["Ottoman Empire successor state", "دولة عثمانية سابقة"],
+    "RU": ["Russian Empire", "الإمبراطورية الروسية"],
+    "GR": ["Hellas", "اليونان"],
+    "NL": ["Holland", "هولندا"],
+    "KP": ["Democratic People's Republic of Korea", "كوريا الشعبية"],
+    "KR": ["Republic of Korea", "كوريا الجنوبية"],
+    "VA": ["Holy See", "الفاتيكان"],
+    "BN": ["Brunei Darussalam", "بروناي دار السلام"],
+}
+
+
 def seed_reference_data(conn: sqlite3.Connection) -> None:
     # domains
     for domain, en, ar, order in DOMAINS:
@@ -450,7 +521,10 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
             )
     # countries (configurable vocabulary — new rows may be added in Vocabularies)
     for i, c in enumerate(_countries(), start=1):
-        meta = {"iso2": c["code"], "iso3": c.get("iso3") or "", "region": c.get("region") or ""}
+        meta = {"iso2": c["code"], "iso3": c.get("iso3") or "",
+                "region": c.get("region") or "", "flag": _flag_emoji(c["code"])}
+        if COUNTRY_ALIASES.get(c["code"]):
+            meta["aliases"] = COUNTRY_ALIASES[c["code"]]
         conn.execute(
             """INSERT OR IGNORE INTO lookup (domain, code, label_en, label_ar, sort_order, color, meta, is_system)
                VALUES ('country',?,?,?,?,?,?,0)""",
@@ -460,6 +534,16 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
                WHERE domain='country' AND code=?""",
             (c["label_en"], c["label_ar"], i * 10, db.json_dump(meta), c["code"]))
     conn.execute("UPDATE lookup SET is_system=0 WHERE domain='country'")
+    # historical units — dissolved or renamed states keep their place in time
+    for i, (hcode, hen, har, hmeta) in enumerate(HISTORICAL_UNITS, start=1):
+        conn.execute(
+            """INSERT OR IGNORE INTO lookup (domain, code, label_en, label_ar, sort_order, color, meta, is_system)
+               VALUES ('country',?,?,?,?,?,?,0)""",
+            (hcode, hen, har, 1000 + i * 10, "slate", db.json_dump(hmeta)))
+        conn.execute(
+            """UPDATE lookup SET label_en=?, label_ar=?, meta=?, is_active=1, is_system=0
+               WHERE domain='country' AND code=?""",
+            (hen, har, db.json_dump(hmeta), hcode))
     # governorates / provinces → parent country
     for g in _governorates():
         parent = conn.execute(
@@ -479,8 +563,13 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
                WHERE domain='governorate' AND code=?""",
             (parent["id"], g["label_en"], g["label_ar"], int(g.get("sort") or 100),
              db.json_dump(meta), g["code"]))
-    # districts → parent governorate (small illustrative set; more via Vocabularies)
-    for code, gcode, en, ar, order in DISTRICTS:
+    # districts → parent governorate (Arab world via resources/districts.json)
+    district_rows = LEGACY_DISTRICTS + [
+        (d["code"], d["governorate"], d["label_en"], d["label_ar"],
+         int(d.get("sort") or 100))
+        for d in _districts()
+    ]
+    for code, gcode, en, ar, order in district_rows:
         parent = conn.execute(
             "SELECT id FROM lookup WHERE domain='governorate' AND code=?", (gcode,)).fetchone()
         if not parent:
@@ -494,6 +583,26 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
             """UPDATE lookup SET parent_id=?, label_en=?, label_ar=?, sort_order=?, is_system=0
                WHERE domain='district' AND code=?""",
             (parent["id"], en, ar, order, code))
+    # municipalities → villages → communities (resources/admin_units.json)
+    for u in _admin_units():
+        level = u["level"]
+        parent_domain = geo_chain.expected_parent(level)
+        parent = conn.execute(
+            "SELECT id FROM lookup WHERE domain=? AND code=?", (parent_domain, u["parent"])
+        ).fetchone()
+        if not parent:
+            continue
+        conn.execute(
+            """INSERT OR IGNORE INTO lookup
+               (domain, code, label_en, label_ar, parent_id, sort_order, color, is_system)
+               VALUES (?,?,?,?,?,?,?,0)""",
+            (level, u["code"], u["label_en"], u["label_ar"], parent["id"],
+             int(u.get("sort") or 100), "violet"))
+        conn.execute(
+            """UPDATE lookup SET parent_id=?, label_en=?, label_ar=?, sort_order=?, is_system=0
+               WHERE domain=? AND code=?""",
+            (parent["id"], u["label_en"], u["label_ar"], int(u.get("sort") or 100),
+             level, u["code"]))
     # Retire pre-ISO demo province codes; remount places onto the ISO equivalents.
     _retire_obsolete_governorates(conn)
     # locales / users / sequences / settings
@@ -735,6 +844,7 @@ def seed_demo(conn: sqlite3.Connection) -> None:
         status = "published" if i % 3 else ("verified" if i % 2 else "in_review")
         rec = {
             "name_ar": ar, "name_en": en, "name_original": en, "name_original_lang": "en",
+            "category": "civilian",
             "name_transliteration": en.replace("b. ", "bin "),
             "birth_date": str(birth), "birth_precision": L("date_precision", "year"),
             "death_date": str(death) if death else None,
@@ -920,3 +1030,132 @@ def seed_demo(conn: sqlite3.Connection) -> None:
     total = db.rebuild_index(conn)
     conn.commit()
     print(f"[siraj] demo dataset created · {total} search documents indexed")
+
+
+# ---------------------------------------------------------------------------
+# demo completeness variation (testing aid — demo rows only, deterministic)
+# ---------------------------------------------------------------------------
+# Field groups cleared together (semantic pairs stay paired: coordinates with
+# their provenance, dates with their precision).  Identity, codes, names and
+# system columns are NEVER touched — variation means missing optional
+# metadata, not missing identity.
+_VARY_GROUPS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "person": (
+        ("image_url", "image_alt"),
+        ("birth_date", "birth_precision"),
+        ("death_date", "death_precision"),
+        ("nationality_id",),
+        ("birthplace_id",),
+        ("birthplace_text",),
+        ("classification_id",),
+        ("current_position",),
+        ("declared_affiliation",),
+        ("affiliated_institution_id",),
+        ("affiliated_country_id",),
+        ("affiliation_start", "affiliation_end"),
+        ("institutional_relations",),
+        ("website",),
+        ("social_accounts",),
+        ("cv_url",),
+        ("public_activity",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "place": (
+        ("image_url", "image_alt"),
+        ("region",),
+        ("city",),
+        ("district",),
+        ("parent_place_id",),
+        ("geo_description",),
+        ("research_significance",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "institution": (
+        ("image_url", "image_alt"),
+        ("abbreviation",),
+        ("founded_date", "founded_precision"),
+        ("closed_date",),
+        ("city",),
+        ("place_id",),
+        ("address",),
+        ("current_leadership",),
+        ("founders_text",),
+        ("objectives",),
+        ("org_structure",),
+        ("website",),
+        ("official_accounts",),
+        ("research_significance",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "event": (
+        ("image_url", "image_alt"),
+        ("start_date", "start_precision"),
+        ("end_date",),
+        ("place_id",),
+        ("description",),
+        ("significance",),
+        ("researcher_notes",),
+        ("latitude", "longitude", "geo_precision", "geocoding_method",
+         "geo_uncertainty_m", "geometry_source"),
+    ),
+    "source": (
+        ("publisher",),
+        ("url",),
+        ("publication_date", "publication_precision"),
+        ("access_date",),
+        ("supported_information",),
+        ("verification_notes",),
+        ("language",),
+        ("isbn_issn",),
+        ("archive_reference",),
+        ("researcher_notes",),
+    ),
+}
+
+_VARY_PROFILES = (("full", 1.0, 0.38), ("partial", 0.5, 0.72), ("minimal", 0.1, 1.0))
+
+
+def vary_demo(conn: sqlite3.Connection, seed: str = "20261107") -> dict[str, dict[str, int]]:
+    """Deterministic completeness variation over DEMO data (testing aid).
+
+    Produces complete, partial and near-empty records across the registry
+    entities so interfaces and reports are exercised against every state.
+    Idempotent: decisions derive purely from (seed, table, id).  Refuses to
+    run unless every row in each target table is demo-created (``created_by =
+    'system'``) — real user data is never touched.
+    """
+    import random as _random
+
+    stats: dict[str, dict[str, int]] = {}
+    for table, groups in _VARY_GROUPS.items():
+        total = conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
+        foreign = conn.execute(
+            f"SELECT COUNT(*) AS n FROM {table} WHERE created_by IS NOT 'system'"
+        ).fetchone()["n"]
+        if total and foreign:
+            raise RuntimeError(
+                f"vary_demo refused: {table} contains {foreign} non-demo row(s) "
+                f"— real user data is never modified")
+        counts = {"full": 0, "partial": 0, "minimal": 0, "groups_cleared": 0}
+        for row in conn.execute(f"SELECT id FROM {table}").fetchall():
+            rng = _random.Random(f"{seed}:{table}:{row['id']}")
+            r = rng.random()
+            profile, keep, _ = next(p for p in _VARY_PROFILES
+                                    if r < p[2]) if r < 1.0 else _VARY_PROFILES[-1]
+            counts[profile] += 1
+            if profile == "full":
+                continue
+            for group in groups:
+                if rng.random() > keep:
+                    sets = ", ".join(f"{col} = NULL" for col in group)
+                    conn.execute(f"UPDATE {table} SET {sets} WHERE id = ?", (row["id"],))
+                    counts["groups_cleared"] += 1
+        stats[table] = counts
+    conn.commit()
+    return stats

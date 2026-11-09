@@ -122,6 +122,23 @@ def _coerce_filter_value(value: Any, ftype: str | None) -> Any:
 
 # filled once per process: domain -> {code/label: id}, so filters can speak in codes
 _LOOKUP_CACHE: dict[str, dict[str, int]] = {}
+# and its code-store twin: domain -> {code/label: code} for store="code" selects
+_LOOKUP_CODE_CACHE: dict[str, dict[str, str]] = {}
+
+
+def _lookup_code_index(conn: sqlite3.Connection, domain: str) -> dict[str, str]:
+    """code / label_en / label_ar / normalised label → canonical code."""
+    if domain not in _LOOKUP_CODE_CACHE:
+        index: dict[str, str] = {}
+        for r in conn.execute(
+                "SELECT code, label_en, label_ar FROM lookup WHERE domain=?", (domain,)):
+            for key in (r["code"], r["label_en"], r["label_ar"]):
+                if not key:
+                    continue
+                index.setdefault(str(key).strip().lower(), r["code"])
+                index.setdefault(db.normalize(key), r["code"])
+        _LOOKUP_CODE_CACHE[domain] = index
+    return _LOOKUP_CODE_CACHE[domain]
 
 
 def _lookup_index(conn: sqlite3.Connection, domain: str) -> dict[str, int]:
@@ -140,11 +157,15 @@ def _lookup_index(conn: sqlite3.Connection, domain: str) -> dict[str, int]:
 
 
 def _resolve_select_value(conn: sqlite3.Connection, field: Any, value: Any) -> Any:
-    """Turn a vocabulary *code* or *label* into the numeric id stored in the row.
+    """Turn a vocabulary *code* or *label* into the value stored in the row.
 
     The UI always sends ids, but scripts, saved views and hand-written filters read
     better with codes (``record_status_id: "verified"``).  Without this a code would
     simply match nothing — a silent empty result is the worst possible behaviour.
+
+    Which shape the row stores depends on the field: id-valued selects resolve to
+    the numeric id, while ``store="code"`` selects (person category, language …)
+    hold the code itself, so aliases resolve to the canonical *code*.
     """
     if conn is None or value is None or field is None:
         return value
@@ -152,6 +173,13 @@ def _resolve_select_value(conn: sqlite3.Connection, field: Any, value: Any) -> A
         return value
     if isinstance(value, bool):
         return value
+    domain = getattr(field, "domain", None)
+    if getattr(field, "store", "id") == "code" and domain:
+        text = str(value).strip()
+        if not text:
+            return value
+        index = _lookup_code_index(conn, domain)
+        return index.get(text.lower()) or index.get(db.normalize(text)) or value
     if isinstance(value, (int, float)):
         return int(value)
     text = str(value).strip()
@@ -159,7 +187,6 @@ def _resolve_select_value(conn: sqlite3.Connection, field: Any, value: Any) -> A
         return value
     if text.lstrip("-").isdigit():
         return int(text)
-    domain = getattr(field, "domain", None)
     if not domain:
         return value
     index = _lookup_index(conn, domain)
@@ -249,10 +276,13 @@ def build_where(spec: EntitySpec, payload: dict,
     params: list[Any] = []
     warnings: list[str] = []
 
-    if payload.get("only_deleted"):
-        where.append("t.deleted_at IS NOT NULL")
-    elif not payload.get("include_deleted"):
-        where.append("t.deleted_at IS NULL")
+    # Soft-delete flags only exist on registry tables; entities without the
+    # capability (soft_delete=False) must not filter on a column they lack.
+    if getattr(spec, "soft_delete", True):
+        if payload.get("only_deleted"):
+            where.append("t.deleted_at IS NOT NULL")
+        elif not payload.get("include_deleted"):
+            where.append("t.deleted_at IS NULL")
 
     if payload.get("status_ids"):
         ids = [int(i) for i in payload["status_ids"] if str(i).lstrip("-").isdigit()]
@@ -418,15 +448,25 @@ def build_where(spec: EntitySpec, payload: dict,
     logic = " OR " if str(payload.get("logic", "and")).lower() == "or" else " AND "
     clause = (logic.join(f"({w})" for w in where)) if where else "1=1"
 
-    # free text search via the FTS index (Arabic-normalised)
+    # free text search via the FTS index (Arabic-normalised); entities that do
+    # not live in search_doc (full_text_index=False) fall back to a LIKE scan of
+    # their own text fields, so quick search works on every table alike
     q = (payload.get("q") or "").strip()
-    if q:
+    if q and getattr(spec, "full_text_index", True):
         match = db.fts_query(q)
         if match:
             clause += (" AND " if clause != "1=1" else "") + (
                 f"t.id IN (SELECT entity_id FROM search_doc "
                 f"WHERE search_doc MATCH ? AND entity_type='{spec.key}')")
             params.append(match)
+    elif q:
+        likes = [f"norm(t.{f.key}) LIKE ?" for f in spec.fields
+                 if (f.type in ("text", "textarea") and not f.system)
+                 or f.key == "code"]
+        if likes:
+            group = "(" + " OR ".join(likes) + ")"
+            clause = group if clause == "1=1" else clause + " AND " + group
+            params += [f"%{db.normalize(q)}%"] * len(likes)
     return clause, params, warnings
 
 
@@ -502,8 +542,9 @@ def kpi_summary(conn: sqlite3.Connection, spec: EntitySpec, payload: dict) -> di
         agg_cols += ['AVG("d_completeness") AS avg_completeness',
                      'SUM(CASE WHEN "d_completeness" < 50 THEN 1 ELSE 0 END) AS low_completeness']
     sum_sql = "".join(f', SUM("d_{k}") AS "s_{k}"' for k in sums)
-    agg_cols.append("SUM(CASE WHEN julianday('now') - julianday(updated_at) <= 30 "
-                    "THEN 1 ELSE 0 END) AS recent")
+    agg_cols.append(f"SUM(CASE WHEN julianday('now') - julianday("
+                    f"{getattr(spec, 'freshness_col', 'updated_at')}) <= 30 "
+                    f"THEN 1 ELSE 0 END) AS recent")
     row = conn.execute(
         f'SELECT {", ".join(agg_cols)}{sum_sql} '
         f'FROM (SELECT *{_derived_select(spec)} FROM {spec.table} t WHERE {where}) q',
@@ -905,7 +946,86 @@ def _assert_required(spec: EntitySpec, values: dict, partial: bool = False) -> N
         raise ValidationError("Missing required field(s): " + ", ".join(missing))
 
 
+def _assert_category_fields(conn: sqlite3.Connection, spec: EntitySpec,
+                            values: dict) -> None:
+    """Category-conditional attributes require the matching category.
+
+    ``spec.category_fields`` maps each category code to the attributes that
+    belong to that classification (a military person shows rank, branch,
+    commission date, service status and military biography).  Holding one of
+    those attributes without the category is a contradictory record: the
+    request is refused and the message names the attribute in both languages.
+    """
+    if not spec.category_fields or not spec.category_field:
+        return
+    category = values.get(spec.category_field)
+    category_f = spec.field(spec.category_field)
+    cat_label_en = (category_f.label_en if category_f else spec.category_field)
+    cat_label_ar = (category_f.label_ar if category_f else spec.category_field)
+    for code, keys in spec.category_fields.items():
+        if str(category or "") == code:
+            continue
+        labels = None
+        if category_f and category_f.domain:
+            labels = conn.execute(
+                "SELECT label_en, label_ar FROM lookup WHERE domain=? AND code=?",
+                (category_f.domain, code),
+            ).fetchone()
+        code_en = labels["label_en"] if labels else code
+        code_ar = labels["label_ar"] if labels else code
+        for key in keys:
+            if values.get(key) in (None, ""):
+                continue
+            f = spec.field(key)
+            label_en = f.label_en if f else key
+            label_ar = f.label_ar if f else key
+            raise ValidationError({
+                key: (f"{label_en} belongs to a {code_en} person — set "
+                      f"{cat_label_en} to {code_en} first. / "
+                      f"{label_ar} صفة الشخص {code_ar} — اضبط {cat_label_ar} "
+                      f"على «{code_ar}» أولاً.")})
+
+
 PUBLISHED_STATUS_CODES = ("published", "verified")
+
+# Extra write guards registered by feature modules (the military module guards
+# person service rules such as "relieve appointments before retiring").  Each
+# guard is ``(conn, entity_key, before_row | None, values)``; they run inside
+# the write transaction after the schema-level checks.
+UPDATE_GUARDS: list = []
+
+
+def _assert_transitions(spec: EntitySpec, before: dict | None, values: dict) -> None:
+    """Value-transition policies: only *changes* are constrained.
+
+    ``spec.transition_policies`` maps a field to ``{current: allowed-next}``
+    (``app.schemas.SERVICE_STATUS_TRANSITIONS`` for a person's service
+    status — Active → Reserve → Retired, Retired terminal).  A record may be
+    created holding any state; an empty tuple marks a terminal state.
+    """
+    for key, policy in (spec.transition_policies or {}).items():
+        if key not in values or not before:
+            continue
+        old = before.get(key)
+        new = values.get(key)
+        if new in (None, "") or str(new) == str(old or ""):
+            continue
+        if old in (None, ""):
+            continue                      # entering the lifecycle: any state
+        allowed = policy.get(str(old), None)
+        if allowed is None:
+            continue                      # unknown origin state: do not guess
+        if str(new) not in allowed:
+            f = spec.field(key)
+            label_en = f.label_en if f else key
+            label_ar = f.label_ar if f else key
+            ok = " / ".join(a for a in allowed) or "—"
+            ok_ar = "، ".join(a for a in allowed) or "—"
+            raise ValidationError({
+                key: (f"{label_en} cannot move from {old!r} to {new!r} "
+                      f"(allowed next: {ok}). / "
+                      f"لا يمكن أن تنتقل {label_ar} من «{old}» إلى «{new}» "
+                      f"(المسموح: {ok_ar}).")})
 
 
 def _status_code(conn: sqlite3.Connection, status_id: Any) -> str | None:
@@ -1202,6 +1322,9 @@ def create_record(conn: sqlite3.Connection, spec: EntitySpec, data: dict,
         raise ValidationError(errors)
     _apply_precise_location(conn, spec, data or {}, values, None, actor, reason)
     _assert_required(spec, values)
+    _assert_category_fields(conn, spec, values)
+    for guard in UPDATE_GUARDS:
+        guard(conn, spec.key, None, values)
     _quality_gate(conn, spec, values)
     supplied_code = (data or {}).get("code")
     code = supplied_code or db.next_code(conn, spec.key)
@@ -1265,6 +1388,10 @@ def update_record(conn: sqlite3.Connection, spec: EntitySpec, rec_id: int, data:
         _unique_code(conn, spec, str(data["code"]).strip(), exclude_id=rec_id)
         values["code"] = str(data["code"]).strip()
     # policy applies to the state the record is about to have, not to the patch
+    _assert_category_fields(conn, spec, {**before, **values})
+    _assert_transitions(spec, before, values)
+    for guard in UPDATE_GUARDS:
+        guard(conn, spec.key, before, values)
     _quality_gate(conn, spec, {**before, **values}, rec_id=rec_id)
     values["updated_at"] = db.now()
     values["updated_by"] = actor
@@ -1629,15 +1756,33 @@ def _index_record(conn, spec: EntitySpec, rec_id: int) -> None:
 # ---------------------------------------------------------------------------
 # options for pickers / filters
 # ---------------------------------------------------------------------------
-def lookup_options(conn, domain: str | None = None, include_inactive: bool = False) -> dict:
+def lookup_options(conn, domain: str | None = None, include_inactive: bool = False,
+                   parent_id: int | None = None, q: str | None = None,
+                   limit: int | None = None, offset: int = 0) -> dict:
+    """Lookup rows grouped by domain (flat when `domain` is given).
+
+    Hierarchical selection contract: pass `parent_id` to receive ONLY the direct
+    children of that unit — the server enforces the cascade, callers cannot see
+    siblings of other branches.  `q` filters code/labels; `limit`/`offset` page.
+    """
     sql = "SELECT * FROM lookup WHERE 1=1"
     params: list[Any] = []
     if domain:
         sql += " AND domain=?"
         params.append(domain)
+    if parent_id is not None:
+        sql += " AND parent_id=?"
+        params.append(int(parent_id))
+    if q:
+        sql += (" AND (lower(code) LIKE ? OR lower(label_en) LIKE ? OR lower(label_ar) LIKE ?)")
+        like = f"%{q.lower()}%"
+        params.extend([like, like, like])
     if not include_inactive:
         sql += " AND is_active=1"
     sql += " ORDER BY domain, sort_order, id"
+    if limit is not None:
+        sql += " LIMIT ? OFFSET ?"
+        params.extend([int(limit), int(offset)])
     rows = conn.execute(sql, params).fetchall()
     out: dict[str, list] = {}
     for r in rows:
