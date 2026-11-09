@@ -78,6 +78,27 @@ Both affordances are always present and never conflict:
 * changing filters, sorting or page size resets to page 1 — a partial append never mixes two
   different result sets.
 
+### The sidebar: a layered accordion
+
+The navigation is a multi-layered accordion rather than one long list of links. Five sections —
+**Workspace**, **Military Organization**, **Entities**, **Data operations**, **Administration** —
+fold their content away (only Workspace opens by default), and the military twelve sit inside
+themed sub-groups: Organization (units, regions, branches, categories), Operations (deployment
+operations, tasks, training), Logistics (armaments, holdings), Leadership (commanders, leadership
+traits, assignments) and Records (notes).
+
+* Section and sub-group heads are real buttons (`aria-expanded`) with animated folds
+  (`grid-template-rows` 0fr↔1fr, disabled under `prefers-reduced-motion`); a quiet guide line ties
+  each group's items to its label.
+* Open folds persist per browser (`localStorage siraj.navAcc`), and the folds around the active
+  page open themselves — a deep link always lands with its entry visible.
+* **Commanders** is the person register pre-filtered to the military category
+  (`#/entity/person?q=category:military`) — the Leader is a person; vocabulary values in typed
+  queries resolve to what the column stores (code-valued selects included).
+* The collapsed icon rail flattens the accordion into one scannable column: group heads become
+  hairline separators, every link stays one click away. Carets mirror automatically under RTL, and
+  Arabic group labels never take uppercase or letter-spacing.
+
 ## 3. Displaying any field — including fields derived from related tables
 
 Fields come in two kinds, unified in `A.registry(entity)`:

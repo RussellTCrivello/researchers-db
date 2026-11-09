@@ -122,6 +122,23 @@ def _coerce_filter_value(value: Any, ftype: str | None) -> Any:
 
 # filled once per process: domain -> {code/label: id}, so filters can speak in codes
 _LOOKUP_CACHE: dict[str, dict[str, int]] = {}
+# and its code-store twin: domain -> {code/label: code} for store="code" selects
+_LOOKUP_CODE_CACHE: dict[str, dict[str, str]] = {}
+
+
+def _lookup_code_index(conn: sqlite3.Connection, domain: str) -> dict[str, str]:
+    """code / label_en / label_ar / normalised label → canonical code."""
+    if domain not in _LOOKUP_CODE_CACHE:
+        index: dict[str, str] = {}
+        for r in conn.execute(
+                "SELECT code, label_en, label_ar FROM lookup WHERE domain=?", (domain,)):
+            for key in (r["code"], r["label_en"], r["label_ar"]):
+                if not key:
+                    continue
+                index.setdefault(str(key).strip().lower(), r["code"])
+                index.setdefault(db.normalize(key), r["code"])
+        _LOOKUP_CODE_CACHE[domain] = index
+    return _LOOKUP_CODE_CACHE[domain]
 
 
 def _lookup_index(conn: sqlite3.Connection, domain: str) -> dict[str, int]:
@@ -140,11 +157,15 @@ def _lookup_index(conn: sqlite3.Connection, domain: str) -> dict[str, int]:
 
 
 def _resolve_select_value(conn: sqlite3.Connection, field: Any, value: Any) -> Any:
-    """Turn a vocabulary *code* or *label* into the numeric id stored in the row.
+    """Turn a vocabulary *code* or *label* into the value stored in the row.
 
     The UI always sends ids, but scripts, saved views and hand-written filters read
     better with codes (``record_status_id: "verified"``).  Without this a code would
     simply match nothing — a silent empty result is the worst possible behaviour.
+
+    Which shape the row stores depends on the field: id-valued selects resolve to
+    the numeric id, while ``store="code"`` selects (person category, language …)
+    hold the code itself, so aliases resolve to the canonical *code*.
     """
     if conn is None or value is None or field is None:
         return value
@@ -152,6 +173,13 @@ def _resolve_select_value(conn: sqlite3.Connection, field: Any, value: Any) -> A
         return value
     if isinstance(value, bool):
         return value
+    domain = getattr(field, "domain", None)
+    if getattr(field, "store", "id") == "code" and domain:
+        text = str(value).strip()
+        if not text:
+            return value
+        index = _lookup_code_index(conn, domain)
+        return index.get(text.lower()) or index.get(db.normalize(text)) or value
     if isinstance(value, (int, float)):
         return int(value)
     text = str(value).strip()
@@ -159,7 +187,6 @@ def _resolve_select_value(conn: sqlite3.Connection, field: Any, value: Any) -> A
         return value
     if text.lstrip("-").isdigit():
         return int(text)
-    domain = getattr(field, "domain", None)
     if not domain:
         return value
     index = _lookup_index(conn, domain)

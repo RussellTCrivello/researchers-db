@@ -102,11 +102,21 @@
       a.classList.toggle("active", route.path === target ||
         (a.dataset.route && route.path.startsWith("/" + a.dataset.route)));
     });
-    // entity nav highlight
+    // entity nav highlight — a pre-filtered link (Commanders) claims its
+    // exact query; the plain link stays active for any other query
     document.querySelectorAll("[data-entity-nav]").forEach(a => {
-      a.classList.toggle("active", route.params.entity === a.dataset.entityNav &&
-        route.view.startsWith("list") || route.params.entity === a.dataset.entityNav && route.view.startsWith("record"));
+      const onEntity = route.params.entity === a.dataset.entityNav &&
+        (route.view.startsWith("list") || route.view.startsWith("record"));
+      const haveQ = route.params.q || "";
+      let active = onEntity;
+      if (active && (a.dataset.q || "") !== haveQ) {
+        const claimed = [...document.querySelectorAll(
+          `[data-entity-nav="${a.dataset.entityNav}"][data-q]`)].map(x => x.dataset.q);
+        active = a.dataset.q ? false : !claimed.includes(haveQ);
+      }
+      a.classList.toggle("active", active);
     });
+    revealActiveNav();
     const token = String((App._seq = (App._seq || 0) + 1));
     view.dataset.render = token;
     document.getElementById("sidebar").classList.remove("open");
@@ -166,14 +176,110 @@
   App.go = (hash) => { location.hash = hash; };
   App.parseHash = parseHash;
 
-  function buildEntityNav() {
-    const box = document.getElementById("entityNav");
-    box.innerHTML = (App.state.meta.entities || []).map(e => `
+  /* ------------------------------------------------- sidebar accordion ---
+     The sidebar is a layered accordion: sections fold their content away and
+     the military twelve sit inside themed sub-groups (Organization, Operations,
+     Logistics, Leadership, Records) so no wall of links greets the user.  Open
+     state persists per browser and the section holding the active page opens
+     itself, so deep links always land with their item visible. */
+  const MIL_NAV_GROUPS = [
+    { key: "org", i18n: "nav.mil.org", items: [
+      { ent: "unit", label: "nav.mil.units", icon: "shield" },
+      { ent: "region", label: "nav.mil.regions", icon: "globe" },
+      { ent: "division", label: "nav.mil.branches", icon: "layers" },
+      { ent: "classification", label: "nav.mil.categories", icon: "list" }] },
+    { key: "ops", i18n: "nav.mil.ops", items: [
+      { ent: "deployment", label: "nav.mil.deployments", icon: "compass" },
+      { ent: "mission", label: "nav.mil.tasks", icon: "check" },
+      { ent: "training", label: "nav.mil.training", icon: "activity" }] },
+    { key: "logi", i18n: "nav.mil.logi", items: [
+      { ent: "armament", label: "nav.mil.armaments", icon: "crosshair" },
+      { ent: "holding", label: "nav.mil.holdings", icon: "database" }] },
+    { key: "lead", i18n: "nav.mil.lead", items: [
+      /* the Leader is a person: Commanders is the military-category register */
+      { ent: "person", label: "nav.mil.commanders", icon: "user",
+        q: "category:military" },
+      { ent: "trait", label: "nav.mil.traits", icon: "chart" },
+      { ent: "assignment", label: "nav.mil.assignments", icon: "calendar" }] },
+    { key: "rec", i18n: "nav.mil.rec", items: [
+      { ent: "note", label: "nav.mil.notes", icon: "edit" }] },
+  ];
+  const MIL_NAV_ENTS = new Set(MIL_NAV_GROUPS.flatMap(g => g.items.map(i => i.ent))
+    .filter(k => k !== "person"));
+
+  function navAccState() {
+    try { return JSON.parse(localStorage.getItem("siraj.navAcc") || "{}"); }
+    catch (e) { return {}; }
+  }
+  function navAccStore(state) {
+    try { localStorage.setItem("siraj.navAcc", JSON.stringify(state)); } catch (e) {}
+  }
+  function navAccSet(box, open) {
+    box.classList.toggle("open", open);
+    const head = box.querySelector(":scope > .nav-sec-head, :scope > .nav-sub-head");
+    if (head) head.setAttribute("aria-expanded", String(open));
+    const k = (box.classList.contains("nav-sub") ? "sub:" : "sec:") +
+      (box.dataset.sub || box.dataset.sec || "");
+    const state = navAccState();
+    state[k] = open;
+    navAccStore(state);
+  }
+  /** Restore persisted folds; default: Workspace open, everything else closed. */
+  function navAccApply() {
+    const state = navAccState();
+    document.querySelectorAll("#nav .nav-sec, #nav .nav-sub").forEach(box => {
+      const isSub = box.classList.contains("nav-sub");
+      const key = (isSub ? "sub:" : "sec:") + (box.dataset.sub || box.dataset.sec || "");
+      const def = isSub ? false : box.dataset.sec === "workspace";
+      const open = key in state ? !!state[key] : def;
+      box.classList.toggle("open", open);
+      const head = box.querySelector(":scope > .nav-sec-head, :scope > .nav-sub-head");
+      if (head) head.setAttribute("aria-expanded", String(open));
+    });
+  }
+  /** Deep links land with their item visible: open the folds around it. */
+  function revealActiveNav() {
+    const active = document.querySelector("#nav .nav-item.active");
+    if (!active) return;
+    let el = active.parentElement;
+    while (el && el.id !== "nav") {
+      if (el.classList && (el.classList.contains("nav-sub") ||
+                           el.classList.contains("nav-sec"))) {
+        if (!el.classList.contains("open")) navAccSet(el, true);
+      }
+      el = el.parentElement;
+    }
+  }
+
+  function buildNav() {
+    const box = document.getElementById("milNav");
+    box.innerHTML = MIL_NAV_GROUPS.map(g => `
+      <div class="nav-sub" data-sub="${g.key}">
+        <button class="nav-sub-head" type="button" aria-expanded="false">
+          <span class="nav-sub-title">${esc(t(g.i18n))}</span>
+          <span class="nav-sub-caret" aria-hidden="true"></span>
+        </button>
+        <div class="nav-sub-body"><div class="nav-sub-inner">
+          ${g.items.map(it => `
+            <a class="nav-item" data-entity-nav="${it.ent}"${it.q ? ` data-q="${esc(it.q)}"` : ""}
+               href="#/entity/${it.ent}${it.q ? `?q=${encodeURIComponent(it.q)}` : ""}">
+              <span class="ico" data-icon="${it.icon}"></span>
+              <span>${esc(t(it.label))}</span>
+            </a>`).join("")}
+        </div></div>
+      </div>`).join("");
+    const reg = document.getElementById("entityNav");
+    reg.innerHTML = (App.state.meta.entities || [])
+      .filter(e => !MIL_NAV_ENTS.has(e.key))
+      .map(e => `
       <a class="nav-item" data-entity-nav="${e.key}" href="#/entity/${e.key}">
         <span class="ico" data-icon="${e.icon}"></span>
         <span>${esc(App.state.lang === "ar" ? e.plural_ar : e.plural_en)}</span>
       </a>`).join("");
     hydrateIcons(box);
+    hydrateIcons(reg);
+    navAccApply();
+    revealActiveNav();
     syncShellChrome();
   }
 
@@ -312,6 +418,12 @@
   }
 
   function wireShell() {
+    /* one delegated listener: section and sub-group heads fold their content */
+    document.getElementById("nav").addEventListener("click", (e) => {
+      const head = e.target.closest(".nav-sec-head, .nav-sub-head");
+      if (!head) return;
+      navAccSet(head.parentElement, !head.parentElement.classList.contains("open"));
+    });
     document.getElementById("langToggle").onclick = async () => {
       const list = App.state.locales || [];
       const idx = list.findIndex(l => l.code === App.state.lang);
@@ -319,7 +431,7 @@
                    (App.state.lang === "ar" ? "en" : "ar");
       await App.loadMessages(next);
       App.setLang(next);
-      buildEntityNav(); buildActors();
+      buildNav(); buildActors();
       document.getElementById("globalSearch").placeholder = t("search.placeholder");
       document.getElementById("buildInfo").textContent =
         `SIRAJ v1.0 · ${(App.state.meta.entities || []).length} entities`;
@@ -409,7 +521,7 @@
     }
     App.setLang(App.state.lang, { silent: true });
     App.applyAppearance();
-    buildEntityNav();
+    buildNav();
     buildActors();
     wireShell();
     document.getElementById("buildInfo").textContent =
