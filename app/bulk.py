@@ -747,7 +747,7 @@ def generate(
 
     # ------------------------------------------------------------ positions
     pos_rows: list[tuple] = []
-    for pid, _na, _ne, _name_en in person_meta:
+    for pid, _na, _ne in person_meta:
         if not _chance(rng, cfg["positions_per_person"]):
             continue
         for slot in range(rng.randint(1, 3)):

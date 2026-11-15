@@ -1,6 +1,6 @@
 # Interface guide — views, fields and the "no dead ends" data-entry flow
 
-*SIRAJ · سِراج — phase 2 (UI / field refinement).* Everything described here is generated
+*SIRAJ — phase 2 (UI / field refinement).* Everything described here is generated
 from the metadata in `app/schemas.py`, so **it applies to every entity, every field, and any
 field you add later** — including fields computed from related tables.
 
@@ -325,6 +325,13 @@ The map answers one question well: *how are these records connected, and how muc
   encodes degree; the centre node is emphasised.
 * **Every node is a link** — a type node opens its list, a record node opens its dossier.
 
+![entity types](screenshots/map-entities-en.png)
+![around one record](screenshots/map-focus-en.png)
+
+*Left — **Entity types**: the six types as a radial graph, weighted edges, the totals strip and the
+connection matrix below. Right — **Around one record**: one person's direct neighbourhood on a
+ring. Both are live diagrams; every node opens its list or dossier.*
+
 ### 8.1 · The canvas: navigating a diagram too big for one screen
 
 The diagram is not a static picture that happens to be clickable. It is a camera over an infinite
@@ -350,7 +357,8 @@ English (LTR) and Arabic (RTL) — the coordinate maths goes through the live sc
 directions behave the same.
 
 The figures in `docs/diagrams/` are generated from the same data by
-`python3 scripts/make_diagrams.py`; see [`GRAPH.md`](GRAPH.md).
+`python3 scripts/make_diagrams.py` (default `--lang en`; `--lang both` adds the Arabic
+labels); see [`GRAPH.md`](GRAPH.md).
 
 ---
 
@@ -577,10 +585,11 @@ on any machine.
 ## 13 · Verifying the interface
 
 ```bash
-python3 -m pytest tests/ -q          # 94 API/database tests
-python3 tests/verify_all.py          # 207 API checks (every route + the date model)
-python3 tests/ui_smoke.py            # 46 browser checks (needs `playwright install chromium`)
-python3 tests/ui_full.py             # 185 browser checks — every screen and control
+python3 -m pytest tests/ -q          # 390 API/database tests
+python3 tests/verify_all.py          # 503 API checks (every one of the 141 routes + the date model)
+python3 tests/ui_smoke.py            # 51 browser checks (needs `playwright install chromium`)
+python3 tests/ui_full.py             # 200 browser checks — every screen and control
+python3 tests/inspect_ui.py          # 52 browser checks — the inspector
 python3 tests/structures_ui.py       # 62 browser checks — the six structures
 python3 tests/desk_ui.py             # 87 browser checks — the map desk
 ```

@@ -5,6 +5,7 @@ Send the acting user in the header `X-Actor: <username>` (defaults to `researche
 it is recorded in the audit trail.
 
 Interactive documentation: **http://localhost:8000/docs** (OpenAPI) and `/redoc`.
+Every one of the **141 route templates** is exercised by `tests/verify_all.py` (503 checks).
 
 **Optional token auth.** Set `SIRAJ_API_TOKEN=<token>` before starting the server and every
 `/api/*` call must then send `Authorization: Bearer <token>` (the static shell and `/api/health`
@@ -281,8 +282,34 @@ folded into a declared aggregate rather than truncated.
 
 | method | path | notes |
 |---|---|---|
-GET | `/api/structures` | `{ok, sources[{id, entity, label_en, label_ar, note_en, note_ar, total, chain[{en, ar}]}], max_depth, max_children}`. Six sources: `people`, `institutions`, `places`, `relationships`, `sources`, `events`.
-GET | `/api/structures/{source}?depth=3&max_children=24` | `{ok, source, chain[{key,label_en,label_ar}], depth, max_children, root{id,label_en,label_ar,value,children[],meta}, total, computed_ms, cached}`. `depth` 1–4, `max_children` 3–40. Children of a node always add up to that node; a folded branch is `meta.synthetic` with `count` and `folded`. Unknown source → `404`; an ungroupable field → `422` with the reason. Short-lived server cache: `cached` says when it was used.
+GET | `/api/structures` | `{ok, sources[{id, entity, label_en, label_ar, note_en, note_ar, total, chain[{en, ar}]}], max_depth, max_children}`. Eleven sources: the six registry structures (`people`, `institutions`, `places`, `relationships`, `sources`, `events`) and five military ones (`units`, `regions`, `regions-units`, `units-ops`, `forces`).
+GET | `/api/structures/{source}?depth=3&max_children=24` | `{ok, source, chain[{key,label_en,label_ar}], depth, max_children, root{id,label_en,label_ar,value,children[],meta}, total, computed_ms, cached}`. `depth` 1–4, `max_children` 3–40. A node's value is its whole subtree: its own record plus everything below it, so children plus the node's own record always add up to the node; a folded branch is `meta.synthetic` with `count` and `folded`. Unknown source → `404`; an ungroupable field → `422` with the reason. Short-lived server cache: `cached` says when it was used.
+
+## Military Organization (BIMS)
+
+The Brigade Command module answers under `/api/military` over the same `registry.db`
+(full data dictionary and rule catalogue: [`MILITARY_ORG.md`](MILITARY_ORG.md)).
+Requests carry `X-Military-Role: viewer | staff | admin`; without the header the call acts
+as `admin` (the demo default — set the header or put the API behind an authenticating proxy
+before exposure). Writes are validated against the business-rule catalogue and refused with
+`422` and the rule's own error code (for example `participant_over_capacity`,
+`basis_required`, `appointment_overlap`).
+
+| Method | Path | Notes |
+|---|---|---|
+GET | `/api/military/meta` | the twelve entities with fields, vocabularies and rules — the module's own `/api/meta` |
+GET | `/api/military/summary` · `/api/military/quality` | force summary; data-completeness dashboard |
+GET | `/api/military/units/tree` · `/api/military/regions/tree` | the force tree and the region tree |
+GET/POST/PATCH | `/api/military/{entity}` · `/{entity}/{id}` | the twelve entities: `region`, `division`, `unit`, `classification`, `armament`, `holding`, `deployment`, `mission`, `training`, `trait`, `assignment`, `note` — same query contract as the registry (`/query`, filters, sort, paging) |
+GET | `/api/military/{entity}/export.csv` | `{ok, filename, csv, rows, total}` — the CSV text in a JSON envelope |
+POST | `/api/military/{entity}/import.csv` | `{"csv": "…", "mode": "create\|upsert\|update"}` (staff) → per-row results; numbering and rules run per row |
+GET | `/api/military/units/{id}/geo` | a unit's **own** location (`unit.own: true`) — never its commander's |
+GET | `/api/military/persons/{id}/leader-record` | a military person's leadership picture: appointments, traits and notes |
+GET | `/api/military/forces/summary` · `/api/military/armaments/{id}/holdings` | aggregate force figures; where an armament is held |
+POST | `/api/military/naming/preview` | advisory next document name (never reserves) |
+GET | `/api/military/naming/status` · `/history` · PUT `/api/military/naming/counter` | the 19 naming series with partitions, their change history, and audited counter correction |
+GET | `/api/military/audit-log` | the module's append-only audit trail |
+POST/DELETE | `/api/military/sample` | the fictional demo cohort (admin): `POST {"force": true}` reloads it; `DELETE` clears it |
 
 ## Evidence — one source, many claims
 
