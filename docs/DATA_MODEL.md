@@ -38,9 +38,9 @@ SQLite (WAL mode + FTS5). The schema lives in `app/schema.sql` (fresh installs) 
   Support: sequence · saved_view · import_job · change_log · setting · app_user ·
            locale · search_doc (FTS5) · schema_migration · app_meta
 
-  Military Organization (migrations 015–019): region · division · military_unit ·
+  Military Organization (migrations 015–020): region · division · military_unit ·
            classification · armament · unit_armament · operational_deployment ·
-           mission · training · command_assignment · commander_trait · military note
+           mission · training · command_assignment · person_trait · note
            (see §3 below)
 ```
 
@@ -89,22 +89,31 @@ SQLite (WAL mode + FTS5). The schema lives in `app/schema.sql` (fresh installs) 
 `search_doc` | FTS5 index (title, body, normalised text)
 `setting`, `app_user`, `app_meta`, `schema_migration` | configuration, actors, version, migrations
 
-### Military Organization tables (migrations 015–019)
+### Military Organization tables (migrations 015–020)
 
-The Brigade Command module ([MILITARY_ORG.md](MILITARY_ORG.md) has the full data dictionary)
-adds its own tables beside the registry ones and never touches registry rows:
+The Brigade Command module ([MILITARY_ORG.md](MILITARY_ORG.md) has the full field-by-field
+data dictionary) adds its own tables beside the registry ones and never touches registry
+rows. `015` lays the core schema, `017` adds the unit emblem, `018` links commanders to
+persons and gives units their **own** geography, `019` adds leadership assessments, and
+`020` folds the Leader table into categorized persons:
 
-| Table | Purpose |
-|---|---|
-`region` · `division` · `military_unit` | the region tree and the force tree (each self-referencing through `parent_id`) |
-`classification` | the equipment/holding classification tree |
-`armament` · `unit_armament` | armaments and where they are held (quantities) |
-`operational_deployment` · `mission` | deployments (one current per unit, with synchronised pointers) and missions |
-`training` | exercises with participants counted against **computed** subtree personnel |
-`command_assignment` | command appointments (current + historic, overlap refused) |
-`commander_trait` (migration `019`) | assessed leadership qualities — each a **judgment** carrying its basis (assessor, date, evidence), never an unexplained score |
-`military note` | polymorphic notes on any military record or person |
-`naming_series` · `naming_counter` · `mil_meta` · `audit_log` | the naming-series engine (19 options, partitions, counters) and the module's append-only audit trail |
+| Table | Purpose | Notable columns |
+|---|---|---|
+`region` · `division` | the command-region tree and its divisions | `parent_id`, `path`, `depth` on region; `region_id` on division |
+`military_unit` | the force tree | `parent_id`, `path`, `depth`; `commander_id` → `person` and `current_deployment_id` → `operational_deployment` (service-synced pointers, never client-set); `direct_personnel` (the only entered strength — subtree strength is computed); `latitude`, `longitude`, `geometry_source` — the unit's **own** location, never its commander's (migration `018`); `image_url`, `image_alt` — the unit emblem (migration `017`) |
+`classification` | equipment/holding classification (flat) | `category` (`Combat · Support · Reserve · Training`), `readiness_tier` |
+`armament` · `unit_armament` | armaments and where they are held | the bridge carries `quantity`, `condition`, `acquisition_year` |
+`operational_deployment` | deployments | `is_current` (one per unit, pointer-synced to `military_unit.current_deployment_id`); `latitude`, `longitude`, `geometry_source` — its own location (migration `018`) |
+`mission` · `training` | missions and exercises | training `participant_count` is checked against **computed** subtree personnel |
+`command_assignment` | command appointments (current + historic) | `commander_id` → `person` (a military-category person); overlap refused; `assigned_date`, `relieved_date`, `is_current` |
+`person_trait` | assessed leadership qualities (migrations `019` → `020`) | `person_id` → `person`; `quality`/`level` vocabularies; each row is a **judgment** carrying its basis — `assessed_by`/`evidence_note`/`source` (at least one required) and `assessed_at` — never an unexplained score |
+`note` | polymorphic notes on any military record or person | `entity_type`, `target_id` (allowlisted), `note_text`, `author`, `note_at` |
+`naming_series_option` · `naming_counter` · `naming_adjustment_log` · `mil_meta` | the naming-series engine | 19 series options with year/category partitions, per-partition counters, audited counter adjustments, and the module's marker metadata |
+`audit_log` | the module's append-only audit trail (shared table) | `actor`, `action`, `old_json`, `new_json` |
+
+Migration `020` also gave `person` its `category` (see *Core entities* above) and
+re-pointed every `commander_id` at `person(id)`, folding the former `commander` table in
+with no data loss.
 
 ### Views
 `v_person_full` (person + institution/place/status/auth labels), `v_relationship_full`
