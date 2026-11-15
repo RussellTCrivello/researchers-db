@@ -78,26 +78,56 @@ Both affordances are always present and never conflict:
 * changing filters, sorting or page size resets to page 1 — a partial append never mixes two
   different result sets.
 
-### The sidebar: a layered accordion
+### The sidebar: a command deck
 
-The navigation is a multi-layered accordion rather than one long list of links. Five sections —
-**Workspace**, **Military Organization**, **Entities**, **Data operations**, **Administration** —
-fold their content away (only Workspace opens by default), and the military twelve sit inside
-themed sub-groups: Organization (units, regions, branches, categories), Operations (deployment
-operations, tasks, training), Logistics (armaments, holdings), Leadership (commanders, leadership
-traits, assignments) and Records (notes).
+The navigation is a working instrument, not a link dump. Five cooperating layers stay out of
+each other's way:
 
-* Section and sub-group heads are real buttons (`aria-expanded`) with animated folds
-  (`grid-template-rows` 0fr↔1fr, disabled under `prefers-reduced-motion`); a quiet guide line ties
-  each group's items to its label.
+**1 · The filter deck.** A search field pinned to the top of the sidebar (role `search`,
+`Alt+F` from anywhere). Typing matches every entry against a runtime-built corpus — its
+translated label, its entity key and both language plural names — so search works in English or
+Arabic regardless of which one is active. While a filter runs, every section and sub-group opens
+itself around its matches without touching the persisted accordion state; a live `aria-live` chip
+counts the hits, `Enter` jumps to the first one, `Esc` or the clear button hands the folds back.
+A fold-all / expand-all toggle and an empty state round out the deck.
+
+**2 · Pinned.** Star any entity entry and it docks into a Pinned shelf at the top of the nav
+(`localStorage siraj.navPins`; identified by entity + query so Commanders pins separately from
+Persons). The shelf hides itself when empty and keeps full per-row tools, so a pinned entry can be
+unpinned from either place.
+
+**3 · Recent.** Opening a record (registry form or military dossier) logs its crumb title to a
+Recent sub-group inside Workspace (`siraj.navRecent`, capped at 8 entries, 30-day expiry, each
+dismissable). The shelf behaves like any other fold and its open state persists.
+
+**4 · The layered accordion.** Five sections — **Workspace**, **Military Organization**,
+**Entities**, **Data operations**, **Administration** — fold their content away (only Workspace
+opens by default), and the military twelve sit inside themed sub-groups: Organization (units,
+regions, branches, categories), Operations (deployment operations, tasks, training), Logistics
+(armaments, holdings), Leadership (commanders, leadership traits, assignments) and Records
+(notes). Each sub-group wears a quiet palette dot echoing the dossier's domain colours.
+
+* Section and sub-group heads are real buttons (`aria-expanded`, `aria-controls`) with animated
+  folds (`grid-template-rows` 0fr↔1fr, disabled under `prefers-reduced-motion`); a quiet guide
+  line ties each group's items to its label.
 * Open folds persist per browser (`localStorage siraj.navAcc`), and the folds around the active
-  page open themselves — a deep link always lands with its entry visible.
+  page open themselves — a deep link always lands with its entry visible. The active link carries
+  `aria-current="page"`.
 * **Commanders** is the person register pre-filtered to the military category
   (`#/entity/person?q=category:military`) — the Leader is a person; vocabulary values in typed
   queries resolve to what the column stores (code-valued selects included).
-* The collapsed icon rail flattens the accordion into one scannable column: group heads become
-  hairline separators, every link stays one click away. Carets mirror automatically under RTL, and
-  Arabic group labels never take uppercase or letter-spacing.
+
+**5 · Row tools and live counts.** Every entity row carries a live count badge (fetched lazily
+per section through the unified `POST /api/{entity}/query` contract, cached for two minutes —
+Commanders keeps its category filter, and a failed count never breaks navigation) plus two
+hover-revealed tools: a quick-add `+` that opens the shared record form as an overlay, and the
+pin star. The resting sidebar stays calm; touch devices show the tools permanently.
+
+Keyboard model: `Alt+F` focuses the filter, `↓`/`↑` walk the list, `→`/`←` fold and unfold from a
+head, `Home`/`End` jump, `Esc` clears. The collapsed icon rail flattens the accordion into one
+scannable column — deck, dots, tools and badges step aside, group heads become hairline
+separators. Carets and tool gutters mirror automatically under RTL, and Arabic group labels never
+take uppercase or letter-spacing.
 
 ## 3. Displaying any field — including fields derived from related tables
 

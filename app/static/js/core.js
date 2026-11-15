@@ -83,6 +83,11 @@
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
       el.placeholder = t(el.dataset.i18nPlaceholder);
     });
+    document.querySelectorAll("[data-i18n-aria]").forEach(el => {
+      const label = t(el.dataset.i18nAria);
+      el.setAttribute("aria-label", label);
+      el.title = label;
+    });
     if (App.rerender && !(opts && opts.silent)) App.rerender();
   }
 
@@ -483,7 +488,8 @@
     maximize: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
     minimize: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
     globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/>',
-    shield: '<path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-4.5"/>'
+    shield: '<path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-4.5"/>',
+    star: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>'
   };
   function icon(name, cls) {
     const p = PATHS[name] || PATHS.grid;
