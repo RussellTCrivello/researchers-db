@@ -12,38 +12,38 @@
 <text x="642" y="116" class="s" text-anchor="middle" font-weight="700" fill="#8b3a3a">SOURCE</text>
 <text x="738" y="116" class="s" text-anchor="middle" font-weight="700" fill="#4b5563">RELATIONSHIP</text>
 <text x="194" y="182" class="s" text-anchor="end" font-weight="700" fill="#2f6f4f">PERSON</text>
-<rect x="210" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.600)" stroke="#c9d3dd"/>
-<text x="256" y="183" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">6,023</text>
-<rect x="306" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.600)" stroke="#c9d3dd"/>
-<text x="352" y="183" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">4,481</text>
-<rect x="402" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.600)" stroke="#c9d3dd"/>
-<text x="448" y="183" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">1,659</text>
-<rect x="498" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.590)" stroke="#c9d3dd"/>
-<text x="544" y="183" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">1,377</text>
-<rect x="594" y="130" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
-<text x="640" y="183" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
+<rect x="210" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.342)" stroke="#c9d3dd"/>
+<text x="256" y="183" class="b" text-anchor="middle" font-weight="700" fill="#16202b">49</text>
+<rect x="306" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.317)" stroke="#c9d3dd"/>
+<text x="352" y="183" class="b" text-anchor="middle" font-weight="700" fill="#16202b">35</text>
+<rect x="402" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.170)" stroke="#c9d3dd"/>
+<text x="448" y="183" class="b" text-anchor="middle" font-weight="700" fill="#16202b">4</text>
+<rect x="498" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.362)" stroke="#c9d3dd"/>
+<text x="544" y="183" class="b" text-anchor="middle" font-weight="700" fill="#16202b">64</text>
+<rect x="594" y="130" width="92" height="92" rx="8" fill="rgba(31,93,139,0.170)" stroke="#c9d3dd"/>
+<text x="640" y="183" class="b" text-anchor="middle" font-weight="700" fill="#16202b">4</text>
 <rect x="690" y="130" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="736" y="183" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <text x="194" y="278" class="s" text-anchor="end" font-weight="700" fill="#1f5d8b">INSTITUTION</text>
-<rect x="210" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.600)" stroke="#c9d3dd"/>
-<text x="256" y="279" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">4,481</text>
-<rect x="306" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.515)" stroke="#c9d3dd"/>
-<text x="352" y="279" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">509</text>
-<rect x="402" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.170)" stroke="#c9d3dd"/>
-<text x="448" y="279" class="b" text-anchor="middle" font-weight="700" fill="#16202b">4</text>
-<rect x="498" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.475)" stroke="#c9d3dd"/>
-<text x="544" y="279" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">297</text>
+<rect x="210" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.317)" stroke="#c9d3dd"/>
+<text x="256" y="279" class="b" text-anchor="middle" font-weight="700" fill="#16202b">35</text>
+<rect x="306" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.170)" stroke="#c9d3dd"/>
+<text x="352" y="279" class="b" text-anchor="middle" font-weight="700" fill="#16202b">4</text>
+<rect x="402" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.261)" stroke="#c9d3dd"/>
+<text x="448" y="279" class="b" text-anchor="middle" font-weight="700" fill="#16202b">16</text>
+<rect x="498" y="226" width="92" height="92" rx="8" fill="rgba(31,93,139,0.277)" stroke="#c9d3dd"/>
+<text x="544" y="279" class="b" text-anchor="middle" font-weight="700" fill="#16202b">20</text>
 <rect x="594" y="226" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="640" y="279" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <rect x="690" y="226" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="736" y="279" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <text x="194" y="374" class="s" text-anchor="end" font-weight="700" fill="#8a5a1f">PLACE</text>
-<rect x="210" y="322" width="92" height="92" rx="8" fill="rgba(31,93,139,0.600)" stroke="#c9d3dd"/>
-<text x="256" y="375" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">1,659</text>
-<rect x="306" y="322" width="92" height="92" rx="8" fill="rgba(31,93,139,0.170)" stroke="#c9d3dd"/>
-<text x="352" y="375" class="b" text-anchor="middle" font-weight="700" fill="#16202b">4</text>
-<rect x="402" y="322" width="92" height="92" rx="8" fill="rgba(31,93,139,0.453)" stroke="#c9d3dd"/>
-<text x="448" y="375" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">219</text>
+<rect x="210" y="322" width="92" height="92" rx="8" fill="rgba(31,93,139,0.170)" stroke="#c9d3dd"/>
+<text x="256" y="375" class="b" text-anchor="middle" font-weight="700" fill="#16202b">4</text>
+<rect x="306" y="322" width="92" height="92" rx="8" fill="rgba(31,93,139,0.261)" stroke="#c9d3dd"/>
+<text x="352" y="375" class="b" text-anchor="middle" font-weight="700" fill="#16202b">16</text>
+<rect x="402" y="322" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
+<text x="448" y="375" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <rect x="498" y="322" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="544" y="375" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <rect x="594" y="322" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
@@ -51,10 +51,10 @@
 <rect x="690" y="322" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="736" y="375" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <text x="194" y="470" class="s" text-anchor="end" font-weight="700" fill="#7b3f8f">EVENT</text>
-<rect x="210" y="418" width="92" height="92" rx="8" fill="rgba(31,93,139,0.590)" stroke="#c9d3dd"/>
-<text x="256" y="471" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">1,377</text>
-<rect x="306" y="418" width="92" height="92" rx="8" fill="rgba(31,93,139,0.475)" stroke="#c9d3dd"/>
-<text x="352" y="471" class="b" text-anchor="middle" font-weight="700" fill="#ffffff">297</text>
+<rect x="210" y="418" width="92" height="92" rx="8" fill="rgba(31,93,139,0.362)" stroke="#c9d3dd"/>
+<text x="256" y="471" class="b" text-anchor="middle" font-weight="700" fill="#16202b">64</text>
+<rect x="306" y="418" width="92" height="92" rx="8" fill="rgba(31,93,139,0.277)" stroke="#c9d3dd"/>
+<text x="352" y="471" class="b" text-anchor="middle" font-weight="700" fill="#16202b">20</text>
 <rect x="402" y="418" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="448" y="471" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <rect x="498" y="418" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
@@ -64,8 +64,8 @@
 <rect x="690" y="418" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="736" y="471" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <text x="194" y="566" class="s" text-anchor="end" font-weight="700" fill="#8b3a3a">SOURCE</text>
-<rect x="210" y="514" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
-<text x="256" y="567" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
+<rect x="210" y="514" width="92" height="92" rx="8" fill="rgba(31,93,139,0.170)" stroke="#c9d3dd"/>
+<text x="256" y="567" class="b" text-anchor="middle" font-weight="700" fill="#16202b">4</text>
 <rect x="306" y="514" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
 <text x="352" y="567" class="s" text-anchor="middle" font-weight="400" fill="#6b7785">·</text>
 <rect x="402" y="514" width="92" height="92" rx="8" fill="#f7f9fb" stroke="#c9d3dd"/>
