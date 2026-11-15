@@ -24,6 +24,13 @@ Everything below follows from that.
 
 ## 2. Three columns, one workspace
 
+![the atlas workspace](screenshots/atlas-overview.png)
+
+*The workspace: the rail (arrangement, record types, relationship breakdown, show-only
+filters), the stage, and the panel reading one record. The captures in this page were
+taken against a database whose entity display names are set to Arabic (a per-database
+setting under Administration → Languages); the interface chrome is English.*
+
 ```
 ┌──────────────┬─────────────────────────────────┬──────────────────────┐
 │ rail         │ stage                           │ panel                │
@@ -59,6 +66,13 @@ the record is *as a note about completeness, never about truth*.
 ---
 
 ## 3. Reading the same neighbourhood three ways
+
+![an edge is readable](screenshots/atlas-edge.png)
+![the matrix arrangement](screenshots/atlas-matrix.png)
+
+*Left — an edge is readable too: clicking a link opens the relationship itself, with its
+direction, dates, verification and evidence. Right — the same neighbourhood in the Matrix
+arrangement, one cell per pair, with the panel open on a single relationship.*
 
 The same nodes and edges are drawn three ways, because different questions need
 different structures:
@@ -107,6 +121,13 @@ selected — because naming thirteen relationships at once is not information.
 
 ## 4. Drilling in without leaving
 
+![drilling in with a trail](screenshots/atlas-explore.png)
+![the panel as the reading surface](screenshots/atlas-panel.png)
+
+*Left — **Explore from here**: the breadcrumb trail remembers where you came from and every
+crumb is clickable. Right — the panel as the reading surface: badges, facts, KPIs and every
+touch with its own verification state, without navigating away.*
+
 Selecting a record offers three moves, all of them in place:
 
 * **Explore from here** — re-centres the atlas on that record. A trail bar
@@ -125,6 +146,11 @@ Selecting a record offers three moves, all of them in place:
 ---
 
 ## 5. What the diagram refuses to do
+
+![path finding says so when there is no chain](screenshots/atlas-path.png)
+
+*Path finding is honest: when no chain exists within the search limit, it says exactly
+that instead of guessing.*
 
 These are deliberate omissions, not gaps:
 

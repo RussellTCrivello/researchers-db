@@ -602,9 +602,9 @@ column, the layout builder, a derived-field filter, the duplicates panel, a reco
 KPIs, completeness ring, related-tables tab), the edit form's combobox and the inline create
 pop-up, and the language toggle.
 
-`ui_full.py` goes further and is the harness that gates releases: it walks **every** route and
-control — shell (language toggle both ways, actor switch, global search), all thirteen routes, each
-entity list (search, sort, page size, paging, load-more, filter dock with derived fields, chips,
+`ui_full.py` goes further and is the harness that gates releases: it walks **every registry route**
+and control — shell (language toggle both ways, actor switch, global search), the registry screens
+(dashboard, search, reports, the relationship map, data operations, administration), each entity list (search, sort, page size, paging, load-more, filter dock with derived fields, chips,
 saved views, column presets, layout builder, duplicates, export panel, bulk bar, recycle-bin lens,
 four view modes), a record dossier (every tab) and the edit form, a full **create → find →
 soft-delete → restore** cycle driven through the browser, all ten reports, the four-step import
@@ -615,7 +615,9 @@ date-and-time control (enter a moment, reopen it, lower the precision, check a c
 the admin screens (vocabularies, numbering, settings, change log, reindex/vacuum/backup/dump), the
 data-entry surface setting (page mode, dialog mode, Escape and the dirty guard, Save + New, editing
 over a dossier, the trial button, and the automatic breakpoint at 1440 px and 700 px) and the 880 px
-layout. It fails on any console error or uncaught exception, section by section.
+layout. It fails on any console error or uncaught exception, section by section. The military,
+geographic, structures and map-desk workspaces are gated by their own harnesses (`ui_geo.py`,
+`structures_ui.py`, `desk_ui.py`, and `verify_all.py` on the API side).
 
 ## 14 · Coordinates: entering and reading positions
 

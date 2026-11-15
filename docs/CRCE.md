@@ -270,10 +270,10 @@ say what the point is and is not.*
 
 | | |
 |---|---|
-| ![A place's dossier](screenshots/crce-record-place.png) | ![The same dossier in Arabic](screenshots/crce-record-ar.png) |
-| a place: its own site, DMS and CRS84 alongside the stored value, sixteen graduations and the cardinal letters | the same dossier in Arabic, right-to-left, with the mark unchanged |
-| ![The atlas](screenshots/crce-atlas.png) | ![The geographic map](screenshots/crce-geo.png) |
-| the atlas: each covered node drawn as its own mark, the count in the label, the position tile in the panel | the geographic map: the reserved marks in the legend, and the symbol layer over the dots |
+| ![A place's dossier](screenshots/crce-record-place.png) | ![The atlas](screenshots/crce-atlas.png) |
+| a place: its own site, DMS and CRS84 alongside the stored value, sixteen graduations and the cardinal letters | the atlas: each covered node drawn as its own mark, the count in the label, the position tile in the panel |
+| ![The geographic map](screenshots/crce-geo.png) | |
+| the geographic map: the reserved marks in the legend, and the symbol layer over the dots | |
 
 The client interpreter (`A.crce`) is the only place that turns geometry into
 pixels:

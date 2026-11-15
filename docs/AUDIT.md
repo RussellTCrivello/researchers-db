@@ -9,7 +9,7 @@ different SQL or in plain Python, so a bug in the filter engine cannot hide behi
 the filter engine what it thinks.
 
 ```bash
-python3 tests/audit.py                      # 162 checks, ~60 s, against 127.0.0.1:8000
+python3 tests/audit.py                      # 161 checks, ~35 s, against 127.0.0.1:8000
 python3 tests/audit.py --list               # the sections
 python3 tests/audit.py --only filters       # one section
 python3 tests/audit.py --report docs/audit-report.md
@@ -18,22 +18,26 @@ python3 scripts/check.py --audit            # inside the normal pre-flight
 
 | Section | Checks | Result |
 |---|---|---|
-| integrity — referential and structural integrity | 20 | 20/20 |
-| filters — operator truth table vs independent counts | 16 | 16/16 |
+| integrity — referential and structural integrity | 22 | 22/22 |
+| filters — operator truth table vs independent counts | 19 | 19/19 |
 | sorting — every field, both directions, degenerate input | 5 | 5/5 |
 | paging — pages partition the result set | 7 | 7/7 |
-| crud — full record lifecycle | 12 | 12/12 |
+| crud — full record lifecycle | 15 | 15/15 |
 | cascade — a hard delete leaves nothing behind | 5 | 5/5 |
-| graph — relationships, merge, focus map | 12 | 12/12 |
-| numbering — padding, headroom, no reuse | 6 | 6/6 |
-| transfer — export formats, import round-trip | 14 | 14/14 |
-| i18n — AR/EN parity, translated labels, RTL | 9 | 9/9 |
+| graph — relationships, merge, focus map | 10 | 10/10 |
+| numbering — padding, headroom, no reuse | 5 | 5/5 |
+| transfer — export formats, import round-trip | 13 | 13/13 |
+| i18n — AR/EN parity, translated labels, RTL | 7 | 7/7 |
 | security — traversal, injection, hostile payloads | 16 | 16/16 |
-| concurrency — 8 parallel writers | 5 | 5/5 |
+| concurrency — 8 parallel writers | 4 | 4/4 |
 | durability — backup snapshot restores | 6 | 6/6 |
 | performance — latency budget | 12 | 12/12 |
-| cleanup — the registry is left exactly as found | 17 | 17/17 |
-| **total** | **162** | **162/162** |
+| cleanup — the registry is left exactly as found | 15 | 15/15 |
+| **total** | **161** | **161/161** |
+
+The per-section counts are measured against the dataset at hand and scale with it (a truth
+table emits one check per field it walks); the total above is the reference run described in
+[VERIFICATION.md](VERIFICATION.md).
 
 ---
 
@@ -126,8 +130,8 @@ if hits["total"] and hits["total"] >= table_total:
 ```
 
 The 200 sources (and 332 citations, 376 relationship links, 229 primary-source links) were restored
-row-for-row from the pre-run snapshot and verified against it; the census is back to the documented
-28 538 records with zero structural problems.
+row-for-row from the pre-run snapshot and verified against it; the census is back to its documented
+figures with zero structural problems.
 
 ### 1.6 The relationship matrix was asymmetric — *misleading diagram*
 
@@ -162,7 +166,7 @@ Beyond the defects, these are measured facts about the running registry, not cla
   0 duplicate or blank codes, 0 cycles in the place hierarchy, 0 self- or duplicate relationships,
   0 people who die before being born, 0 reference columns pointing into the wrong vocabulary domain.
 * **Search index parity** — exactly one document per live record across all six indexed types
-  (28 538 documents), and no document for a deleted record.
+  (one per record, whatever the dataset), and no document for a deleted record.
 * **Numbering** — every sequence sits above the highest code in use; changing prefix/padding is
   reflected in the *next* code; a deleted code is never handed out twice; the sequence is restored
   to its original state at the end of the check.
@@ -198,11 +202,11 @@ Beyond the defects, these are measured facts about the running registry, not cla
 
 | Harness | What it proves | Checks | Runtime |
 |---|---|---|---|
-| `pytest tests -q` | data model, repository, reports, import/export, numbering, i18n, place hygiene, graph API, **regressions from this audit** | **82** | ~3 s |
-| `tests/verify_all.py` | every HTTP route, success and failure paths, self-cleaning | **207** | ~77 s |
-| `tests/audit.py` | this document: integrity, truth tables, concurrency, durability, performance | **162** | ~65 s |
-| `tests/ui_smoke.py` | fast browser pass: routes, views, filters, forms, RTL | **46** | ~30 s |
-| `tests/ui_full.py` | every screen and interactive control in Chromium, console-gated | **142** | ~2.5 min |
+| `pytest tests -q` | data model, repository, reports, import/export, numbering, i18n, place hygiene, graph API, **regressions from this audit** | **390** | minutes |
+| `tests/verify_all.py` | every HTTP route, success and failure paths, self-cleaning | **503** | ~35 s |
+| `tests/audit.py` | this document: integrity, truth tables, concurrency, durability, performance | **161** | ~35 s |
+| `tests/ui_smoke.py` | fast browser pass: routes, views, filters, forms, RTL | **51** | ~30 s |
+| `tests/ui_full.py` | every screen and interactive control in Chromium, console-gated | **200** | ~3 min |
 
 **616 executed assertions, all green.** One command runs everything:
 

@@ -305,7 +305,7 @@ else.
 ## 12 · Testing
 
 ```bash
-python3 -m pytest -q                     # 101 tests, incl. the geo unit tests
+python3 -m pytest -q                     # 390 tests, incl. the geo unit tests
 python3 tests/verify_all.py              # every API route, incl. all 15 map routes
 python3 tests/ui_geo.py                  # 98 browser checks, one per acceptance criterion
 python3 tests/ui_full.py                 # 198 interface checks (regression)
@@ -371,7 +371,7 @@ record's existing form, which is the only surface with validation, permissions a
 harness proves this positively (the inspector's control is a link to that form) and negatively
 (the whole session issues exactly one non-GET call, `POST /api/map/query`, which is a read).
 
-Screenshots: `docs/screenshots/geomap-{en,ar,measure,collapsed}.png`.
+Screenshots: `docs/screenshots/geomap-{en,measure,collapsed}.png`.
 
 ---
 

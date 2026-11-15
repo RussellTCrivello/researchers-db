@@ -144,13 +144,16 @@ accepts the old shapes unchanged. 28 541 records verified intact after the chang
 | `python3 tests/ui_smoke.py` | 46 | 46 (unchanged, still green) |
 | `ruff check .` | clean | clean |
 
-**666 executed assertions, all green.** The dataset is left byte-identical in census
-(6 825 persons · 1 118 places · 1 212 institutions · 14 572 relationships · 3 208 sources ·
-1 606 events = **28 541**), `check-integrity` reports no structural problems, and the scratch rows the
+**666 executed assertions, all green** (the harness totals of that phase — current numbers live
+in [VERIFICATION.md](VERIFICATION.md)). The dataset is left byte-identical in census
+(the volume dataset of the time: 6 825 persons · 1 118 places · 1 212 institutions ·
+14 572 relationships · 3 208 sources · 1 606 events = **28 541**), `check-integrity` reports no
+structural problems, and the scratch rows the
 suites create are hard-deleted through the audited repository path.
 
-New screenshots: `docs/screenshots/map-canvas-en.png`, `map-canvas-ar.png`,
-`filter-form-parity.png`, `record-form-date-time.png`.
+New screenshots: `docs/screenshots/map-canvas-en.png`, `filter-form-parity.png`,
+`record-form-date-time.png` (the Arabic captures of this phase were retired when the interface
+imagery was standardised on English).
 
 ---
 

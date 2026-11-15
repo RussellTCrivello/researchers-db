@@ -37,6 +37,11 @@ SQLite (WAL mode + FTS5). The schema lives in `app/schema.sql` (fresh installs) 
 
   Support: sequence · saved_view · import_job · change_log · setting · app_user ·
            locale · search_doc (FTS5) · schema_migration · app_meta
+
+  Military Organization (migrations 015–019): region · division · military_unit ·
+           classification · armament · unit_armament · operational_deployment ·
+           mission · training · command_assignment · commander_trait · military note
+           (see §3 below)
 ```
 
 ## 2. Conventions
@@ -60,7 +65,7 @@ SQLite (WAL mode + FTS5). The schema lives in `app/schema.sql` (fresh installs) 
 ### Core entities
 | Table | Purpose | Notable columns |
 |---|---|---|
-| `person` | individuals | `name_ar`, `name_en`, `name_original`(+`_lang`), `name_transliteration`, `birth_date`(+`_precision`), `death_date`(+`_precision`), `nationality_id`, `birthplace_id`, `birthplace_text`, `classification_id`, `current_status_id`, `current_position`, `affiliated_institution_id`, `affiliated_country_id`, `declared_affiliation`, `affiliation_verified/start/end`, `cv_url`, `public_activity`, `institutional_relations`, `website`, `social_accounts`, `primary_source_id`, `documentation_id`, `authentication_id`, `record_status_id`, `researcher_notes` |
+| `person` | individuals | `name_ar`, `name_en`, `name_original`(+`_lang`), `name_transliteration`, `birth_date`(+`_precision`), `death_date`(+`_precision`), `nationality_id`, `birthplace_id`, `birthplace_text`, `classification_id`, `current_status_id`, `current_position`, `affiliated_institution_id`, `affiliated_country_id`, `declared_affiliation`, `affiliation_verified/start/end`, `cv_url`, `public_activity`, `institutional_relations`, `website`, `social_accounts`, `primary_source_id`, `documentation_id`, `authentication_id`, `record_status_id`, `researcher_notes`, **`category`** (military / civilian / other, migration `020`) and — for a military person — `rank_title`, `branch`, `commission_date`, `service_status`, `military_biography` (category-conditional fields; the Leader is a categorized person) |
 | `person_position` | previous/current positions | `person_id`, `title_ar`, `title_en`, `institution_id`, `country_id`, `place_id`, `start_date`, `end_date`, `is_current`, `sort_order` |
 | `place` | places | `name_ar`, `name_en`, `name_original`(+`_lang`), `place_type_id`, `country_id`, `region`, `city`, `district`, `parent_place_id`, `latitude`, `longitude`, `geo_precision`, `geo_description`, `research_significance` |
 | `institution` | institutions | `name_ar`, `name_en`, `abbreviation`, `institution_type_id`, `subcategory_id`, `founded_date`(+`_precision`), `closed_date`, `country_id`, `city`, `place_id`, `address`, `current_leadership`, `founders_text`, `objectives`, `org_structure`, `governance_id`, `website`, `official_accounts`, `research_significance` |
@@ -84,20 +89,44 @@ SQLite (WAL mode + FTS5). The schema lives in `app/schema.sql` (fresh installs) 
 `search_doc` | FTS5 index (title, body, normalised text)
 `setting`, `app_user`, `app_meta`, `schema_migration` | configuration, actors, version, migrations
 
+### Military Organization tables (migrations 015–019)
+
+The Brigade Command module ([MILITARY_ORG.md](MILITARY_ORG.md) has the full data dictionary)
+adds its own tables beside the registry ones and never touches registry rows:
+
+| Table | Purpose |
+|---|---|
+`region` · `division` · `military_unit` | the region tree and the force tree (each self-referencing through `parent_id`) |
+`classification` | the equipment/holding classification tree |
+`armament` · `unit_armament` | armaments and where they are held (quantities) |
+`operational_deployment` · `mission` | deployments (one current per unit, with synchronised pointers) and missions |
+`training` | exercises with participants counted against **computed** subtree personnel |
+`command_assignment` | command appointments (current + historic, overlap refused) |
+`commander_trait` (migration `019`) | assessed leadership qualities — each a **judgment** carrying its basis (assessor, date, evidence), never an unexplained score |
+`military note` | polymorphic notes on any military record or person |
+`naming_series` · `naming_counter` · `mil_meta` · `audit_log` | the naming-series engine (19 options, partitions, counters) and the module's append-only audit trail |
+
 ### Views
 `v_person_full` (person + institution/place/status/auth labels), `v_relationship_full`
 (relationship + type/status/source labels) — convenience projections for reports and exports.
 
-## 4. Vocabulary domains (21)
+## 4. Vocabulary domains (33)
 
 `record_status` · `authentication_level` · `documentation_level` · `entity_type` ·
-`country` (57 ISO-coded) · `person_classification` · `person_status` · `place_type` ·
-`institution_type` · `institution_subcategory` · `relationship_type` (33, with
-inverse/symmetric metadata) · `relation_direction` · `source_type` · `source_reliability` ·
-`external_party_type` · `event_type` · `governance_system` · `indicator_area` ·
-`date_precision` · `geo_precision` · `language`
+`country` · `governorate` · `district` · `municipality` · `village` · `person_category` ·
+`person_classification` · `military_service_status` · `community` · `military_branch` ·
+`person_status` · `place_type` · `leadership_quality` · `institution_type` ·
+`leadership_level` · `institution_subcategory` · `relationship_type` (with
+inverse/symmetric metadata) · `evidence_support_type` · `relation_direction` ·
+`source_type` · `source_reliability` · `external_party_type` · `event_type` ·
+`governance_system` · `indicator_area` · `date_precision` · `geo_precision` ·
+`geocoding_method` · `language`
 
-Add a value at **Administration → Vocabularies** (or `POST /api/lookups`); no migration needed.
+The `country`, `governorate`, `district`, `municipality` and `village` domains carry the
+geo-reference vocabulary (thousands of values in a seeded database); the rest are small
+controlled lists. `leadership_quality` / `leadership_level` serve the Military Organization's
+assessments. Add a value at **Administration → Vocabularies** (or `POST /api/lookups`); no
+migration needed.
 
 ## 5. Indexes
 
