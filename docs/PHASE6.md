@@ -221,9 +221,9 @@ Fixed in both harnesses: cleanup restores the id and *then* hard-deletes it, and
 for `include_deleted: true` so a merged scratch row cannot hide either. The audit's stray-row check
 now explicitly looks at `deleted_at IS NOT NULL` as well.
 
-Verified by running the full set twice: the census is **identical before and after** (28 538 active
-records, 199 soft-deleted persons — the same 199 the checkpoint had), and `check-integrity` reports no
-structural problems.
+Verified by running the full set twice: the census is **identical before and after** (the dataset of
+the time: 28 538 active records, 199 soft-deleted persons — the same 199 the checkpoint had), and
+`check-integrity` reports no structural problems.
 
 Two fixture rows were absorbed by the accidental merge in §6.3 during development. They were restored
 via the audited `POST /api/person/{id}/restore`, and the eight fields the merge had filled on the
@@ -246,13 +246,18 @@ polymorphic integrity is clean.
 |---|---|
 | `docs/screenshots/setting-form-surface.png` | the Settings card, three mode previews, scope switch, width, trial button |
 | `docs/screenshots/form-dialog-en.png` | a person form as a dialog over a live list, English/LTR |
-| `docs/screenshots/form-dialog-ar.png` | the same, Arabic/RTL |
+
+(The Arabic/RTL dialog capture of this phase was retired when the interface imagery was
+standardised on English; the dialog itself supports both directions — see [I18N.md](I18N.md).)
 
 ---
 
 ## 9 · Verification
 
-| Harness | Before phase 6 | Now |
+The numbers below were the harness totals at the end of phase 6; the current totals live in
+[VERIFICATION.md](VERIFICATION.md).
+
+| Harness | Before phase 6 | After phase 6 |
 |---|---|---|
 | `pytest tests -q` | 90 | **94 passed** |
 | `tests/verify_all.py` | 207 | **207 / 207** |

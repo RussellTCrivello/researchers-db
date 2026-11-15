@@ -4,9 +4,9 @@ SIRAJ stores connectivity three ways, and the interface can explore all three:
 
 | Layer | What it means | Where it lives |
 |---|---|---|
-| **Typed relationships** | a person *taught* a person, an institution *employed* another — directional, dated, sourced | `relationship` (14 572 rows) |
+| **Typed relationships** | a person *taught* a person, an institution *employed* another — directional, dated, sourced | `relationship` (one row per link) |
 | **Structural links** | foreign keys that create a bond without a relationship row: affiliation, birthplace, venue, parent place, citation | columns on `person`, `institution`, `place`, `event`, `source_link` |
-| **Derived fields** | counts and names computed with SQL over both layers (`relationships_count`, `positions_count`, `completeness`) | `app/schemas.py` → 52 derived fields |
+| **Derived fields** | counts and names computed with SQL over both layers (`relationships_count`, `positions_count`, `completeness`) | `app/schemas.py` → 57 derived fields |
 
 Anything that can be said about connectivity is an aggregate over those three, never a stored copy.
 
@@ -38,10 +38,12 @@ Returns:
 | `relationship_types` | the vocabulary actually used, with counts |
 | `totals` | `records`, `relationships`, `structural_links`, `distinct_types` |
 
-Live numbers from the shipped dataset: 14 569 typed relationships, 29 097 structural links, 28 538
-records. The heaviest corridors are person↔institution (18 139), person→person (6 023),
-person→place (6 464 including birthplaces and positions) and person→institution relationships
-(4 481 of those 18 139 are typed links).
+The numbers are live, whatever the dataset: `GET /api/relationship-map` counts every row it
+draws. In the shipped reference corpus that is 196 typed relationships, 508 structural links
+and 455 records across 22 relationship types; the heaviest corridors are person↔institution,
+person→person and person→place (birthplaces and positions included in the structural layer).
+The bulk profile (`python -m app.cli bulk --profile large`) scales the same shape to
+thousands of links without changing a line of the map.
 
 ### `mode: "focus"` — the micrograph around one record
 
@@ -59,6 +61,12 @@ indexed adjacency (`ix_rel_e1`, `ix_rel_e2`).
 ---
 
 ## 2 · In the interface — `/map`
+
+![the relationship map, entity types](screenshots/map-entities-en.png)
+
+*The in-app relationship map: the six types sized by count, weighted typed and structural
+edges, the totals strip and the connection matrix underneath.*
+
 
 `app/static/js/views/map.js` renders the same data two ways, and the state lives in `A.views.map`:
 
@@ -96,7 +104,8 @@ eased (`animateTo`), so a fly-to reads as a movement rather than a jump.
 
 ## 3 · Generated figures — `docs/diagrams/`
 
-`python3 scripts/make_diagrams.py` reads the live database and writes six standalone SVGs (no
+`python3 scripts/make_diagrams.py [--lang en|both]` reads the live database and writes six
+standalone SVGs (English by default; `--lang both` adds the Arabic labels beside them) (no
 JavaScript, no external fonts, embeddable anywhere):
 
 | File | Shows |
@@ -106,7 +115,7 @@ JavaScript, no external fonts, embeddable anywhere):
 | `matrix.svg` | the connection matrix as a figure, for print |
 | `place-hierarchy.svg` | one real branch of the place tree (country → city → district) with the record counts hanging off it |
 | `ego.svg` | the ego network of the most connected person in the dataset |
-| `derived-lineage.svg` | which tables each of the 52 derived fields is computed from |
+| `derived-lineage.svg` | which tables each of the 57 derived fields is computed from |
 
 The script is deterministic and re-runs in under a second; it is the artefact that keeps the
 documentation honest as the dataset grows. Two things it handles explicitly, because both are easy

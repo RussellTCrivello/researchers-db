@@ -1,5 +1,5 @@
 # Design review of the proposed registry schema
-### SIRAJ · سِراج — bilingual research registry (persons · places · institutions · relationships · sources)
+### SIRAJ — bilingual research registry (persons · places · institutions · relationships · sources)
 
 **Scope of this document.** A critical read of the six tables you specified (Character / Places /
 Institution / Relationships / Sources / Help tables + change log), followed by the field-by-field
@@ -8,22 +8,29 @@ left for phase 2.
 
 ---
 
-## خلاصة بالعربية
+## Summary
 
-تصميمك صحيح في جوهره: خمسة كيانات أساسية + جدول علاقات + جدول مصادر + جداول مساعدة + سجل تغييرات —
-وهذه هي البنية الصحيحة لأي سجل بحثي جدّي. أهم خمس ملاحظات:
+Your design is sound in its essence: five core entities + a relationship table + a sources
+table + help tables + a change log — and that is the right structure for any serious research
+registry. The five most important observations:
 
-1. **قوائم المعرّفات النصية** («Associated Institutional IDs»، «Affiliate Identifiers»، «Associated Personal IDs»)
-   يجب أن تتحول كلها إلى صفوف في جدول العلاقات، وإلا تفقد التطابق بين الجهتين.
-2. **المناصب السابقة** لا تُخزَّن في خلية واحدة؛ تحتاج جدولاً فرعياً بالتواريخ والمؤسسة وحالة السريان.
-3. **«Primary Source ID» واحد** لا يكفي؛ معظم المعلومات تُسندها مصادر متعددة، والعكس صحيح — لذلك أضفتُ
-   جدول ربط متعدد لمتعدد (source_link) مع إبقاء المصدر الأساسي.
-4. **التواريخ تحتاج درجة دقة** (سنة فقط، تقريبي، غير مؤكد)، وإلا انكسر الفرز والتقارير الزمنية.
-5. **الترقيم والتحقق والتكرار**: يجب أن يكون المعرّف ثابتاً لا يُعاد استخدامه، مع جدول ترقيم قابل للضبط،
-   ومنع التكرار، وحفظ «معرّفات قديمة/خارجية» (VIAF، Wikidata، ORCID، أرقام الجداول السابقة).
+1. **Plain-text identifier lists** ("Associated Institutional IDs", "Affiliate Identifiers",
+   "Associated Personal IDs") must all become rows in the relationship table, or the two sides
+   of a link stop matching each other.
+2. **Previous positions** must not live in a single cell; they need a sub-table carrying dates,
+   the institution and a currency status.
+3. **A single "Primary Source ID" is not enough**; most information is supported by several
+   sources, and one source supports many records — so a many-to-many link table
+   (`source_link`) was added while keeping the primary source.
+4. **Dates need a precision degree** (year only, approximate, uncertain), or sorting and the
+   chronological reports break.
+5. **Numbering, verification and duplication**: the identifier must be stable and never
+   reused, with a configurable numbering table, duplicate prevention, and preserved
+   "legacy/external identifiers" (VIAF, Wikidata, ORCID, previous table numbers).
 
-كل نقطة من هذه النقاط مُنفَّذة في المشروع، وتفصيلها في الأقسام التالية، مع قائمة بما أوصي به للمرحلة القادمة
-(الصلاحيات، حماية البيانات الشخصية للأحياء، تسلسل الحالات، سُبل النشر والبحث الصرفي العربي).
+Every one of these points is implemented in the project and detailed in the sections below,
+along with what I recommend for the next phase (permissions, privacy protection for living
+persons, status sequencing, publication paths and Arabic morphological search).
 
 ---
 
@@ -91,8 +98,8 @@ column either rejects them or sorts them wrongly (`"c. 1876"` sorts before `"187
 
 ### 2.7 Name variants and identity resolution
 Three name columns are not enough to answer "is this the same person as that other record?" —
-transliteration, patronymic chains, honorifics (الدكتور، الشيخ، بك، هانم) and spelling variants all
-interfere.
+transliteration, patronymic chains, honorifics (الدكتور "doctor", الشيخ "sheikh", بك "bey",
+هانم "hanum") and spelling variants all interfere.
 
 **Implemented:** `name_transliteration`, `name_original_lang`, Arabic-aware normalisation for search
 (hamza forms, taa marbuta, diacritics, definite article), a duplicate-name check in the quality
@@ -112,7 +119,8 @@ registry's own numbering.
 ### 2.9 Thirteen help tables → one vocabulary table
 Thirteen tiny tables mean thirteen migrations every time a value is added, and thirteen join paths.
 
-**Implemented:** a single `lookup` table keyed by `domain` (21 domains, 271 values seeded), with
+**Implemented:** a single `lookup` table keyed by `domain` (33 domains today, thousands of
+seeded values in a geo-referenced database), with
 `parent_id` (hierarchies), `color` (UI), `meta` (JSON, e.g. ISO codes per country), `is_system`
 (system values can be deactivated but not deleted), plus a self-describing `lookup_domain` table so
 the admin UI can list, count and label every vocabulary. Adding a vocabulary is now *one row*.
@@ -187,8 +195,9 @@ configuration step: one row in `locale` + one JSON bundle in `static/js/locales/
 language is required.
 
 ### 2.18 Arabic search
-Standard `LIKE` on Arabic fails for أربعة أسباب: التشكيل، الهمزات (أ/إ/آ/ا)، التاء المربوطة/الهاء،
-و«ال» التعريف. A searcher who types `الموصل` must find `موصل` and vice versa.
+Standard `LIKE` on Arabic fails for four reasons: diacritics (التشكيل), hamza forms
+(أ/إ/آ/ا), taa marbuta versus haa (ة/ه), and the definite article (ال التعريف). A searcher
+who types `الموصل` must find `موصل` and vice versa.
 
 **Implemented:** SQLite FTS5 index with a normalised shadow column (diacritics, tatweel, hamza
 folding, taa marbuta, definite article, Latin accent stripping) and prefix matching, so `موصل`,

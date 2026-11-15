@@ -5,10 +5,20 @@
 Everything below is reproducible on a clean checkout against the running server on
 `http://127.0.0.1:8000`. Numbers in this document are the numbers the commands printed.
 
-| Harness | What it proves | Checks | Runtime |
+**What the numbers were measured against.** The API and database harnesses below were
+re-executed for this document against the synthetic datasets this repository ships: the
+`scripts/load_corpus.py` reference corpus (96 persons, 96 places, 24 institutions, 18
+sources, 20 events, 196 relationships) plus the fictional Military Organization sample.
+A run against your own data will report your counts — the audit and several harness checks
+emit one check per record group or finding, so their totals scale with the data. The ten
+Playwright harness counts are the recorded results of the last browser runs (the
+browser-side code is unchanged since); they cannot be re-executed in a sandbox without a
+browser.
+
+| Harness | What it proves | Checks | Measured |
 |---|---|---|---|
-| `pytest tests -q` | data model, repository, reports, import/export, numbering, i18n, place hygiene, graph API, merge audit trail, the settings registry (types, bounds, refusal, reset, audit, one source for defaults), security basics, and every image reference resolving | **110 passed** | ~5 s |
-| `tests/verify_all.py` | every HTTP route (all **101** are enumerated from the OpenAPI schema at runtime and none may go unexercised — including the 15 geographic routes and the two CRCE routes), both success and failure paths, the date-and-time model in depth, the configuration API end to end, the **geographic surface** (features, groups, overlays, dossiers, coordinates, antimeridian, basemap, gazetteer, georeferencing preview), the **compass-rose standard** ([CRCE.md](CRCE.md)), plus cleanup that restores the data | **407 / 407** | ~83 s |
+| `pytest tests -q` | data model, repository, reports, import/export, numbering, i18n, place hygiene, graph API, merge audit trail, the Military Organization module (rules, naming, sample, migrations), the settings registry (types, bounds, refusal, reset, audit, one source for defaults), security basics, and every image reference resolving | **390 passed** | re-executed here |
+| `tests/verify_all.py` | every HTTP route (all **141** route templates are enumerated from the OpenAPI schema at runtime and none may go unexercised — including the 15 geographic routes, the two CRCE routes, the 23 military route templates and the offline-map routes), both success and failure paths, the date-and-time model in depth, the configuration API end to end, the **geographic surface** (features, groups, overlays, dossiers, coordinates, antimeridian, basemap, gazetteer, georeferencing preview), the **Military Organization API** (roles, rule refusals, naming counters, CSV import/export, units' own-location geo, the sample lifecycle), the **compass-rose standard** ([CRCE.md](CRCE.md)), plus cleanup that restores the data | **503 / 503** | re-executed here |
 | `tests/ui_smoke.py` | fast browser pass: routes, four data views, filters, forms, RTL, the dirty-draft guard | **51 / 51** | ~28 s |
 | `tests/ui_full.py` | **every screen and every interactive control** in a real Chromium — including panning, zooming, node dragging, the date-time picker, the page/dialog form surfaces and the whole settings screen — with console-error gating | **200 / 200** | ~3.6 min |
 | `tests/inspect_ui.py` | the **record panel beside the list** ([UI_GUIDE.md](UI_GUIDE.md) §3): the full-stage default, the split in two balanced halves, the three tabs (Details as the whole dossier, Relationships as the interactive ego-network with node navigation, Map with DD + DMS coordinates and the offline base), the unlocated state with its fix-it hint, prev/next/arrow navigation, institutions and places, bulk selection that never opens the panel, AR/RTL mirroring — with console-error gating | **52 / 52** | ~30 s |
@@ -19,9 +29,10 @@ Everything below is reproducible on a clean checkout against the running server 
 | `tests/crce_ui.py` | [the compass-rose standard](CRCE.md): the published standard, symbol exclusivity, a place's encoding, a person's inheritance, an unlocated record, three relationship states, aliases and 404s, the Position tab in both languages, the atlas rosettes and panel tile, the geographic legend | **93 / 93** | ~17 s |
 | `tests/structures_ui.py` | [the six structures](STRUCTURES.md): one model behind six arrangements, the selection panel, the crumb trail, the folding that declares itself, the cost the footer prints, AR/EN | **62 / 62** | ~40 s |
 | `tests/desk_ui.py` | [the map desk](MAP.md) — the registry worked as a place: a real WebGL canvas over the offline pack, marks that are records, the pop-up card that never navigates, the four-tab rail, the neighbourhood panel that walks between records, the same records as a table, search and Enter, the trail, layer chips, base-map switching, the record with no coordinates, Arabic mirroring, and a disposed map with no console error | **87 / 87** | ~50 s |
-| `tests/audit.py` | [the fundamental audit](AUDIT.md): data integrity, filter/sort truth tables checked against independent counts, concurrency, durability, latency budgets | **162 / 162** | ~46 s |
+| `tests/audit.py` | [the fundamental audit](AUDIT.md): data integrity, filter/sort truth tables checked against independent counts, concurrency, durability, latency budgets | **161 / 161** | re-executed here |
 
-**1 427 executed assertions in total**, all green.
+**1 802 executed assertions in total**, all green (390 + 503 + 161 re-executed here; 748 from
+the last recorded browser runs).
 
 ```bash
 python3 scripts/check.py --api --ui --full --geo --audit --evidence --query --atlas --inspect --crce --structures --desk
@@ -42,12 +53,15 @@ tests; [AUDIT.md](AUDIT.md) documents each one with the measured before/after.
 
 The harness reads the **OpenAPI schema** at runtime (`app.openapi()["paths"]`, which is the only
 honest inventory: walking `app.routes` misses every route added by `include_router()`) and fails if
-**any** route is never exercised. It currently proves **87 route entries over 74 paths**, of which 15
-are geographic. It covers, for each of the six entities: list/query
+**any** route is never exercised. It currently proves all **141 route templates**, of which 15
+are geographic, two are CRCE, 23 are the Military Organization module and eight serve the offline
+map (bundled basemap tiles, vector map, browsing cache, download jobs). It covers, for each of the
+six entities: list/query
 (clause filters *and* the compact `{field: {op: value}}` form), CRUD, bulk actions, merge, restore,
 duplicates, attachments upload + download, tags, saved views, KPI, timeline, import validate + commit,
 export in four formats, reports (ten), relationship map (types and focus), maintenance, users and
-settings.
+settings — and for the military entities the same query contract plus the rule refusals, the naming
+engine, CSV import/export and the fictional sample cohort's full lifecycle.
 
 Two design rules make it safe to run against the live registry:
 
@@ -55,7 +69,7 @@ Two design rules make it safe to run against the live registry:
   once matched hundreds of legitimate records;
 * every row it creates is **restored and then hard-deleted** at the end (a merge soft-deletes its
   absorbed record, and a hard delete cannot reach a soft-deleted row — that gap used to leave one row
-  behind per run), and the harness asserts the dataset is unchanged (28 538 records before and after,
+  behind per run), and the harness asserts the dataset is unchanged (record counts before and after,
   verified across repeated runs).
 
 ## 2 · Interface surface — `tests/ui_full.py`
@@ -142,28 +156,27 @@ until you have read it.
 
 ## 4 · Data volume
 
-The registry is verified against a deliberately large, coherent dataset, not the 103-record demo:
+The registry is verified against a deliberately large, coherent dataset, not only the 103-record
+demo. `python -m app.cli bulk --profile large` appends one deterministically (the same seed gives
+the same dataset). The figures below are one documented run — a fresh database
+(`python -m app.cli init`), then `bulk --profile large` with the default seed:
 
 | Table | Rows | | Table | Rows |
 |---|---|---|---|---|
-| person | 7 024 (6 825 active, 199 soft-deleted) | | relationship | 14 569 |
-| institution | 1 212 | | source | 3 208 |
-| place | 1 118 | | event | 1 606 |
-| person_position | 9 346 | | source_link | 4 078 |
-| entity_tag | 8 050 | | change_log | 21 840 |
-| search_doc | 28 538 | | **total records** | **28 538** |
-| setting | 27 (one row per declared key) | | | |
+| person | 5 000 (with a few soft-deleted and sparse rows by design) | | relationship | 10 694 |
+| institution | 900 | | source | 2 500 |
+| place | 1 003 | | event | 1 200 |
+| person_position | 6 632 | | entity_tag | 5 949 |
+| change_log | 10 603 | | search_doc | 21 151 |
+| setting | 30 (one row per declared key) | | | |
 
-The database is ~85 MB (it grows with the change log, which is the point). List queries stay in the tens of milliseconds, the duplicates scan runs as a
-single windowed SQL statement (835 person groups in ~190 ms), and the relationship map aggregates
-18 139 relationship↔institution links without a perceptible delay.
+The database is ~46 MB (it grows with the change log, which is the point). List queries stay in the
+tens of milliseconds, the duplicates scan runs as a single windowed SQL statement, and the
+relationship map aggregates its links without a perceptible delay.
 
-*Census note.* The phase-5 checkpoint read 28 541 records and 14 572 relationships. Three relationship
-rows are gone: `REL-8593` and `REL-12595` were exact duplicate links dropped by a merge (see
-[PHASE6.md](PHASE6.md) §6.3 and §7), and `REL-3547` is an older gap with no change-log entry, from
-before link changes were logged. No entity rows are missing: every other count, including the 199
-soft-deleted persons and the 7 024 person rows, is identical to the checkpoint, and
-`check-integrity` reports no structural problems.
+*Census discipline.* Checkpoint counts move when a merge legitimately drops duplicate links (see
+[PHASE6.md](PHASE6.md) §6.3 and §7) — record every such change and have `check-integrity` report
+no structural problems before trusting a new checkpoint, exactly as the phase-5 census did.
 
 ## 5 · Reproducing this report
 
@@ -177,8 +190,8 @@ soft-deleted persons and the 7 024 person rows, is identical to the checkpoint, 
 
 ```bash
 python3 run.py --host 0.0.0.0 --port 8000 &      # or start.bat on Windows
-python3 -m pytest tests -q                        # 110
-python3 tests/verify_all.py                       # 368
+python3 -m pytest tests -q                        # 390
+python3 tests/verify_all.py                       # 503   (all 141 route templates)
 python3 tests/ui_smoke.py                         # 51
 python3 tests/ui_full.py                          # 200   (writes .smoke/full/*.png)
 python3 tests/ui_geo.py                           # 98    (writes .smoke/geo/*.png)
@@ -186,8 +199,10 @@ python3 tests/evidence_ui.py                      # 37    (evidence + diagram gr
 python3 tests/query_ui.py                         # 14    (the typed query language)
 python3 tests/atlas_ui.py                         # 54    (the atlas)
 python3 tests/inspect_ui.py                       # 52    (the record panel beside the list)
-python3 tests/crce_ui.py                          # 91    (the compass-rose standard)
-python3 tests/audit.py                            # 162   (the fundamental audit)
+python3 tests/crce_ui.py                          # 93    (the compass-rose standard)
+python3 tests/structures_ui.py                    # 62    (the six structures)
+python3 tests/desk_ui.py                          # 87    (the map desk)
+python3 tests/audit.py                            # 161   (the fundamental audit)
 python3 -m app.cli check-integrity                # no structural problems
 ```
 

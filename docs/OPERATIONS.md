@@ -301,11 +301,11 @@ Images do not appear on cards | `image_url` must be a public URL or an uploaded 
 
 ```bash
 python3 scripts/check.py --api --ui --full --geo --audit
-#  = byte-compile + imports + pytest (101) + every API route (280)
-#    + browser smoke (51) + exhaustive interface walk (198) + the fundamental audit (162)
-#    + the geographic workspace (84)
+#  = byte-compile + imports + pytest (390) + every API route (503 over 141 templates)
+#    + browser smoke (51) + exhaustive interface walk (200) + the fundamental audit (161)
+#    + the geographic workspace (98)
 
-python3 -m pytest -q            # 101 tests: schema, CRUD, audit, filters, search,
+python3 -m pytest -q            # 390 tests: schema, CRUD, audit, filters, search,
                                # derived fields, media, duplicates/merge, backup,
                                # relationships, import/export, reports, admin,
                                # place-name hygiene, the graph endpoint,

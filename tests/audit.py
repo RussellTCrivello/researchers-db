@@ -963,7 +963,20 @@ def s_durability(api: Client) -> None:
           "the JSON dump carries every table", str(list(payload)[:8]))
     total = sum(len(v) for k, v in payload.items()
                 if isinstance(v, list))
-    check("durability", total > 20_000, "the JSON dump is not truncated", f"{total} rows")
+    # "not truncated" is parity with the live tables, not any particular corpus
+    # size: every row of every dumped table must be in the dump
+    live = conn()
+    counted = 0
+    for k, v in payload.items():
+        if not (isinstance(v, list) and k.isidentifier()):
+            continue
+        try:
+            counted += one(live, f"SELECT COUNT(*) FROM {k}")
+        except sqlite3.Error:
+            pass
+    live.close()
+    check("durability", total == counted and total > 0,
+          "the JSON dump is not truncated", f"{total} of {counted} rows")
 
 
 # ---------------------------------------------------------------------------
@@ -971,6 +984,7 @@ def s_durability(api: Client) -> None:
 # ---------------------------------------------------------------------------
 def s_performance(api: Client) -> None:
     section("performance", "latency budget for the paths the interface hits hardest")
+    pid = api.post("/api/person/query", {"page_size": 1}).json()["items"][0]["id"]
     probes = [
         ("list page", "POST", "/api/person/query", {"page": 1, "page_size": 25}, 400),
         ("KPI strip", "POST", "/api/person/kpi", {}, 400),
@@ -981,8 +995,8 @@ def s_performance(api: Client) -> None:
         ("duplicates", "GET", "/api/person/duplicates?limit=25", None, 900),
         ("type map", "POST", "/api/relationship-map", {"mode": "types"}, 600),
         ("focus map", "POST", "/api/relationship-map",
-         {"mode": "focus", "entity_type": "person", "record_id": 1, "depth": 2}, 400),
-        ("record detail", "GET", "/api/person/1", None, 300),
+         {"mode": "focus", "entity_type": "person", "record_id": pid, "depth": 2}, 400),
+        ("record detail", "GET", f"/api/person/{pid}", None, 300),
         ("dashboard", "GET", "/api/dashboard", None, 800),
         ("report overview", "POST", "/api/reports/overview", {}, 500),
         ("picker search", "GET", "/api/options/institution?q=library&limit=20", None, 300),

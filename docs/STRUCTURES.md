@@ -51,6 +51,16 @@ Consequences worth stating plainly:
 | `relationships` | relationship | relationship type → direction → authentication |
 | `sources` | source | source type → reliability → record status |
 | `events` | event | event type → place → documentation level |
+| `units` | unit | the force tree: every unit under its parent (a hierarchy) |
+| `regions` | region | the region tree: command regions under their parents (a hierarchy) |
+| `regions-units` | region + unit | the two modules read together: each region's units nested inside it |
+| `units-ops` | unit + deployment/mission/training | the unit tree with what stands under each unit |
+| `forces` | unit | echelon → readiness status → classification (a chain) |
+
+The eleven sources come in three kinds — **chains** (the six registry sources), **hierarchies**
+(`units`, `regions`, self-referencing trees) and **composites** (`regions-units`, `units-ops`,
+two modules layered). The five military sources join the six registry ones under the same
+node contract.
 
 Each source is **declared**, not discovered: a chain is a list of field keys, and
 `app/structures.py` refuses a field it cannot group honestly (`Unsupported`)
@@ -73,8 +83,11 @@ SELECT d.key, COUNT(*) FROM person t
  GROUP BY 1 ORDER BY 2 DESC
 ```
 
-so a child's number always means *records that reach this node*, and the
-children of a node always add up to that node. `tests/verify_all.py` checks the
+so a child's number always means *records that reach this node*, and a node's
+value is its whole subtree: its own record plus everything below it. The
+children of a node therefore add up to the node's own record plus its children
+(the two are equal for a group node, which has no record of its own, and the
+root's value is the declared total). `tests/verify_all.py` checks the
 sum at every level for every source, against the live database.
 
 ### Breadth and folding
@@ -275,7 +288,8 @@ python3 tests/verify_all.py            # + 26 checks, against the API and the SQ
 ```
 
 `verify_all.py` proves the arithmetic: for every source, the first level adds up
-to the declared total and a child level adds up to its parent, folded branches
+to the declared total and every child level rolls up to its parent's value
+(children + the parent's own record), folded branches
 declare themselves, cost is reported, `depth=1` returns one level, an unknown
 source is a `404`.
 

@@ -82,6 +82,12 @@ Three invariants are pinned by tests (`tests/test_registry.py`):
 
 ### 3.1 Display & appearance (`display.*`)
 
+![the settings screen in the dark theme](screenshots/settings-dark-en.png)
+
+*The screen generated from the registry, in the dark theme (`display.theme`): every group
+card, its type-aware controls, the shipped default and personal-preference badges.*
+
+
 | Key | Type | Default | Range / values | Scope | Read by |
 |---|---|---|---|---|---|
 | `display.theme` | enum | `light` | `light` · `dark` · `system` | instance **or personal** | `app.js` → `applyAppearance()` → `<html data-theme>` |
@@ -280,6 +286,12 @@ in the Layers menu and its weight falls away with zoom instead of disappearing s
 
 ### 4.1 The screen — **Settings** (`#/settings`)
 
+![the settings screen](screenshots/settings-registry-en.png)
+
+*Every declared key, in its group card: label, key name, help, bounds, the code path that
+consumes the value, and reset controls per group.*
+
+
 The only route an administrator needs. It is generated from the registry, so it can never be out of
 step with the backend:
 
@@ -397,6 +409,12 @@ and the admin who did it left no trace. Prefer the API.
 ---
 
 ## 5 · Validation: what a refusal looks like
+
+![policy gates in the validation group](screenshots/settings-validation-en.png)
+
+*The policy gates: publishing without a source and deleting without a reason are refused by
+name — each key names the code path that refuses (`repo.create_record() → 422` and friends).*
+
 
 `PUT /api/settings` is **all-or-nothing**. If any key in the payload is invalid, nothing is written and
 the response names every problem:

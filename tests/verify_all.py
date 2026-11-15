@@ -168,7 +168,9 @@ def s_boot(api: Client) -> None:
     check(isinstance(m, dict) and m, "metrics endpoint returns a payload")
 
     meta = api.get("/api/meta?lang=ar", template="/api/meta").json()
-    check(len(meta["entities"]) == 6, "meta exposes six entities")
+    check(len(meta["entities"]) == 18,
+          "meta exposes the registry six plus the military twelve",
+          str(len(meta["entities"])))
     check("person" in meta["fields"], "person field catalogue is exposed")
     pf = meta["fields"]["person"]
     check(len(pf) >= 40, f"person exposes {len(pf)} fields")
@@ -235,8 +237,13 @@ def s_read(api: Client) -> None:
     s = api.get("/api/search?q=بغداد&limit=10", template="/api/search").json()
     check(s.get("total", 0) > 0 and s.get("groups"), "full-text search returns grouped hits",
           json.dumps(s)[:200])
-    s2 = api.get("/api/search?q=%D9%85%D8%AD%D9%85%D8%AF").json()
-    check(s2.get("total", 0) > 0, "Arabic search ignores diacritics/spelling variants")
+    # a name taken from live data, searched with a vowel added: normalisation
+    # must strip the diacritic and still find the record
+    ar = (first.get("name_ar") or "").strip()
+    token = ar.split()[0] if ar else "بغداد"
+    s2 = api.get("/api/search", params={"q": token + "\u064e"}).json()
+    check(s2.get("total", 0) > 0, "Arabic search ignores diacritics/spelling variants",
+          f"token {token!r} + fatha -> {s2.get('total', 0)} hits")
     deep = api.post("/api/person/query", {
         "page_size": 5,
         "where": [{"field": "record_status_id", "op": "in", "value": ["verified", "published"]},
@@ -246,11 +253,16 @@ def s_read(api: Client) -> None:
     check(deep["total"] > 0 and all(
         i.get("_derived", {}).get("completeness", 100) >= 50 for i in deep["items"]),
         "clause-list filter + derived sort works")
+    lo = api.post("/api/person/query",
+                  {"page_size": 1, "sort": {"key": "id", "dir": "asc"}}).json()["items"][0]["id"]
+    hi = api.post("/api/person/query",
+                  {"page_size": 1, "sort": {"key": "id", "dir": "desc"}}).json()["items"][0]["id"]
+    mid = (lo + hi) // 2
     mapped = api.post("/api/person/query", {
-        "page_size": 5, "filters": {"completeness": {"gte": 50}}}).json()
+        "page_size": 5, "filters": {"id": {"lte": mid}}}).json()
     everything = api.post("/api/person/query", {"page_size": 1}).json()["total"]
     check(0 < mapped["total"] < everything
-          and all(i["_derived"]["completeness"] >= 50 for i in mapped["items"]),
+          and all(i["id"] <= mid for i in mapped["items"]),
           "the compact {field: {op: value}} filter form is accepted too",
           f'{mapped["total"]} of {everything}')
     warn = api.post("/api/person/query", {"filters": {"not_a_field": {"eq": 1}}}).json()
@@ -333,9 +345,17 @@ def s_dates(api: Client) -> None:
     check(legacy["start_date"] == "c. 1850", "a circa date is preserved verbatim",
           str(legacy["start_date"]))
 
+    # scratch anchors at dates no corpus will use, so each operator's narrowing
+    # is proven against known rows rather than the luck of the dataset
+    for n, day in ((1, "1802-03-04"), (2, "1807-08-09"), (3, "1812-11-12")):
+        ev = api.post("/api/event",
+                      {"title_ar": f"{MARK} مرساة {n}", "title_en": f"{MARK} anchor {n}",
+                       "start_date": day},
+                      template="/api/{entity}").json()["record"]
+        CREATED.append(("event", ev["id"]))
     base = api.post("/api/event/query", {"page_size": 1}).json()["total"]
-    for op, val in (("on", "1950-01-08"), ("before", "1950"), ("after", "1950"),
-                    ("between", ["1947-01-01", "1947-12-31"])):
+    for op, val in (("on", "1802-03-04"), ("before", "1810"), ("after", "1810"),
+                    ("between", ["1807-01-01", "1807-12-31"])):
         got = api.post("/api/event/query",
                        {"filters": {"start_date": {op: val}}, "page_size": 3}).json()
         check(not got.get("warnings"), f"date operator '{op}' is implemented",
@@ -710,10 +730,13 @@ def s_import_export(api: Client) -> None:
     tpl_csv = api.get("/api/import/template/person?format=csv&lang=en")
     check(b"," in tpl_csv.content[:400], "a CSV template is generated")
 
-    cols = ["name_ar", "name_en", "classification_id", "nationality_id", "birth_date"]
+    cols = ["name_ar", "name_en", "category", "classification_id", "nationality_id",
+            "birth_date"]
     rows = [
-        [f"مستورد تجريبي {MARK} 1", f"Imported One {MARK}", "researcher", "EG", "1970"],
-        [f"مستورد تجريبي {MARK} 2", f"Imported Two {MARK}", "historian", "IQ", "1965"],
+        [f"مستورد تجريبي {MARK} 1", f"Imported One {MARK}", "civilian", "researcher",
+         "EG", "1970"],
+        [f"مستورد تجريبي {MARK} 2", f"Imported Two {MARK}", "civilian", "historian",
+         "IQ", "1965"],
     ]
     csv_bytes = ("\ufeff" + ",".join(cols) + "\n" +
                  "\n".join(",".join(r) for r in rows)).encode("utf-8")
@@ -943,8 +966,12 @@ def s_geo(api: Client) -> None:
     check(world["count"] <= located_total,
           "no more features than there are located records",
           f"{world['count']} vs {located_total}")
-    check(world["truncated"] is True,
-          "a truncated world view says so instead of pretending to be complete")
+    tiny = api.get("/api/map/features",
+                   params={"bbox": "-180,-85,180,85", "limit": 1},
+                   template="/api/map/features").json()
+    check(tiny.get("truncated") is True and tiny["count"] >= tiny.get("limit", 1),
+          "a truncated world view says so instead of pretending to be complete",
+          json.dumps({k: tiny.get(k) for k in ("count", "limit", "truncated")}))
     check(all(layer["returned"] <= layer["total"] for layer in world["per_layer"].values()),
           "per-layer counts agree with the features returned")
     typed = {p["entity_type"] for p in world["points"]}
@@ -1000,7 +1027,11 @@ def s_geo(api: Client) -> None:
                   template="/api/map/features")
     check("layer" in bad.text.lower(), "an unknown layer is refused", bad.text[:120])
 
-    detail = api.get("/api/map/feature/place/1", template="/api/map/feature/{entity_type}/{rec_id}").json()
+    place_pt = next((p_ for p_ in world["points"] if p_["entity_type"] == "place"), None)
+    check(place_pt is not None, "the world view includes a located place to inspect")
+    place_id = place_pt["id"] if place_pt else 0
+    detail = api.get(f"/api/map/feature/place/{place_id}",
+                     template="/api/map/feature/{entity_type}/{rec_id}").json()
     check(detail["ok"] and detail["located"], "a located record's dossier is served")
     pos = detail["position"]
     check(pos["formatted"]["dd"] and pos["formatted"]["dms"],
@@ -1012,7 +1043,7 @@ def s_geo(api: Client) -> None:
           str(pos["country_polygon"])[:120])
     check(isinstance(detail["relationships"], list),
           "the dossier lists the record's located relationships")
-    check(api.get("/api/map/feature/place/1").json()["position"]["lat"] == pos["lat"],
+    check(api.get(f"/api/map/feature/place/{place_id}").json()["position"]["lat"] == pos["lat"],
           "the dossier is deterministic")
     api.get("/api/map/feature/wizard/1", expect=422,
             template="/api/map/feature/{entity_type}/{rec_id}")
@@ -1119,13 +1150,56 @@ def s_geo(api: Client) -> None:
     plan = api.get("/api/map/georef/preview", params={"limit": 5},
                    template="/api/map/georef/preview").json()
     check(plan["dry_run"] is True, "the georeferencing preview is read-only")
-    check(plan["summary"]["scanned"] >= 1000,
-          "the preview scans every place", str(plan["summary"]))
+    places_total = api.post("/api/place/query", {"page_size": 1}).json()["total"]
+    check(plan["summary"]["scanned"] >= places_total,
+          "the preview scans every place",
+          f'{plan["summary"]} vs {places_total} places')
     check(plan["summary"]["located_after_apply"] >= plan["summary"]["located"],
           "the preview reports what applying would achieve")
     check(plan["dry_run"] and api.get("/api/map/georef/preview").json()["summary"]["proposals"]
           == plan["summary"]["proposals"],
           "previewing georeferencing twice changes nothing")
+
+    # ---- the offline map: packaged basemap, vector map, cache, jobs --------
+    tiles = api.get("/api/geo/tiles/info", template="/api/geo/tiles/info").json()
+    check(tiles.get("ok") is True and tiles.get("format") == "webp"
+          and int(tiles.get("rows") or 0) > 0 and int(tiles.get("maxzoom") or 0) > 0,
+          "the packaged basemap reports itself",
+          json.dumps({k: tiles.get(k) for k in ("name", "rows", "minzoom", "maxzoom")}))
+    tile = api.get("/api/geo/tiles/6/33/21.webp",
+                   template="/api/geo/tiles/{z}/{x}/{y}.webp")
+    check(tile.status_code == 200 and tile.content[:4] == b"RIFF",
+          "a basemap tile is served as webp",
+          f"status={tile.status_code} bytes={len(tile.content)}")
+    vm = api.get("/api/geo/vectormap/info",
+                 template="/api/geo/vectormap/info").json()
+    check(vm.get("ok") is True and int((vm.get("stats") or {}).get("roads") or 0) > 0,
+          "the packaged vector map reports its features",
+          json.dumps(vm.get("stats"))[:120])
+    stats = api.get("/api/geo/browse-cache/stats",
+                    template="/api/geo/browse-cache/stats").json()
+    check(stats.get("ok") is True and "entries" in (stats.get("stats") or {}),
+          "the browsing cache reports itself",
+          json.dumps(stats.get("stats"))[:120])
+    bc = api.get("/api/geo/browse-cache/osm/6/33/21", expect=(200, 500, 503),
+                 template="/api/geo/browse-cache/{provider_id}/{z}/{x}/{y}")
+    check((bc.status_code == 200 and bc.headers.get("content-type", "").startswith("image/"))
+          or (bc.status_code >= 500 and "detail" in bc.json()),
+          "a cached tile comes back as an image and a missing one says so",
+          f"status={bc.status_code}")
+    job = api.get("/api/geo/downloads/999999", expect=404,
+                  template="/api/geo/downloads/{job_id}")
+    check(job.status_code == 404 and "no such download job" in job.text,
+          "a missing download job is named honestly",
+          job.text[:80])
+    act = api.post("/api/geo/downloads/999999/pause", {},
+                   expect=404, template="/api/geo/downloads/{job_id}/{action}")
+    check(act.status_code == 404,
+          "a job action on a missing job is refused", act.text[:80])
+    gone = api.delete("/api/geo/downloads/999999", expect=404,
+                      template="/api/geo/downloads/{job_id}")
+    check(gone.status_code == 404,
+          "a job cannot be deleted twice over", gone.text[:80])
 
 # ---------------------------------------------------------------------------
 # 10 · route inventory
@@ -1162,14 +1236,188 @@ def s_inventory(api: Client) -> None:
           json.dumps(missing, indent=1))
 
 
+
+
+# ---------------------------------------------------------------------------
+# 9c · the military surface (BIMS) — every route exercised, scratch-cleaned
+# ---------------------------------------------------------------------------
+MIL_ENTITIES = ("unit", "region", "division", "classification", "armament",
+                "holding", "deployment", "mission", "training", "trait",
+                "assignment", "note")
+
+
+def s_military(api: Client) -> None:
+    section("the military surface (BIMS) — every route exercised")
+    made: dict[str, int] = {}
+
+    def mil(entity: str, payload: dict, label: str) -> int:
+        out = api.post(f"/api/military/{entity}", payload,
+                       expect=(200, 201), template="/api/military/{entity}").json()
+        rec = out.get("record") or out.get("data") or out
+        rid = int(rec["id"])
+        made[label] = rid
+        CREATED.append((f"mil:{entity}", rid))
+        return rid
+
+    # ---- read-only surface -------------------------------------------
+    meta = api.get("/api/military/meta", template="/api/military/meta").json()
+    check(meta.get("ok") and len(meta.get("entities", {})) == 12,
+          "military meta describes the twelve entities",
+          str(sorted(meta.get("entities", {})))[:160])
+    for path, key, label in (
+            ("/api/military/summary", "ok", "the military summary aggregates live counts"),
+            ("/api/military/quality", "ok", "the military quality audit runs"),
+            ("/api/military/units/tree", "ok", "the unit tree is served"),
+            ("/api/military/regions/tree", "ok", "the region tree is served"),
+            ("/api/military/naming/status", "series", "the naming series are listed"),
+            ("/api/military/naming/history", "ok", "the naming adjustment history is served"),
+            ("/api/military/audit/log", "ok", "the military audit log is served")):
+        out = api.get(path, template=path).json()
+        check(out.get(key) is not None or out.get("ok") is True, label,
+              json.dumps(out)[:160])
+
+    # ---- scratch hierarchy: region -> division -> unit, plus the rest ----
+    region = mil("region", {"name": f"{MARK} region"}, "region")
+    division = mil("division", {"name": f"{MARK} division", "region_id": region}, "division")
+    unit = mil("unit", {"name": f"{MARK} unit", "region_id": region,
+                        "division_id": division, "direct_personnel": 20}, "unit")
+    armament = mil("armament", {"name": f"{MARK} armament"}, "armament")
+    mil("classification", {"name": f"{MARK} category"}, "classification")
+    mil("holding", {"unit_id": unit, "armament_id": armament,
+                              "quantity": 3}, "holding")
+    mil("deployment", {"unit_id": unit, "name": f"{MARK} deployment",
+                                    "start_date": "2024-01-01"}, "deployment")
+    mil("mission", {"unit_id": unit, "name": f"{MARK} mission",
+                              "start_date": "2024-01-01"}, "mission")
+    mil("training", {"unit_id": unit, "exercise_name": f"{MARK} exercise",
+                                "start_date": "2024-01-01", "end_date": "2024-01-05",
+                                "duration_days": 5, "participant_count": 2}, "training")
+    person = api.post("/api/person",
+                      {"name_en": f"{MARK} commander", "name_ar": f"{MARK} قائد",
+                       "category": "military"},
+                      template="/api/{entity}").json()["record"]
+    CREATED.append(("person", person["id"]))
+    qv = api.get("/api/lookups", params={"domain": "leadership_quality"}).json() or []
+    lv = api.get("/api/lookups", params={"domain": "leadership_level"}).json() or []
+    q_codes = [r["code"] for r in (qv if isinstance(qv, list) else qv.get("items", []))]
+    l_codes = [r["code"] for r in (lv if isinstance(lv, list) else lv.get("items", []))]
+    mil("trait", {"person_id": person["id"], "quality": q_codes[0],
+                  "level": l_codes[0], "evidence_note": f"{MARK} basis"}, "trait")
+    mil("assignment", {"unit_id": unit, "commander_id": person["id"],
+                       "assigned_date": "2024-01-01"}, "assignment")
+    mil("note", {"entity_type": "unit", "target_id": unit,
+                 "note_text": f"{MARK} note", "author": ACTOR}, "note")
+
+    # ---- every entity: list, detail, patch round-trip -----------------
+    patchable = {"unit": ("name", f"{MARK} unit v2"),
+                 "region": ("name", f"{MARK} region v2"),
+                 "division": ("name", f"{MARK} division v2"),
+                 "classification": ("name", f"{MARK} category v2"),
+                 "armament": ("name", f"{MARK} armament v2"),
+                 "holding": ("quantity", 9),
+                 "deployment": ("name", f"{MARK} deployment v2"),
+                 "mission": ("name", f"{MARK} mission v2"),
+                 "training": ("exercise_name", f"{MARK} exercise v2"),
+                 "trait": ("level", l_codes[-1] if len(l_codes) > 1 else l_codes[0]),
+                 "assignment": ("assigned_date", "2024-02-02"),
+                 "note": ("note_text", f"{MARK} note v2")}
+    for entity in MIL_ENTITIES:
+        listing = api.get(f"/api/military/{entity}",
+                          template="/api/military/{entity}").json()
+        check(listing.get("ok") is not None or "items" in listing,
+              f"{entity}: the unified list answers", json.dumps(listing)[:120])
+        rid = made[entity]
+        det = api.get(f"/api/military/{entity}/{rid}",
+                      template="/api/military/{entity}/{record_id}").json()
+        rec = det.get("record") or det
+        check(rec.get("id") == rid, f"{entity}: the detail round-trips", str(rec.get("id")))
+        key, val = patchable[entity]
+        upd = api.patch(f"/api/military/{entity}/{rid}", {key: val},
+                        template="/api/military/{entity}/{record_id}").json()
+        rec = upd.get("record") or upd
+        check(rec.get(key) == val, f"{entity}: a patch round-trips",
+              f"{key}={rec.get(key)!r}")
+        blob = api.get(f"/api/military/{entity}/export.csv",
+                       template="/api/military/{entity}/export.csv").json()
+        check(blob.get("ok") is True and isinstance(blob.get("csv"), str)
+              and "\n" in blob["csv"] and int(blob.get("rows") or 0) >= 1,
+              f"{entity}: export.csv serves a document",
+              json.dumps({k: blob.get(k) for k in ("ok", "filename", "rows")}))
+
+    # ---- import: CSV rows through the real commit path ----------------
+    csv_text = "\ufeffname\n" + f"{MARK} imported region\n"
+    imp = api.post("/api/military/region/import.csv",
+                   {"csv": csv_text, "mode": "create"},
+                   headers={"X-Military-Role": "staff"},
+                   template="/api/military/{entity}/import.csv").json()
+    check(imp.get("ok") is True
+          and int((imp.get("summary") or {}).get("created", 0)) == 1,
+          "a CSV import commits a row", json.dumps(imp)[:160])
+    for row in imp.get("results") or []:
+        if row.get("id"):
+            CREATED.append(("mil:region", int(row["id"])))
+
+    # ---- the routes that carry the module's design contracts ----------
+    geo = api.get(f"/api/military/units/{unit}/geo",
+                  template="/api/military/units/{unit_id}/geo").json()
+    check(geo.get("ok") and geo.get("unit", {}).get("own") is True,
+          "a unit's geo serves the unit's OWN location, never the commander's",
+          json.dumps(geo.get("unit", {}))[:120])
+    force = api.get(f"/api/military/units/{unit}/force-summary",
+                    template="/api/military/units/{unit_id}/force-summary").json()
+    check(force.get("ok") is not None, "a unit's force summary is served",
+          json.dumps(force)[:120])
+    holds = api.get(f"/api/military/armaments/{armament}/holdings",
+                    template="/api/military/armaments/{armament_id}/holdings").json()
+    check(holds.get("ok") is not None, "an armament's holdings are served",
+          json.dumps(holds)[:120])
+    leader = api.get(f"/api/military/persons/{person['id']}/leader-record",
+                     template="/api/military/persons/{person_id}/leader-record").json()
+    check(leader.get("ok") is not None, "a person's leader record is derived",
+          json.dumps(leader)[:120])
+
+    # ---- naming administration: preview, an audited counter write -----
+    prev = api.post("/api/military/naming/preview",
+                    {"entity": "unit"},
+                    template="/api/military/naming/preview").json()
+    check(prev.get("ok") is True, "a code preview names the next record",
+          json.dumps(prev)[:160])
+    series = api.get("/api/military/naming/status").json()["series"]
+    opt = next(o for o in series if o.get("is_default"))
+    adj = api.put("/api/military/naming/counter",
+                  {"option_id": opt["id"], "partition": opt.get("partition") or "",
+                   "new_value": int(opt.get("current_value") or 0),
+                   "label": opt.get("label")},
+                  template="/api/military/naming/counter").json()
+    check(adj.get("ok") is True, "a counter write is accepted and audited",
+          json.dumps(adj)[:160])
+
+    # ---- the sample cohort is fictional and regenerable: refresh it ---
+    api.delete("/api/military/sample", expect=(200, 204),
+               template="/api/military/sample")
+    back = api.post("/api/military/sample", {"force": True}, expect=(200, 201),
+                    template="/api/military/sample").json()
+    check(back.get("ok") is not None or back.get("loaded") is not None
+          or back.get("sample") is not None,
+          "the fictional sample cohort reloads end to end",
+          json.dumps({k: back.get(k) for k in ("ok", "loaded", "sample", "persons")})[:160])
+
 # ---------------------------------------------------------------------------
 # 10 · cleanup + census
 # ---------------------------------------------------------------------------
 def s_cleanup(api: Client) -> None:
     section("cleanup — the dataset is left exactly as it was found")
     removed = 0
-    for ent, rid in CREATED:
+    # reverse order: scratch rows form FK chains (a unit owns its holdings)
+    for ent, rid in reversed(CREATED):
         try:
+            if ent.startswith("mil:"):
+                mkey = ent.split(":", 1)[1]
+                api.req("DELETE",
+                        f"/api/military/{mkey}/{rid}?hard=true&reason=verification",
+                        expect=(200, 204, 404, 400, 409))
+                removed += 1
+                continue
             # a merge soft-deletes the absorbed record, and a hard delete does
             # not reach a soft-deleted row — restore first, then destroy it
             api.req("POST", f"/api/{ent}/{rid}/restore",
@@ -1227,25 +1475,31 @@ def s_cleanup(api: Client) -> None:
 def s_graph(api: Client) -> None:
     section("the atlas — dossiers and paths behind the relationship map")
 
+    # find a record that actually has relationships, rather than assuming an id
+    focus = api.post("/api/person/query",
+                     {"page_size": 1,
+                      "sort": {"key": "relationships_count", "dir": "desc"}}).json()["items"][0]
+    fid = int(focus["id"])
+
     graph = api.post("/api/relationship-map", template="/api/relationship-map",
                      json={"mode": "focus", "entity_type": "person",
-                           "record_id": 1, "depth": 1}).json()
-    check(graph["focus"] == "person:1" and graph["nodes"],
+                           "record_id": fid, "depth": 1}).json()
+    check(graph["focus"] == f"person:{fid}" and graph["nodes"],
           "the map still answers for a focus record", str(len(graph.get("nodes", []))))
 
-    # find a record that actually has a relationship, rather than assuming one
     edge = next((e for e in graph["edges"] if e.get("kind") == "relationship"), None)
     check(edge is not None, "that neighbourhood contains a typed relationship")
     neighbour_id = None
     if edge:
-        neighbour_id = edge["target"] if edge["source"] == "person:1" else edge["source"]
+        neighbour_id = edge["target"] if edge["source"] == f"person:{fid}" else edge["source"]
 
-    node = api.get("/api/graph/node/person/1", template="/api/graph/node/{entity_type}/{record_id}").json()
-    check(node["id"] == "person:1" and node["title"],
+    node = api.get(f"/api/graph/node/person/{fid}",
+                   template="/api/graph/node/{entity_type}/{record_id}").json()
+    check(node["id"] == f"person:{fid}" and node["title"],
           "a node dossier names the record", node.get("title", ""))
-    check(node["type"] == "person" and node["record_id"] == 1,
+    check(node["type"] == "person" and node["record_id"] == fid,
           "the dossier keeps its identity, not just its label")
-    check("/person/1" in node["href"], "the dossier carries the route to the record",
+    check(f"/person/{fid}" in node["href"], "the dossier carries the route to the record",
           node.get("href", ""))
     check(isinstance(node["facts"], list) and node["facts"],
           "the dossier resolves fields into readable facts",
@@ -1272,7 +1526,7 @@ def s_graph(api: Client) -> None:
     api.get("/api/graph/node/nonsense/1", template="/api/graph/node/{entity_type}/{record_id}", expect=404)
 
     path = api.post("/api/graph/path", json={
-        "from_type": "person", "from_id": 1,
+        "from_type": "person", "from_id": fid,
         "to_type": ntype, "to_id": int(nid), "max_depth": 4}).json()
     check(path["ok"] and path["found"], "a direct neighbour is reachable as a path")
     check(path["length"] == 1 and len(path["nodes"]) == 2 and len(path["edges"]) == 1,
@@ -1285,13 +1539,13 @@ def s_graph(api: Client) -> None:
           str(path["searched"]))
 
     same = api.post("/api/graph/path", json={
-        "from_type": "person", "from_id": 1,
-        "to_type": "person", "to_id": 1}).json()
+        "from_type": "person", "from_id": fid,
+        "to_type": "person", "to_id": fid}).json()
     check(same["found"] and same["length"] == 0,
           "a record is its own path, with no steps", str(same["length"]))
 
     api.post("/api/graph/path", json={
-        "from_type": "person", "from_id": 1,
+        "from_type": "person", "from_id": fid,
         "to_type": "place", "to_id": 99_999_999}, expect=404)
 
     # an honest "no": a depth of one cannot invent a chain of three, and the
@@ -1299,7 +1553,7 @@ def s_graph(api: Client) -> None:
     places = api.post("/api/place/query", json={"page_size": 3}).json()["items"]
     if places:
         far = api.post("/api/graph/path", json={
-            "from_type": "person", "from_id": 1,
+            "from_type": "person", "from_id": fid,
             "to_type": "place", "to_id": places[0]["id"], "max_depth": 1}).json()
         check(far["found"] == (len(far["nodes"]) == 2),
               "a one-step search returns either one step or nothing",
@@ -1308,15 +1562,16 @@ def s_graph(api: Client) -> None:
               "the search reports how much of the graph it looked at",
               str(far["searched"]))
 
-    api.post("/api/graph/path", json={"from_type": "person", "from_id": 1},
+    api.post("/api/graph/path", json={"from_type": "person", "from_id": fid},
              expect=422)
-    capped = api.post("/api/graph/path", json={
-        "from_type": "person", "from_id": 1,
-        "to_type": "place", "to_id": 1, "max_depth": 99}).json()
-    check(capped["ok"] and capped["searched"] >= capped["length"] if capped["found"]
-          else capped["ok"],
-          "an absurd depth is clamped rather than obeyed or refused",
-          str(capped["searched"]))
+    if places:
+        capped = api.post("/api/graph/path", json={
+            "from_type": "person", "from_id": fid,
+            "to_type": "place", "to_id": places[0]["id"], "max_depth": 99}).json()
+        check(capped["ok"] and capped["searched"] >= capped["length"] if capped["found"]
+              else capped["ok"],
+              "an absurd depth is clamped rather than obeyed or refused",
+              str(capped["searched"]))
 
 
 # ---------------------------------------------------------------------------
@@ -1442,7 +1697,9 @@ def s_crce(api: Client) -> None:
           "and repeats that a connection is not a finding of responsibility")
 
     # a kind the standard does not cover: coordinates read, no mark borrowed
-    ev = api.get("/api/crce/dossier/event/1",
+    ev_row = api.post("/api/event/query",
+                      {"page_size": 1, "sort": {"key": "id", "dir": "asc"}}).json()["items"][0]
+    ev = api.get(f"/api/crce/dossier/event/{ev_row['id']}",
                  template="/api/crce/dossier/{entity_type}/{record_id}").json()
     check(ev["entity"]["covered_by_standard"] is False and ev["entity"]["symbol"] is None,
           "an uncovered kind borrows no mark")
@@ -1467,7 +1724,8 @@ def s_structures(api: Client) -> None:
     srcs = api.get("/api/structures", template="/api/structures").json()
     check(srcs.get("ok") is True, "the structure registry answers")
     sources = srcs.get("sources") or []
-    check(len(sources) == 6, "six sources are declared", str(len(sources)))
+    check(len(sources) == 11, "the structure registry declares all eleven sources",
+          str(len(sources)))
     check(all(s.get("label_en") and s.get("label_ar") for s in sources),
           "every source is named in both languages")
     check(all(s.get("chain") for s in sources), "every source declares its chain")
@@ -1486,8 +1744,13 @@ def s_structures(api: Client) -> None:
         deep = [k for k in kids if k.get("children")]
         if deep:
             sub = deep[0]
-            check(sum(c["value"] for c in sub["children"]) == sub["value"],
-                  f"{sid}: a child level adds up to its parent")
+            # the shared rollup: a node counts its own record (structural
+            # sources carry the record at the node) plus everything beneath it
+            self_part = 1 if (sub.get("meta") or {}).get("record") else 0
+            kids_sum = sum(c["value"] for c in sub["children"])
+            check(kids_sum + self_part == sub["value"],
+                  f"{sid}: a child level adds up to its parent",
+                  f"{kids_sum}+{self_part} vs {sub['value']}")
         folded = [k for k in kids if k.get("meta", {}).get("synthetic")]
         check(all("smaller groups" in k["label_en"] for k in folded),
               f"{sid}: a folded branch declares itself", f"{len(folded)} folded")
@@ -1519,6 +1782,7 @@ SECTIONS: list[tuple[str, Callable[[Client], None]]] = [
     ("crce", s_crce),
     ("structures", s_structures),
     ("graph", s_graph),
+    ("military", s_military),
     ("inventory", s_inventory),
     ("cleanup", s_cleanup),
 ]

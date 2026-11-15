@@ -499,11 +499,15 @@ def main() -> None:
                     "notes": NOTE,
                 })
                 pid = add("person", {
+                    # the corpus is scholars and officials: civilian category
+                    # (the category discipline owns classification_id)
+                    "category": "civilian",
                     "name_ar": ar,
                     "name_en": en,
                     "name_original": en,
-                    "name_original_lang": "en" if cc not in ("FR", "DE", "TR", "RU", "JP") else {
-                        "FR": "fr", "DE": "de", "TR": "tr", "RU": "ru", "JP": "ja"}.get(cc, "en"),
+                    # the stored original is the English form of the synthetic
+                    # name, so the language column honestly reads "en"
+                    "name_original_lang": "en",
                     "name_transliteration": en,
                     "birth_date": birth,
                     "birth_precision": bprec,

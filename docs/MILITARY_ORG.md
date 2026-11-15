@@ -191,6 +191,8 @@ command appointee.
 | `formation_date` | date | |
 | `headquarters` | text | |
 | `notes` | text | |
+| `image_url`, `image_alt` | image | **emblem** (migration `017`) — uploaded from the dossier like any portrait (`/api/media`), never a system column |
+| `latitude`, `longitude`, `geometry_source` | geo | **the unit's own location** (migration `018`) — recorded with its provenance; a commander's personal coordinates never stand in for it |
 | `path`, `depth` | system | materialised tree path |
 
 **Subtree personnel** is `SUM(direct_personnel)` over the unit and all of its
@@ -209,6 +211,7 @@ by users (see [UI-8](#8-interface)). The API exposes it as `subtree_personnel`.
 | `status` | choice | `Planned · Active · Completed · Suspended` (default `Planned`) |
 | `is_current` | bool | at most one current deployment per unit |
 | `location`, `area_of_operations`, `notes` | text | |
+| `latitude`, `longitude`, `geometry_source` | geo | the deployment area's **own** location (migration `018`) — drawn as its own marks on the unit's map |
 
 ### 3.7 Mission
 
@@ -538,7 +541,17 @@ polymorphic notes). The generic `/entity/...` routes resolve military
 entities to their own forms and dossiers, so links from shared surfaces
 (export rows, reference links, "Add" buttons) all work.
 
-**Administration** — **naming series** with full numbering control (20
+**The unit dossier's map is the unit's own.** Every unit with coordinates
+carries a map panel and a provenance strip built from
+`GET /api/military/units/{id}/geo` (`unit.own: true`): the unit's own pin
+first (lat/lon with `geometry_source` and headquarters), then every
+deployment's own point (dates, location, coordinates — or an honest "no
+coordinates"). The legend names whose location each mark is; nobody's
+personal coordinates are ever drawn. Units also carry an **emblem**
+(`image_url` + `image_alt`) with an upload button on the dossier. An
+unlocated unit gets an empty state that links straight to the edit form.
+
+**Administration** — **naming series** with full numbering control (19
 options with partitions, next previews, the advisory preview tool,
 admin-only audited counter adjustment and a **counter history** log) and the
 **audit log**. Roles are demonstrated with a selector in the sub-nav
@@ -658,7 +671,11 @@ transactions).
 ## 11. Storage, migrations, operations
 
 * **One database.** The military schema lives in the same `registry.db` as the
-  SIRAJ registry, applied by `app/migrations/015_military_org.sql` — additive,
+  SIRAJ registry, applied by `app/migrations/015_military_org.sql` through
+  `020_person_category.sql` (`015` the core schema; `017` the unit emblem;
+  `018` the commander↔person link and the units' own geography;
+  `019` leadership assessments; `020` the Leader folded into categorized
+  persons) — additive,
   idempotent (`CREATE TABLE IF NOT EXISTS`), recorded in the registry's
   `schema_migration` ledger, and never touching existing registry rows. The
   module also applies the migration lazily (`dbm.ensure()`), so both the app

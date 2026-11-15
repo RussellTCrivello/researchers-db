@@ -104,6 +104,14 @@ def text(x, y, s, cls="t", anchor="start", weight=None, size=None, fill=None, rt
     return f"<text {' '.join(attrs)}>{esc(s)}</text>"
 
 
+LANG = "en"   # "en" = English-only diagrams (default); "both" = English + Arabic
+
+
+def bi(en: str, ar: str) -> str:
+    """Bilingual label — English alone in --lang en, both in --lang both."""
+    return en if LANG == "en" else f"{en} · {ar}"
+
+
 def box(x, y, w, h, title, subtitle=None, color=INK, count=None, radius=12, dashed=False,
         fill_opacity=0.10, tag=None):
     out = []
@@ -267,10 +275,14 @@ def diagram_entity_model(conn, c) -> str:
         ("relationship", "RELATIONSHIP", "25 fields · 6 ƒ · العلاقات",
          ["entity1 → any record", "entity2 → any record", "source_id → source"]),
     ]
+    plurals = {"person": "persons", "institution": "institutions", "place": "places",
+               "event": "events", "source": "sources", "relationship": "relationships"}
     pos = {}
     for i, (key, en, sub, kids) in enumerate(ents):
         x = x0 + i * (bw + gap)
         pos[key] = (x, ey)
+        base, _, plural_ar = sub.rpartition(" · ")
+        sub = f"{base}{bi(' · ' + plurals[key], ' · ' + plural_ar)}"
         parts += card(x, ey, bw, eh, en, sub, TYPE_COLOR[key], c[key], "records", kids)
 
     # ---- join tables, aligned under their owning entity ---------------
@@ -469,7 +481,8 @@ def diagram_type_graph(conn, c) -> str:
                      f'fill="{color}" fill-opacity=".12" stroke="{color}" stroke-width="2.4"/>')
         parts.append(text(x, y - 8, n["label_en"].upper(), cls="t", anchor="middle", weight=800,
                           size=13.5, fill=color))
-        parts.append(text(x, y + 13, n["label_ar"], cls="s", anchor="middle", rtl=True))
+        if LANG == "both":
+            parts.append(text(x, y + 13, n["label_ar"], cls="s", anchor="middle", rtl=True))
         parts.append(text(x, y + 30, f"{n['count']:,} records", cls="s", anchor="middle",
                           weight=700))
 
@@ -586,11 +599,13 @@ def diagram_place_hierarchy(conn, c) -> str:
         if children_label:
             parts.append(text(x + width - 12, y + 26, children_label, cls="s",
                               anchor="end", size=10.8))
-        # line 2 — Arabic name; with direction:rtl the *start* anchor is the right
-        # edge, so it must be left alone (anchoring "end" pushes it out of the card)
-        parts.append(text(x + width - 12, y + 48, fit(node["name_ar"], width - 24, 11.4),
-                          cls="s", size=11.4,
-                          style="direction:rtl;unicode-bidi:plaintext"))
+        # line 2 — Arabic name (bilingual mode); with direction:rtl the *start*
+        # anchor is the right edge, so it must be left alone (anchoring "end"
+        # pushes it out of the card)
+        if LANG == "both":
+            parts.append(text(x + width - 12, y + 48, fit(node["name_ar"], width - 24, 11.4),
+                              cls="s", size=11.4,
+                              style="direction:rtl;unicode-bidi:plaintext"))
         # line 3 — how many records point at this place, across the full width
         parts.append(text(x + 12, y + 70, fit(f"{node['persons']} people · "
                                              f"{node['institutions']} institutions",
@@ -618,8 +633,10 @@ def diagram_place_hierarchy(conn, c) -> str:
 # 5 · ego network
 # ---------------------------------------------------------------------------
 def diagram_ego(conn, c) -> str:
-    row = conn.execute("""
-        SELECT p.id, COALESCE(NULLIF(p.name_en,''), p.name_ar, p.code) AS name
+    name_sql = ("COALESCE(NULLIF(p.name_en,''), p.code)" if LANG == "en"
+                else "COALESCE(NULLIF(p.name_en,''), p.name_ar, p.code)")
+    row = conn.execute(f"""
+        SELECT p.id, {name_sql} AS name
         FROM person p
         WHERE p.deleted_at IS NULL
         ORDER BY (SELECT COUNT(*) FROM relationship r WHERE r.deleted_at IS NULL AND
@@ -801,7 +818,12 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="generate the relationship diagrams")
     ap.add_argument("names", nargs="*", help="diagram names (default: all)")
     ap.add_argument("--list", action="store_true", help="list the diagrams and exit")
+    ap.add_argument("--lang", choices=["en", "both"], default="en",
+                    help="diagram language: en (English, default) or both "
+                         "(English + Arabic)")
     args = ap.parse_args(argv)
+    global LANG
+    LANG = args.lang
     if args.list:
         print("\n".join(sorted(BUILDERS)))
         return 0
