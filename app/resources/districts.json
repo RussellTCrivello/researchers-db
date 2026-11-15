@@ -1,0 +1,9879 @@
+[
+ {
+  "code": "LB-AK-AK",
+  "governorate": "LB-AK",
+  "label_en": "Akkar",
+  "label_ar": "العكار",
+  "sort": 10
+ },
+ {
+  "code": "LB-AS-TR",
+  "governorate": "LB-AS",
+  "label_en": "Tripoli",
+  "label_ar": "طرابلس",
+  "sort": 10
+ },
+ {
+  "code": "LB-AS-ZG",
+  "governorate": "LB-AS",
+  "label_en": "Zgharta",
+  "label_ar": "زغرتا",
+  "sort": 20
+ },
+ {
+  "code": "LB-AS-BT",
+  "governorate": "LB-AS",
+  "label_en": "Batroun",
+  "label_ar": "بترون",
+  "sort": 30
+ },
+ {
+  "code": "LB-AS-BS",
+  "governorate": "LB-AS",
+  "label_en": "Bsharre",
+  "label_ar": "بشري",
+  "sort": 40
+ },
+ {
+  "code": "LB-AS-KR",
+  "governorate": "LB-AS",
+  "label_en": "Koura",
+  "label_ar": "الكورة",
+  "sort": 50
+ },
+ {
+  "code": "LB-AS-MD",
+  "governorate": "LB-AS",
+  "label_en": "Minieh-Danniyeh",
+  "label_ar": "المنية الضنية",
+  "sort": 60
+ },
+ {
+  "code": "LB-BI-BE",
+  "governorate": "LB-BI",
+  "label_en": "Beirut",
+  "label_ar": "بيروت",
+  "sort": 10
+ },
+ {
+  "code": "LB-BH-BA",
+  "governorate": "LB-BH",
+  "label_en": "Baalbek",
+  "label_ar": "بعلبك",
+  "sort": 10
+ },
+ {
+  "code": "LB-BH-HR",
+  "governorate": "LB-BH",
+  "label_en": "Hermel",
+  "label_ar": "الهرمل",
+  "sort": 20
+ },
+ {
+  "code": "LB-BA-ZH",
+  "governorate": "LB-BA",
+  "label_en": "Zahle",
+  "label_ar": "زحلة",
+  "sort": 10
+ },
+ {
+  "code": "LB-BA-WB",
+  "governorate": "LB-BA",
+  "label_en": "West Beqaa",
+  "label_ar": "البقاع الغربي",
+  "sort": 20
+ },
+ {
+  "code": "LB-BA-RS",
+  "governorate": "LB-BA",
+  "label_en": "Rashaya",
+  "label_ar": "الرشاية",
+  "sort": 30
+ },
+ {
+  "code": "LB-JA-SD",
+  "governorate": "LB-JA",
+  "label_en": "Sidon",
+  "label_ar": "صيدا",
+  "sort": 10
+ },
+ {
+  "code": "LB-JA-TY",
+  "governorate": "LB-JA",
+  "label_en": "Tyre",
+  "label_ar": "صور",
+  "sort": 20
+ },
+ {
+  "code": "LB-JA-JZ",
+  "governorate": "LB-JA",
+  "label_en": "Jezzine",
+  "label_ar": "جزين",
+  "sort": 30
+ },
+ {
+  "code": "LB-NA-NB",
+  "governorate": "LB-NA",
+  "label_en": "Nabatieh",
+  "label_ar": "النبطية",
+  "sort": 10
+ },
+ {
+  "code": "LB-NA-MJ",
+  "governorate": "LB-NA",
+  "label_en": "Marjayoun",
+  "label_ar": "مرجعيون",
+  "sort": 20
+ },
+ {
+  "code": "LB-NA-BJ",
+  "governorate": "LB-NA",
+  "label_en": "Bint Jbeil",
+  "label_ar": "بنت جبيل",
+  "sort": 30
+ },
+ {
+  "code": "LB-NA-HS",
+  "governorate": "LB-NA",
+  "label_en": "Hasbaya",
+  "label_ar": "الحاصبية",
+  "sort": 40
+ },
+ {
+  "code": "LB-JL-BB",
+  "governorate": "LB-JL",
+  "label_en": "Baabda",
+  "label_ar": "بعبدا",
+  "sort": 10
+ },
+ {
+  "code": "LB-JL-AL",
+  "governorate": "LB-JL",
+  "label_en": "Aley",
+  "label_ar": "عاليه",
+  "sort": 20
+ },
+ {
+  "code": "LB-JL-CF",
+  "governorate": "LB-JL",
+  "label_en": "Chouf",
+  "label_ar": "الشوف",
+  "sort": 30
+ },
+ {
+  "code": "LB-JL-MT",
+  "governorate": "LB-JL",
+  "label_en": "Metn",
+  "label_ar": "المتن",
+  "sort": 40
+ },
+ {
+  "code": "LB-JL-JB",
+  "governorate": "LB-JL",
+  "label_en": "Jbeil",
+  "label_ar": "جبيل",
+  "sort": 50
+ },
+ {
+  "code": "PS-JEN-JN",
+  "governorate": "PS-JEN",
+  "label_en": "Jenin",
+  "label_ar": "جنين",
+  "sort": 10
+ },
+ {
+  "code": "PS-JEN-QA",
+  "governorate": "PS-JEN",
+  "label_en": "Qabatiya",
+  "label_ar": "قباطية",
+  "sort": 20
+ },
+ {
+  "code": "PS-JEN-YB",
+  "governorate": "PS-JEN",
+  "label_en": "Ya'bad",
+  "label_ar": "يعبد",
+  "sort": 30
+ },
+ {
+  "code": "PS-JEN-AR",
+  "governorate": "PS-JEN",
+  "label_en": "Arrabah",
+  "label_ar": "عرابة",
+  "sort": 40
+ },
+ {
+  "code": "PS-TBS-TB",
+  "governorate": "PS-TBS",
+  "label_en": "Tubas",
+  "label_ar": "طوباس",
+  "sort": 10
+ },
+ {
+  "code": "PS-TBS-TM",
+  "governorate": "PS-TBS",
+  "label_en": "Tammun",
+  "label_ar": "تمّون",
+  "sort": 20
+ },
+ {
+  "code": "PS-TBS-AQ",
+  "governorate": "PS-TBS",
+  "label_en": "Aqaba",
+  "label_ar": "العقبة",
+  "sort": 30
+ },
+ {
+  "code": "PS-TKM-TK",
+  "governorate": "PS-TKM",
+  "label_en": "Tulkarm",
+  "label_ar": "طولكرم",
+  "sort": 10
+ },
+ {
+  "code": "PS-TKM-QF",
+  "governorate": "PS-TKM",
+  "label_en": "Qaffin",
+  "label_ar": "قفين",
+  "sort": 20
+ },
+ {
+  "code": "PS-TKM-AN",
+  "governorate": "PS-TKM",
+  "label_en": "Anabta",
+  "label_ar": "عنابتا",
+  "sort": 30
+ },
+ {
+  "code": "PS-TKM-BL",
+  "governorate": "PS-TKM",
+  "label_en": "Bala'a",
+  "label_ar": "بلعا",
+  "sort": 40
+ },
+ {
+  "code": "PS-NBS-NB",
+  "governorate": "PS-NBS",
+  "label_en": "Nablus",
+  "label_ar": "نابلس",
+  "sort": 10
+ },
+ {
+  "code": "PS-NBS-BT",
+  "governorate": "PS-NBS",
+  "label_en": "Beita",
+  "label_ar": "بيتا",
+  "sort": 20
+ },
+ {
+  "code": "PS-NBS-QB",
+  "governorate": "PS-NBS",
+  "label_en": "Qabalan",
+  "label_ar": "قبلان",
+  "sort": 30
+ },
+ {
+  "code": "PS-NBS-AQ",
+  "governorate": "PS-NBS",
+  "label_en": "Aqraba",
+  "label_ar": "عقربا",
+  "sort": 40
+ },
+ {
+  "code": "PS-NBS-SB",
+  "governorate": "PS-NBS",
+  "label_en": "Sebastia",
+  "label_ar": "سبسطية",
+  "sort": 50
+ },
+ {
+  "code": "PS-QQA-QQ",
+  "governorate": "PS-QQA",
+  "label_en": "Qalqilya",
+  "label_ar": "قلقيلية",
+  "sort": 10
+ },
+ {
+  "code": "PS-QQA-AZ",
+  "governorate": "PS-QQA",
+  "label_en": "Azzun",
+  "label_ar": "عزون",
+  "sort": 20
+ },
+ {
+  "code": "PS-QQA-HB",
+  "governorate": "PS-QQA",
+  "label_en": "Habla",
+  "label_ar": "حبلة",
+  "sort": 30
+ },
+ {
+  "code": "PS-SLT-SL",
+  "governorate": "PS-SLT",
+  "label_en": "Salfit",
+  "label_ar": "سلفيت",
+  "sort": 10
+ },
+ {
+  "code": "PS-SLT-DB",
+  "governorate": "PS-SLT",
+  "label_en": "Deir Ballut",
+  "label_ar": "دير بلوط",
+  "sort": 20
+ },
+ {
+  "code": "PS-SLT-BR",
+  "governorate": "PS-SLT",
+  "label_en": "Bruqin",
+  "label_ar": "بروقين",
+  "sort": 30
+ },
+ {
+  "code": "PS-SLT-KH",
+  "governorate": "PS-SLT",
+  "label_en": "Kifl Haris",
+  "label_ar": "كفل حارس",
+  "sort": 40
+ },
+ {
+  "code": "PS-RBH-RM",
+  "governorate": "PS-RBH",
+  "label_en": "Ramallah",
+  "label_ar": "رام الله",
+  "sort": 10
+ },
+ {
+  "code": "PS-RBH-BH",
+  "governorate": "PS-RBH",
+  "label_en": "Al-Bireh",
+  "label_ar": "البيرة",
+  "sort": 20
+ },
+ {
+  "code": "PS-RBH-BZ",
+  "governorate": "PS-RBH",
+  "label_en": "Birzeit",
+  "label_ar": "بيرزيت",
+  "sort": 30
+ },
+ {
+  "code": "PS-RBH-SW",
+  "governorate": "PS-RBH",
+  "label_en": "Silwad",
+  "label_ar": "سلواد",
+  "sort": 40
+ },
+ {
+  "code": "PS-RBH-DD",
+  "governorate": "PS-RBH",
+  "label_en": "Deir Dibwan",
+  "label_ar": "دير دبوان",
+  "sort": 50
+ },
+ {
+  "code": "PS-JEM-JU",
+  "governorate": "PS-JEM",
+  "label_en": "Jerusalem",
+  "label_ar": "القدس",
+  "sort": 10
+ },
+ {
+  "code": "PS-JEM-AD",
+  "governorate": "PS-JEM",
+  "label_en": "Abu Dis",
+  "label_ar": "أبو ديس",
+  "sort": 20
+ },
+ {
+  "code": "PS-JEM-EZ",
+  "governorate": "PS-JEM",
+  "label_en": "Al-Eizariya",
+  "label_ar": "العيسارية",
+  "sort": 30
+ },
+ {
+  "code": "PS-JRH-JR",
+  "governorate": "PS-JRH",
+  "label_en": "Jericho",
+  "label_ar": "أريحا",
+  "sort": 10
+ },
+ {
+  "code": "PS-JRH-NW",
+  "governorate": "PS-JRH",
+  "label_en": "Nuwei'ma",
+  "label_ar": "النعيمة",
+  "sort": 20
+ },
+ {
+  "code": "PS-BTH-BL",
+  "governorate": "PS-BTH",
+  "label_en": "Bethlehem",
+  "label_ar": "بيت لحم",
+  "sort": 10
+ },
+ {
+  "code": "PS-BTH-BS",
+  "governorate": "PS-BTH",
+  "label_en": "Beit Sahour",
+  "label_ar": "بيت ساحور",
+  "sort": 20
+ },
+ {
+  "code": "PS-BTH-BJ",
+  "governorate": "PS-BTH",
+  "label_en": "Beit Jala",
+  "label_ar": "بيت جالا",
+  "sort": 30
+ },
+ {
+  "code": "PS-BTH-TQ",
+  "governorate": "PS-BTH",
+  "label_en": "Tuqu'",
+  "label_ar": "تقوع",
+  "sort": 40
+ },
+ {
+  "code": "PS-HBN-HB",
+  "governorate": "PS-HBN",
+  "label_en": "Hebron",
+  "label_ar": "الخليل",
+  "sort": 10
+ },
+ {
+  "code": "PS-HBN-DR",
+  "governorate": "PS-HBN",
+  "label_en": "Dura",
+  "label_ar": "دورا",
+  "sort": 20
+ },
+ {
+  "code": "PS-HBN-HH",
+  "governorate": "PS-HBN",
+  "label_en": "Halhul",
+  "label_ar": "حلحول",
+  "sort": 30
+ },
+ {
+  "code": "PS-HBN-YT",
+  "governorate": "PS-HBN",
+  "label_en": "Yatta",
+  "label_ar": "يطّا",
+  "sort": 40
+ },
+ {
+  "code": "PS-HBN-BN",
+  "governorate": "PS-HBN",
+  "label_en": "Bani Na'im",
+  "label_ar": "بني نعيم",
+  "sort": 50
+ },
+ {
+  "code": "PS-HBN-SM",
+  "governorate": "PS-HBN",
+  "label_en": "as-Samu'",
+  "label_ar": "السموع",
+  "sort": 60
+ },
+ {
+  "code": "PS-HBN-DH",
+  "governorate": "PS-HBN",
+  "label_en": "Adh-Dhahiriya",
+  "label_ar": "الظاهرية",
+  "sort": 70
+ },
+ {
+  "code": "PS-HBN-SR",
+  "governorate": "PS-HBN",
+  "label_en": "Sa'ir",
+  "label_ar": "سعير",
+  "sort": 80
+ },
+ {
+  "code": "PS-HBN-TQ",
+  "governorate": "PS-HBN",
+  "label_en": "Tarqumiyah",
+  "label_ar": "ترقوميا",
+  "sort": 90
+ },
+ {
+  "code": "PS-HBN-ID",
+  "governorate": "PS-HBN",
+  "label_en": "Idhna",
+  "label_ar": "إذنا",
+  "sort": 100
+ },
+ {
+  "code": "PS-NGZ-JA",
+  "governorate": "PS-NGZ",
+  "label_en": "Jabalia",
+  "label_ar": "جباليا",
+  "sort": 10
+ },
+ {
+  "code": "PS-NGZ-BL",
+  "governorate": "PS-NGZ",
+  "label_en": "Beit Lahia",
+  "label_ar": "بيت لاهية",
+  "sort": 20
+ },
+ {
+  "code": "PS-NGZ-BN",
+  "governorate": "PS-NGZ",
+  "label_en": "Beit Hanoun",
+  "label_ar": "بيت حانون",
+  "sort": 30
+ },
+ {
+  "code": "PS-GZA-GZ",
+  "governorate": "PS-GZA",
+  "label_en": "Gaza",
+  "label_ar": "غزة",
+  "sort": 10
+ },
+ {
+  "code": "PS-KYS-KY",
+  "governorate": "PS-KYS",
+  "label_en": "Khan Yunis",
+  "label_ar": "خان يونس",
+  "sort": 10
+ },
+ {
+  "code": "PS-KYS-AB",
+  "governorate": "PS-KYS",
+  "label_en": "Abasan",
+  "label_ar": "عبسان",
+  "sort": 20
+ },
+ {
+  "code": "PS-KYS-BS",
+  "governorate": "PS-KYS",
+  "label_en": "Bani Suheila",
+  "label_ar": "بني سهيل",
+  "sort": 30
+ },
+ {
+  "code": "PS-KYS-KH",
+  "governorate": "PS-KYS",
+  "label_en": "Khuza'a",
+  "label_ar": "خزاعة",
+  "sort": 40
+ },
+ {
+  "code": "PS-RFH-RF",
+  "governorate": "PS-RFH",
+  "label_en": "Rafah",
+  "label_ar": "رفح",
+  "sort": 10
+ },
+ {
+  "code": "PS-DEB-DB",
+  "governorate": "PS-DEB",
+  "label_en": "Deir al-Balah",
+  "label_ar": "دير البلح",
+  "sort": 10
+ },
+ {
+  "code": "PS-DEB-MG",
+  "governorate": "PS-DEB",
+  "label_en": "Al-Maghazi",
+  "label_ar": "المغازي",
+  "sort": 20
+ },
+ {
+  "code": "PS-DEB-BR",
+  "governorate": "PS-DEB",
+  "label_en": "Al-Bureij",
+  "label_ar": "البوريج",
+  "sort": 30
+ },
+ {
+  "code": "PS-DEB-NS",
+  "governorate": "PS-DEB",
+  "label_en": "Al-Nuseirat",
+  "label_ar": "النصيرات",
+  "sort": 40
+ },
+ {
+  "code": "PS-DEB-ZW",
+  "governorate": "PS-DEB",
+  "label_en": "Al-Zawaida",
+  "label_ar": "الزوايدة",
+  "sort": 50
+ },
+ {
+  "code": "JO-AM-AM",
+  "governorate": "JO-AM",
+  "label_en": "Amman",
+  "label_ar": "عمّان",
+  "sort": 10
+ },
+ {
+  "code": "JO-AM-QU",
+  "governorate": "JO-AM",
+  "label_en": "Al-Quwaysimah",
+  "label_ar": "القويسمة",
+  "sort": 20
+ },
+ {
+  "code": "JO-AM-SH",
+  "governorate": "JO-AM",
+  "label_en": "Sahab",
+  "label_ar": "سحاب",
+  "sort": 30
+ },
+ {
+  "code": "JO-AM-MQ",
+  "governorate": "JO-AM",
+  "label_en": "Al-Muwaqqar",
+  "label_ar": "الموقر",
+  "sort": 40
+ },
+ {
+  "code": "JO-AM-JZ",
+  "governorate": "JO-AM",
+  "label_en": "Al-Jizah",
+  "label_ar": "الجيزة",
+  "sort": 50
+ },
+ {
+  "code": "JO-AM-NU",
+  "governorate": "JO-AM",
+  "label_en": "Na'ur",
+  "label_ar": "ناعور",
+  "sort": 60
+ },
+ {
+  "code": "JO-IR-IR",
+  "governorate": "JO-IR",
+  "label_en": "Irbid",
+  "label_ar": "إربد",
+  "sort": 10
+ },
+ {
+  "code": "JO-IR-RM",
+  "governorate": "JO-IR",
+  "label_en": "Ramtha",
+  "label_ar": "الرمثا",
+  "sort": 20
+ },
+ {
+  "code": "JO-IR-BK",
+  "governorate": "JO-IR",
+  "label_en": "Bani Kinanah",
+  "label_ar": "بني كنانة",
+  "sort": 30
+ },
+ {
+  "code": "JO-IR-MS",
+  "governorate": "JO-IR",
+  "label_en": "Mazar al-Shamali",
+  "label_ar": "المزار الشمالي",
+  "sort": 40
+ },
+ {
+  "code": "JO-IR-WS",
+  "governorate": "JO-IR",
+  "label_en": "Wastiyyeh",
+  "label_ar": "الوسطية",
+  "sort": 50
+ },
+ {
+  "code": "JO-IR-AG",
+  "governorate": "JO-IR",
+  "label_en": "Northern Jordan Valley",
+  "label_ar": "الأغوار الشمالية",
+  "sort": 60
+ },
+ {
+  "code": "JO-JA-JR",
+  "governorate": "JO-JA",
+  "label_en": "Jerash",
+  "label_ar": "جرش",
+  "sort": 10
+ },
+ {
+  "code": "JO-AJ-AJ",
+  "governorate": "JO-AJ",
+  "label_en": "Ajloun",
+  "label_ar": "عجلون",
+  "sort": 10
+ },
+ {
+  "code": "JO-AJ-KF",
+  "governorate": "JO-AJ",
+  "label_en": "Kofranjah",
+  "label_ar": "كفرنجة",
+  "sort": 20
+ },
+ {
+  "code": "JO-MN-MF",
+  "governorate": "JO-MN",
+  "label_en": "Mafraq",
+  "label_ar": "المفرق",
+  "sort": 10
+ },
+ {
+  "code": "JO-BA-SL",
+  "governorate": "JO-BA",
+  "label_en": "Salt",
+  "label_ar": "السلط",
+  "sort": 10
+ },
+ {
+  "code": "JO-BA-FH",
+  "governorate": "JO-BA",
+  "label_en": "Fuheis",
+  "label_ar": "الفحيص",
+  "sort": 20
+ },
+ {
+  "code": "JO-BA-MH",
+  "governorate": "JO-BA",
+  "label_en": "Mahis",
+  "label_ar": "ماحص",
+  "sort": 30
+ },
+ {
+  "code": "JO-MD-MB",
+  "governorate": "JO-MD",
+  "label_en": "Madaba",
+  "label_ar": "مادبا",
+  "sort": 10
+ },
+ {
+  "code": "JO-MD-DH",
+  "governorate": "JO-MD",
+  "label_en": "Dhiban",
+  "label_ar": "ذيبان",
+  "sort": 20
+ },
+ {
+  "code": "JO-KA-KR",
+  "governorate": "JO-KA",
+  "label_en": "Karak",
+  "label_ar": "الكرك",
+  "sort": 10
+ },
+ {
+  "code": "JO-KA-MJ",
+  "governorate": "JO-KA",
+  "label_en": "Mazar al-Janoubi",
+  "label_ar": "المزار الجنوبي",
+  "sort": 20
+ },
+ {
+  "code": "JO-AT-TF",
+  "governorate": "JO-AT",
+  "label_en": "Tafila",
+  "label_ar": "الطفيلة",
+  "sort": 10
+ },
+ {
+  "code": "JO-MA-MN",
+  "governorate": "JO-MA",
+  "label_en": "Ma'an",
+  "label_ar": "معان",
+  "sort": 10
+ },
+ {
+  "code": "JO-MA-SH",
+  "governorate": "JO-MA",
+  "label_en": "Shobak",
+  "label_ar": "الشوبك",
+  "sort": 20
+ },
+ {
+  "code": "JO-MA-PT",
+  "governorate": "JO-MA",
+  "label_en": "Petra",
+  "label_ar": "البتراء",
+  "sort": 30
+ },
+ {
+  "code": "JO-AQ-AQ",
+  "governorate": "JO-AQ",
+  "label_en": "Aqaba",
+  "label_ar": "العقبة",
+  "sort": 10
+ },
+ {
+  "code": "JO-AZ-ZR",
+  "governorate": "JO-AZ",
+  "label_en": "Zarqa",
+  "label_ar": "الزرقاء",
+  "sort": 10
+ },
+ {
+  "code": "JO-AZ-RS",
+  "governorate": "JO-AZ",
+  "label_en": "Russeifa",
+  "label_ar": "الرصيفة",
+  "sort": 20
+ },
+ {
+  "code": "JO-AZ-AZ",
+  "governorate": "JO-AZ",
+  "label_en": "Azraq",
+  "label_ar": "الأزرق",
+  "sort": 30
+ },
+ {
+  "code": "SY-DI-DM",
+  "governorate": "SY-DI",
+  "label_en": "Damascus",
+  "label_ar": "دمشق",
+  "sort": 10
+ },
+ {
+  "code": "SY-RD-MK",
+  "governorate": "SY-RD",
+  "label_en": "Markaz Rif Dimashq",
+  "label_ar": "مركز ريف دمشق",
+  "sort": 10
+ },
+ {
+  "code": "SY-RD-DM",
+  "governorate": "SY-RD",
+  "label_en": "Douma",
+  "label_ar": "دوما",
+  "sort": 20
+ },
+ {
+  "code": "SY-RD-QT",
+  "governorate": "SY-RD",
+  "label_en": "Qatana",
+  "label_ar": "قطنا",
+  "sort": 30
+ },
+ {
+  "code": "SY-RD-NB",
+  "governorate": "SY-RD",
+  "label_en": "An-Nabk",
+  "label_ar": "النبك",
+  "sort": 40
+ },
+ {
+  "code": "SY-RD-YB",
+  "governorate": "SY-RD",
+  "label_en": "Yabroud",
+  "label_ar": "يبرود",
+  "sort": 50
+ },
+ {
+  "code": "SY-RD-ZB",
+  "governorate": "SY-RD",
+  "label_en": "Zabadani",
+  "label_ar": "الزبداني",
+  "sort": 60
+ },
+ {
+  "code": "SY-HL-JS",
+  "governorate": "SY-HL",
+  "label_en": "Jabal Saman",
+  "label_ar": "جبل سمان",
+  "sort": 10
+ },
+ {
+  "code": "SY-HL-SF",
+  "governorate": "SY-HL",
+  "label_en": "As-Safira",
+  "label_ar": "السفيرة",
+  "sort": 20
+ },
+ {
+  "code": "SY-HL-AB",
+  "governorate": "SY-HL",
+  "label_en": "Al-Bab",
+  "label_ar": "الباب",
+  "sort": 30
+ },
+ {
+  "code": "SY-HL-AE",
+  "governorate": "SY-HL",
+  "label_en": "Ain al-Arab",
+  "label_ar": "عين العرب",
+  "sort": 40
+ },
+ {
+  "code": "SY-HL-AZ",
+  "governorate": "SY-HL",
+  "label_en": "Azaz",
+  "label_ar": "أعزاز",
+  "sort": 50
+ },
+ {
+  "code": "SY-HL-JA",
+  "governorate": "SY-HL",
+  "label_en": "Jarabulus",
+  "label_ar": "جرابلس",
+  "sort": 60
+ },
+ {
+  "code": "SY-HL-MB",
+  "governorate": "SY-HL",
+  "label_en": "Manbij",
+  "label_ar": "منبج",
+  "sort": 70
+ },
+ {
+  "code": "SY-HL-AF",
+  "governorate": "SY-HL",
+  "label_en": "Afrin",
+  "label_ar": "عفرين",
+  "sort": 80
+ },
+ {
+  "code": "SY-HI-MK",
+  "governorate": "SY-HI",
+  "label_en": "Markaz Homs",
+  "label_ar": "مركز حمص",
+  "sort": 10
+ },
+ {
+  "code": "SY-HI-RA",
+  "governorate": "SY-HI",
+  "label_en": "Al-Rastan",
+  "label_ar": "الرستن",
+  "sort": 20
+ },
+ {
+  "code": "SY-HI-QU",
+  "governorate": "SY-HI",
+  "label_en": "Al-Qusayr",
+  "label_ar": "القصير",
+  "sort": 30
+ },
+ {
+  "code": "SY-HI-TK",
+  "governorate": "SY-HI",
+  "label_en": "Talkalakh",
+  "label_ar": "تلكلخ",
+  "sort": 40
+ },
+ {
+  "code": "SY-HI-TD",
+  "governorate": "SY-HI",
+  "label_en": "Tadmur",
+  "label_ar": "تدمر",
+  "sort": 50
+ },
+ {
+  "code": "SY-HI-MK2",
+  "governorate": "SY-HI",
+  "label_en": "Al-Mukharram",
+  "label_ar": "المخرم",
+  "sort": 60
+ },
+ {
+  "code": "SY-HM-MK",
+  "governorate": "SY-HM",
+  "label_en": "Markaz Hama",
+  "label_ar": "مركز حماة",
+  "sort": 10
+ },
+ {
+  "code": "SY-HM-MS",
+  "governorate": "SY-HM",
+  "label_en": "Masyaf",
+  "label_ar": "مصياف",
+  "sort": 20
+ },
+ {
+  "code": "SY-HM-SL",
+  "governorate": "SY-HM",
+  "label_en": "Salamiyah",
+  "label_ar": "السلمية",
+  "sort": 30
+ },
+ {
+  "code": "SY-HM-SQ",
+  "governorate": "SY-HM",
+  "label_en": "Al-Suqaylabiyah",
+  "label_ar": "السقيلبية",
+  "sort": 40
+ },
+ {
+  "code": "SY-HM-MH",
+  "governorate": "SY-HM",
+  "label_en": "Mhardeh",
+  "label_ar": "محردة",
+  "sort": 50
+ },
+ {
+  "code": "SY-ID-MK",
+  "governorate": "SY-ID",
+  "label_en": "Markaz Idlib",
+  "label_ar": "مركز إدلب",
+  "sort": 10
+ },
+ {
+  "code": "SY-ID-AR",
+  "governorate": "SY-ID",
+  "label_en": "Arihah",
+  "label_ar": "أريحا",
+  "sort": 20
+ },
+ {
+  "code": "SY-ID-JS",
+  "governorate": "SY-ID",
+  "label_en": "Jisr al-Shughur",
+  "label_ar": "جسر الشغور",
+  "sort": 30
+ },
+ {
+  "code": "SY-ID-MN",
+  "governorate": "SY-ID",
+  "label_en": "Ma'arrat al-Numan",
+  "label_ar": "معرة النعمان",
+  "sort": 40
+ },
+ {
+  "code": "SY-ID-HR",
+  "governorate": "SY-ID",
+  "label_en": "Harim",
+  "label_ar": "حارم",
+  "sort": 50
+ },
+ {
+  "code": "SY-LA-LA",
+  "governorate": "SY-LA",
+  "label_en": "Latakia",
+  "label_ar": "اللاذقية",
+  "sort": 10
+ },
+ {
+  "code": "SY-LA-HF",
+  "governorate": "SY-LA",
+  "label_en": "Al-Haffah",
+  "label_ar": "الحفة",
+  "sort": 20
+ },
+ {
+  "code": "SY-LA-JB",
+  "governorate": "SY-LA",
+  "label_en": "Jableh",
+  "label_ar": "جبلة",
+  "sort": 30
+ },
+ {
+  "code": "SY-LA-QR",
+  "governorate": "SY-LA",
+  "label_en": "Qardaha",
+  "label_ar": "القرداحة",
+  "sort": 40
+ },
+ {
+  "code": "SY-TA-TA",
+  "governorate": "SY-TA",
+  "label_en": "Tartus",
+  "label_ar": "طرطوس",
+  "sort": 10
+ },
+ {
+  "code": "SY-TA-SF",
+  "governorate": "SY-TA",
+  "label_en": "Safita",
+  "label_ar": "صافيتا",
+  "sort": 20
+ },
+ {
+  "code": "SY-TA-BN",
+  "governorate": "SY-TA",
+  "label_en": "Baniyas",
+  "label_ar": "بانياس",
+  "sort": 30
+ },
+ {
+  "code": "SY-TA-SB",
+  "governorate": "SY-TA",
+  "label_en": "Al-Shaykh Badr",
+  "label_ar": "الشيخ بدر",
+  "sort": 40
+ },
+ {
+  "code": "SY-TA-DK",
+  "governorate": "SY-TA",
+  "label_en": "Duraykish",
+  "label_ar": "دريكيش",
+  "sort": 50
+ },
+ {
+  "code": "SY-DR-DR",
+  "governorate": "SY-DR",
+  "label_en": "Daraa",
+  "label_ar": "درعا",
+  "sort": 10
+ },
+ {
+  "code": "SY-DR-IZ",
+  "governorate": "SY-DR",
+  "label_en": "Izra",
+  "label_ar": "إزرعا",
+  "sort": 20
+ },
+ {
+  "code": "SY-DR-SN",
+  "governorate": "SY-DR",
+  "label_en": "Al-Sanamayn",
+  "label_ar": "الصنمين",
+  "sort": 30
+ },
+ {
+  "code": "SY-SU-SU",
+  "governorate": "SY-SU",
+  "label_en": "As-Suwayda",
+  "label_ar": "السويداء",
+  "sort": 10
+ },
+ {
+  "code": "SY-SU-SK",
+  "governorate": "SY-SU",
+  "label_en": "Salkhad",
+  "label_ar": "صلخد",
+  "sort": 20
+ },
+ {
+  "code": "SY-SU-SH",
+  "governorate": "SY-SU",
+  "label_en": "Shahba",
+  "label_ar": "شهبا",
+  "sort": 30
+ },
+ {
+  "code": "SY-QU-QU",
+  "governorate": "SY-QU",
+  "label_en": "Quneitra",
+  "label_ar": "القنيطرة",
+  "sort": 10
+ },
+ {
+  "code": "SY-QU-BA",
+  "governorate": "SY-QU",
+  "label_en": "Al-Baath",
+  "label_ar": "البعث",
+  "sort": 20
+ },
+ {
+  "code": "SY-DY-DZ",
+  "governorate": "SY-DY",
+  "label_en": "Deir ez-Zor",
+  "label_ar": "دير الزور",
+  "sort": 10
+ },
+ {
+  "code": "SY-DY-AK",
+  "governorate": "SY-DY",
+  "label_en": "Abu Kamal",
+  "label_ar": "البوكمال",
+  "sort": 20
+ },
+ {
+  "code": "SY-DY-MY",
+  "governorate": "SY-DY",
+  "label_en": "Mayadin",
+  "label_ar": "الميادين",
+  "sort": 30
+ },
+ {
+  "code": "SY-RA-RA",
+  "governorate": "SY-RA",
+  "label_en": "Raqqa",
+  "label_ar": "الرقة",
+  "sort": 10
+ },
+ {
+  "code": "SY-RA-TH",
+  "governorate": "SY-RA",
+  "label_en": "Ath-Thawrah",
+  "label_ar": "الثورة",
+  "sort": 20
+ },
+ {
+  "code": "SY-RA-TA",
+  "governorate": "SY-RA",
+  "label_en": "Tal Abyad",
+  "label_ar": "تل أبيض",
+  "sort": 30
+ },
+ {
+  "code": "SY-HA-HA",
+  "governorate": "SY-HA",
+  "label_en": "Al-Hasakah",
+  "label_ar": "الحسكة",
+  "sort": 10
+ },
+ {
+  "code": "SY-HA-QA",
+  "governorate": "SY-HA",
+  "label_en": "Qamishli",
+  "label_ar": "القامشلي",
+  "sort": 20
+ },
+ {
+  "code": "SY-HA-RA",
+  "governorate": "SY-HA",
+  "label_en": "Ras al-Ayn",
+  "label_ar": "رأس العين",
+  "sort": 30
+ },
+ {
+  "code": "SY-HA-MK",
+  "governorate": "SY-HA",
+  "label_en": "Al-Malikiyah",
+  "label_ar": "المالكية",
+  "sort": 40
+ },
+ {
+  "code": "IQ-AN-RA",
+  "governorate": "IQ-AN",
+  "label_en": "Ramadi",
+  "label_ar": "الرمادي",
+  "sort": 10
+ },
+ {
+  "code": "IQ-AN-FA",
+  "governorate": "IQ-AN",
+  "label_en": "Fallujah",
+  "label_ar": "الفلوجة",
+  "sort": 20
+ },
+ {
+  "code": "IQ-AN-HI",
+  "governorate": "IQ-AN",
+  "label_en": "Hit",
+  "label_ar": "هيت",
+  "sort": 30
+ },
+ {
+  "code": "IQ-AN-HD",
+  "governorate": "IQ-AN",
+  "label_en": "Haditha",
+  "label_ar": "الحديثة",
+  "sort": 40
+ },
+ {
+  "code": "IQ-AN-RW",
+  "governorate": "IQ-AN",
+  "label_en": "Rawah",
+  "label_ar": "راوة",
+  "sort": 50
+ },
+ {
+  "code": "IQ-AN-AN",
+  "governorate": "IQ-AN",
+  "label_en": "Ana",
+  "label_ar": "عانة",
+  "sort": 60
+ },
+ {
+  "code": "IQ-AN-QA",
+  "governorate": "IQ-AN",
+  "label_en": "Al-Qa'im",
+  "label_ar": "القائم",
+  "sort": 70
+ },
+ {
+  "code": "IQ-AN-RU",
+  "governorate": "IQ-AN",
+  "label_en": "Ar-Rutbah",
+  "label_ar": "الرطبة",
+  "sort": 80
+ },
+ {
+  "code": "IQ-BB-HL",
+  "governorate": "IQ-BB",
+  "label_en": "Hillah",
+  "label_ar": "الحلة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-BB-MU",
+  "governorate": "IQ-BB",
+  "label_en": "Al-Musayyib",
+  "label_ar": "المسيب",
+  "sort": 20
+ },
+ {
+  "code": "IQ-BB-MH",
+  "governorate": "IQ-BB",
+  "label_en": "Al-Mahawil",
+  "label_ar": "المحاويل",
+  "sort": 30
+ },
+ {
+  "code": "IQ-BB-HS",
+  "governorate": "IQ-BB",
+  "label_en": "Hashimiya",
+  "label_ar": "الهاشمية",
+  "sort": 40
+ },
+ {
+  "code": "IQ-BB-KF",
+  "governorate": "IQ-BB",
+  "label_en": "Kifl",
+  "label_ar": "كفيل",
+  "sort": 50
+ },
+ {
+  "code": "IQ-BG-RU",
+  "governorate": "IQ-BG",
+  "label_en": "Rusafa",
+  "label_ar": "الرصافة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-BG-KR",
+  "governorate": "IQ-BG",
+  "label_en": "Karkh",
+  "label_ar": "الكرخ",
+  "sort": 20
+ },
+ {
+  "code": "IQ-BG-TR",
+  "governorate": "IQ-BG",
+  "label_en": "Tarmiyah",
+  "label_ar": "ترمية",
+  "sort": 30
+ },
+ {
+  "code": "IQ-BG-AG",
+  "governorate": "IQ-BG",
+  "label_en": "Abu Ghraib",
+  "label_ar": "أبو غريب",
+  "sort": 40
+ },
+ {
+  "code": "IQ-BG-MA",
+  "governorate": "IQ-BG",
+  "label_en": "Mahmudiyah",
+  "label_ar": "المحمودية",
+  "sort": 50
+ },
+ {
+  "code": "IQ-BG-TJ",
+  "governorate": "IQ-BG",
+  "label_en": "Taji",
+  "label_ar": "التاجي",
+  "sort": 60
+ },
+ {
+  "code": "IQ-BG-MD",
+  "governorate": "IQ-BG",
+  "label_en": "Al-Mada'in",
+  "label_ar": "المدائن",
+  "sort": 70
+ },
+ {
+  "code": "IQ-BA-BA",
+  "governorate": "IQ-BA",
+  "label_en": "Basra",
+  "label_ar": "البصرة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-BA-AK",
+  "governorate": "IQ-BA",
+  "label_en": "Abu al-Khasib",
+  "label_ar": "أبو الخصيب",
+  "sort": 20
+ },
+ {
+  "code": "IQ-BA-ZU",
+  "governorate": "IQ-BA",
+  "label_en": "Al-Zubair",
+  "label_ar": "الزبير",
+  "sort": 30
+ },
+ {
+  "code": "IQ-BA-FA",
+  "governorate": "IQ-BA",
+  "label_en": "Al-Faw",
+  "label_ar": "الفاو",
+  "sort": 40
+ },
+ {
+  "code": "IQ-BA-SA",
+  "governorate": "IQ-BA",
+  "label_en": "Shatt al-Arab",
+  "label_ar": "شط العرب",
+  "sort": 50
+ },
+ {
+  "code": "IQ-BA-QU",
+  "governorate": "IQ-BA",
+  "label_en": "Al-Qurna",
+  "label_ar": "القرنة",
+  "sort": 60
+ },
+ {
+  "code": "IQ-DQ-NA",
+  "governorate": "IQ-DQ",
+  "label_en": "Nasiriyah",
+  "label_ar": "الناصرية",
+  "sort": 10
+ },
+ {
+  "code": "IQ-DQ-SH",
+  "governorate": "IQ-DQ",
+  "label_en": "Al-Shatra",
+  "label_ar": "الشطرة",
+  "sort": 20
+ },
+ {
+  "code": "IQ-DQ-RI",
+  "governorate": "IQ-DQ",
+  "label_en": "Al-Rifai",
+  "label_ar": "الرفاعي",
+  "sort": 30
+ },
+ {
+  "code": "IQ-DQ-SU",
+  "governorate": "IQ-DQ",
+  "label_en": "Suq al-Shuyukh",
+  "label_ar": "سوق الشيوخ",
+  "sort": 40
+ },
+ {
+  "code": "IQ-DQ-CH",
+  "governorate": "IQ-DQ",
+  "label_en": "Al-Chibayish",
+  "label_ar": "الجبائش",
+  "sort": 50
+ },
+ {
+  "code": "IQ-DI-BQ",
+  "governorate": "IQ-DI",
+  "label_en": "Baqubah",
+  "label_ar": "بعقوبة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-DI-KH",
+  "governorate": "IQ-DI",
+  "label_en": "Al-Khalis",
+  "label_ar": "الخالص",
+  "sort": 20
+ },
+ {
+  "code": "IQ-DI-MU",
+  "governorate": "IQ-DI",
+  "label_en": "Al-Muqdadiyah",
+  "label_ar": "المقدادية",
+  "sort": 30
+ },
+ {
+  "code": "IQ-DI-KN",
+  "governorate": "IQ-DI",
+  "label_en": "Khanaqin",
+  "label_ar": "خانقين",
+  "sort": 40
+ },
+ {
+  "code": "IQ-DI-BR",
+  "governorate": "IQ-DI",
+  "label_en": "Balad Ruz",
+  "label_ar": "بلدروز",
+  "sort": 50
+ },
+ {
+  "code": "IQ-DI-KF",
+  "governorate": "IQ-DI",
+  "label_en": "Kifri",
+  "label_ar": "كفرى",
+  "sort": 60
+ },
+ {
+  "code": "IQ-DA-DU",
+  "governorate": "IQ-DA",
+  "label_en": "Duhok",
+  "label_ar": "دهوك",
+  "sort": 10
+ },
+ {
+  "code": "IQ-DA-ZK",
+  "governorate": "IQ-DA",
+  "label_en": "Zakho",
+  "label_ar": "زاخو",
+  "sort": 20
+ },
+ {
+  "code": "IQ-DA-AM",
+  "governorate": "IQ-DA",
+  "label_en": "Amadiya",
+  "label_ar": "عمادية",
+  "sort": 30
+ },
+ {
+  "code": "IQ-DA-SM",
+  "governorate": "IQ-DA",
+  "label_en": "Semel",
+  "label_ar": "سميل",
+  "sort": 40
+ },
+ {
+  "code": "IQ-DA-BD",
+  "governorate": "IQ-DA",
+  "label_en": "Bardarash",
+  "label_ar": "برداش",
+  "sort": 50
+ },
+ {
+  "code": "IQ-DA-AQ",
+  "governorate": "IQ-DA",
+  "label_en": "Aqra",
+  "label_ar": "عقرة",
+  "sort": 60
+ },
+ {
+  "code": "IQ-AR-ER",
+  "governorate": "IQ-AR",
+  "label_en": "Erbil",
+  "label_ar": "أربيل",
+  "sort": 10
+ },
+ {
+  "code": "IQ-AR-SO",
+  "governorate": "IQ-AR",
+  "label_en": "Soran",
+  "label_ar": "سوران",
+  "sort": 20
+ },
+ {
+  "code": "IQ-AR-SQ",
+  "governorate": "IQ-AR",
+  "label_en": "Shaqlawa",
+  "label_ar": "شقلاوة",
+  "sort": 30
+ },
+ {
+  "code": "IQ-AR-KO",
+  "governorate": "IQ-AR",
+  "label_en": "Koisnjaq",
+  "label_ar": "كويسنجق",
+  "sort": 40
+ },
+ {
+  "code": "IQ-AR-MK",
+  "governorate": "IQ-AR",
+  "label_en": "Makhmour",
+  "label_ar": "مخمور",
+  "sort": 50
+ },
+ {
+  "code": "IQ-KA-KA",
+  "governorate": "IQ-KA",
+  "label_en": "Karbala",
+  "label_ar": "كربلاء",
+  "sort": 10
+ },
+ {
+  "code": "IQ-KA-AT",
+  "governorate": "IQ-KA",
+  "label_en": "Ain al-Tamur",
+  "label_ar": "عين التمر",
+  "sort": 20
+ },
+ {
+  "code": "IQ-KA-HN",
+  "governorate": "IQ-KA",
+  "label_en": "Al-Hindiya",
+  "label_ar": "الهندية",
+  "sort": 30
+ },
+ {
+  "code": "IQ-KI-KI",
+  "governorate": "IQ-KI",
+  "label_en": "Kirkuk",
+  "label_ar": "كركوك",
+  "sort": 10
+ },
+ {
+  "code": "IQ-KI-HW",
+  "governorate": "IQ-KI",
+  "label_en": "Hawija",
+  "label_ar": "الحويجة",
+  "sort": 20
+ },
+ {
+  "code": "IQ-KI-DB",
+  "governorate": "IQ-KI",
+  "label_en": "Al-Dibis",
+  "label_ar": "الدبس",
+  "sort": 30
+ },
+ {
+  "code": "IQ-KI-DQ",
+  "governorate": "IQ-KI",
+  "label_en": "Daquq",
+  "label_ar": "داقوق",
+  "sort": 40
+ },
+ {
+  "code": "IQ-KI-ZB",
+  "governorate": "IQ-KI",
+  "label_en": "Al-Zab",
+  "label_ar": "الزاب",
+  "sort": 50
+ },
+ {
+  "code": "IQ-MA-AM",
+  "governorate": "IQ-MA",
+  "label_en": "Amarah",
+  "label_ar": "العمارة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-MA-MJ",
+  "governorate": "IQ-MA",
+  "label_en": "Al-Majjar al-Kabir",
+  "label_ar": "المجر الكبير",
+  "sort": 20
+ },
+ {
+  "code": "IQ-MA-QS",
+  "governorate": "IQ-MA",
+  "label_en": "Qal'at Salih",
+  "label_ar": "قلعة صالح",
+  "sort": 30
+ },
+ {
+  "code": "IQ-MA-AG",
+  "governorate": "IQ-MA",
+  "label_en": "Ali al-Gharbi",
+  "label_ar": "علي الغربي",
+  "sort": 40
+ },
+ {
+  "code": "IQ-MU-SA",
+  "governorate": "IQ-MU",
+  "label_en": "Samawah",
+  "label_ar": "السماوة",
+  "sort": 10
+ },
+ {
+  "code": "IQ-MU-RU",
+  "governorate": "IQ-MU",
+  "label_en": "Al-Rumaitha",
+  "label_ar": "الرميثة",
+  "sort": 20
+ },
+ {
+  "code": "IQ-MU-KH",
+  "governorate": "IQ-MU",
+  "label_en": "Al-Khidhir",
+  "label_ar": "الخضر",
+  "sort": 30
+ },
+ {
+  "code": "IQ-MU-SL",
+  "governorate": "IQ-MU",
+  "label_en": "Al-Salman",
+  "label_ar": "السلمان",
+  "sort": 40
+ },
+ {
+  "code": "IQ-NA-NJ",
+  "governorate": "IQ-NA",
+  "label_en": "Najaf",
+  "label_ar": "النجف",
+  "sort": 10
+ },
+ {
+  "code": "IQ-NA-KF",
+  "governorate": "IQ-NA",
+  "label_en": "Al-Kufa",
+  "label_ar": "الكوفة",
+  "sort": 20
+ },
+ {
+  "code": "IQ-NA-MN",
+  "governorate": "IQ-NA",
+  "label_en": "Al-Manathera",
+  "label_ar": "المناذرة",
+  "sort": 30
+ },
+ {
+  "code": "IQ-NI-MO",
+  "governorate": "IQ-NI",
+  "label_en": "Mosul",
+  "label_ar": "الموصل",
+  "sort": 10
+ },
+ {
+  "code": "IQ-NI-TA",
+  "governorate": "IQ-NI",
+  "label_en": "Tal Afar",
+  "label_ar": "تلعفر",
+  "sort": 20
+ },
+ {
+  "code": "IQ-NI-SJ",
+  "governorate": "IQ-NI",
+  "label_en": "Sinjar",
+  "label_ar": "سنجار",
+  "sort": 30
+ },
+ {
+  "code": "IQ-NI-HA",
+  "governorate": "IQ-NI",
+  "label_en": "Al-Hamdaniya",
+  "label_ar": "الحمدانية",
+  "sort": 40
+ },
+ {
+  "code": "IQ-NI-BJ",
+  "governorate": "IQ-NI",
+  "label_en": "Al-Ba'aj",
+  "label_ar": "البعاج",
+  "sort": 50
+ },
+ {
+  "code": "IQ-NI-AK",
+  "governorate": "IQ-NI",
+  "label_en": "Akre",
+  "label_ar": "عقرة",
+  "sort": 60
+ },
+ {
+  "code": "IQ-NI-SK",
+  "governorate": "IQ-NI",
+  "label_en": "Sheikhan",
+  "label_ar": "الشيخان",
+  "sort": 70
+ },
+ {
+  "code": "IQ-QA-DW",
+  "governorate": "IQ-QA",
+  "label_en": "Diwaniyah",
+  "label_ar": "الديوانية",
+  "sort": 10
+ },
+ {
+  "code": "IQ-QA-HM",
+  "governorate": "IQ-QA",
+  "label_en": "Al-Hamza",
+  "label_ar": "الحمزة",
+  "sort": 20
+ },
+ {
+  "code": "IQ-QA-SH",
+  "governorate": "IQ-QA",
+  "label_en": "Al-Shamiya",
+  "label_ar": "الشامية",
+  "sort": 30
+ },
+ {
+  "code": "IQ-QA-AF",
+  "governorate": "IQ-QA",
+  "label_en": "Afak",
+  "label_ar": "عفك",
+  "sort": 40
+ },
+ {
+  "code": "IQ-SD-TI",
+  "governorate": "IQ-SD",
+  "label_en": "Tikrit",
+  "label_ar": "تكريت",
+  "sort": 10
+ },
+ {
+  "code": "IQ-SD-SA",
+  "governorate": "IQ-SD",
+  "label_en": "Samarra",
+  "label_ar": "سامراء",
+  "sort": 20
+ },
+ {
+  "code": "IQ-SD-BL",
+  "governorate": "IQ-SD",
+  "label_en": "Balad",
+  "label_ar": "بلد",
+  "sort": 30
+ },
+ {
+  "code": "IQ-SD-DU",
+  "governorate": "IQ-SD",
+  "label_en": "Al-Daur",
+  "label_ar": "الدور",
+  "sort": 40
+ },
+ {
+  "code": "IQ-SD-IS",
+  "governorate": "IQ-SD",
+  "label_en": "Al-Ishaqi",
+  "label_ar": "الإسحاقية",
+  "sort": 50
+ },
+ {
+  "code": "IQ-SD-TU",
+  "governorate": "IQ-SD",
+  "label_en": "Tuz Khurmatu",
+  "label_ar": "توز خورماتو",
+  "sort": 60
+ },
+ {
+  "code": "IQ-SD-BJ",
+  "governorate": "IQ-SD",
+  "label_en": "Baiji",
+  "label_ar": "بيجي",
+  "sort": 70
+ },
+ {
+  "code": "IQ-SD-SR",
+  "governorate": "IQ-SD",
+  "label_en": "Al-Shirqat",
+  "label_ar": "الشرقاط",
+  "sort": 80
+ },
+ {
+  "code": "IQ-SU-SU",
+  "governorate": "IQ-SU",
+  "label_en": "Sulaymaniyah",
+  "label_ar": "السليمانية",
+  "sort": 10
+ },
+ {
+  "code": "IQ-SU-HA",
+  "governorate": "IQ-SU",
+  "label_en": "Halabja",
+  "label_ar": "حلبجة",
+  "sort": 20
+ },
+ {
+  "code": "IQ-SU-RA",
+  "governorate": "IQ-SU",
+  "label_en": "Rania",
+  "label_ar": "رانية",
+  "sort": 30
+ },
+ {
+  "code": "IQ-SU-DB",
+  "governorate": "IQ-SU",
+  "label_en": "Darbandikhan",
+  "label_ar": "دربندخان",
+  "sort": 40
+ },
+ {
+  "code": "IQ-SU-CM",
+  "governorate": "IQ-SU",
+  "label_en": "Chamchamal",
+  "label_ar": "چمچمال",
+  "sort": 50
+ },
+ {
+  "code": "IQ-SU-SS",
+  "governorate": "IQ-SU",
+  "label_en": "Said Sadiq",
+  "label_ar": "سيد صادق",
+  "sort": 60
+ },
+ {
+  "code": "IQ-SU-PJ",
+  "governorate": "IQ-SU",
+  "label_en": "Penjwen",
+  "label_ar": "بنجوين",
+  "sort": 70
+ },
+ {
+  "code": "IQ-WA-KU",
+  "governorate": "IQ-WA",
+  "label_en": "Kut",
+  "label_ar": "الكوت",
+  "sort": 10
+ },
+ {
+  "code": "IQ-WA-HY",
+  "governorate": "IQ-WA",
+  "label_en": "Al-Hay",
+  "label_ar": "الحي",
+  "sort": 20
+ },
+ {
+  "code": "IQ-WA-SW",
+  "governorate": "IQ-WA",
+  "label_en": "Al-Suwaira",
+  "label_ar": "السويرة",
+  "sort": 30
+ },
+ {
+  "code": "IQ-WA-NM",
+  "governorate": "IQ-WA",
+  "label_en": "Al-Na'maniyah",
+  "label_ar": "النعمانية",
+  "sort": 40
+ },
+ {
+  "code": "IQ-WA-BD",
+  "governorate": "IQ-WA",
+  "label_en": "Badra",
+  "label_ar": "بدرة",
+  "sort": 50
+ },
+ {
+  "code": "EG-ALX-RA",
+  "governorate": "EG-ALX",
+  "label_en": "Al-Raml",
+  "label_ar": "الرمل",
+  "sort": 10
+ },
+ {
+  "code": "EG-ALX-MS",
+  "governorate": "EG-ALX",
+  "label_en": "Al-Manshiya",
+  "label_ar": "المنشية",
+  "sort": 20
+ },
+ {
+  "code": "EG-ALX-BS",
+  "governorate": "EG-ALX",
+  "label_en": "Bab Sharqi",
+  "label_ar": "باب شرقي",
+  "sort": 30
+ },
+ {
+  "code": "EG-ALX-GM",
+  "governorate": "EG-ALX",
+  "label_en": "Al-Gomrok",
+  "label_ar": "الجمرك",
+  "sort": 40
+ },
+ {
+  "code": "EG-ALX-AT",
+  "governorate": "EG-ALX",
+  "label_en": "Al-Attarin",
+  "label_ar": "العطارين",
+  "sort": 50
+ },
+ {
+  "code": "EG-ALX-LB",
+  "governorate": "EG-ALX",
+  "label_en": "Labban",
+  "label_ar": "لبان",
+  "sort": 60
+ },
+ {
+  "code": "EG-ALX-KZ",
+  "governorate": "EG-ALX",
+  "label_en": "Karmouz",
+  "label_ar": "كرموز",
+  "sort": 70
+ },
+ {
+  "code": "EG-ALX-AM",
+  "governorate": "EG-ALX",
+  "label_en": "Al-Amriya",
+  "label_ar": "العمرانية",
+  "sort": 80
+ },
+ {
+  "code": "EG-ALX-AG",
+  "governorate": "EG-ALX",
+  "label_en": "Al-Agami",
+  "label_ar": "العجمي",
+  "sort": 90
+ },
+ {
+  "code": "EG-ALX-BA",
+  "governorate": "EG-ALX",
+  "label_en": "Borg el-Arab",
+  "label_ar": "برج العرب",
+  "sort": 100
+ },
+ {
+  "code": "EG-ALX-DK",
+  "governorate": "EG-ALX",
+  "label_en": "Dekheila",
+  "label_ar": "الدخيلة",
+  "sort": 110
+ },
+ {
+  "code": "EG-ASN-AS",
+  "governorate": "EG-ASN",
+  "label_en": "Aswan",
+  "label_ar": "أسوان",
+  "sort": 10
+ },
+ {
+  "code": "EG-ASN-KO",
+  "governorate": "EG-ASN",
+  "label_en": "Kom Ombo",
+  "label_ar": "كوم أمبو",
+  "sort": 20
+ },
+ {
+  "code": "EG-ASN-ED",
+  "governorate": "EG-ASN",
+  "label_en": "Edfu",
+  "label_ar": "إدفو",
+  "sort": 30
+ },
+ {
+  "code": "EG-ASN-DA",
+  "governorate": "EG-ASN",
+  "label_en": "Daraw",
+  "label_ar": "دراو",
+  "sort": 40
+ },
+ {
+  "code": "EG-ASN-NN",
+  "governorate": "EG-ASN",
+  "label_en": "Nasr al-Nuba",
+  "label_ar": "نصر النوبة",
+  "sort": 50
+ },
+ {
+  "code": "EG-ASN-AB",
+  "governorate": "EG-ASN",
+  "label_en": "Abu Simbel",
+  "label_ar": "أبو سمبل",
+  "sort": 60
+ },
+ {
+  "code": "EG-AST-AS",
+  "governorate": "EG-AST",
+  "label_en": "Assiut",
+  "label_ar": "أسيوط",
+  "sort": 10
+ },
+ {
+  "code": "EG-AST-MN",
+  "governorate": "EG-AST",
+  "label_en": "Manfalut",
+  "label_ar": "منفلوط",
+  "sort": 20
+ },
+ {
+  "code": "EG-AST-AT",
+  "governorate": "EG-AST",
+  "label_en": "Abu Tieg",
+  "label_ar": "أبو تيج",
+  "sort": 30
+ },
+ {
+  "code": "EG-AST-BD",
+  "governorate": "EG-AST",
+  "label_en": "Al-Badari",
+  "label_ar": "البداري",
+  "sort": 40
+ },
+ {
+  "code": "EG-AST-SS",
+  "governorate": "EG-AST",
+  "label_en": "Sahel Selim",
+  "label_ar": "ساحل سليم",
+  "sort": 50
+ },
+ {
+  "code": "EG-AST-GH",
+  "governorate": "EG-AST",
+  "label_en": "Al-Ghanayem",
+  "label_ar": "الغنايم",
+  "sort": 60
+ },
+ {
+  "code": "EG-AST-DR",
+  "governorate": "EG-AST",
+  "label_en": "Deirout",
+  "label_ar": "ديروط",
+  "sort": 70
+ },
+ {
+  "code": "EG-AST-QU",
+  "governorate": "EG-AST",
+  "label_en": "Al-Qusiya",
+  "label_ar": "القوصية",
+  "sort": 80
+ },
+ {
+  "code": "EG-BH-DA",
+  "governorate": "EG-BH",
+  "label_en": "Damanhour",
+  "label_ar": "دمنهور",
+  "sort": 10
+ },
+ {
+  "code": "EG-BH-KD",
+  "governorate": "EG-BH",
+  "label_en": "Kafr el-Dawwar",
+  "label_ar": "كفر الدوار",
+  "sort": 20
+ },
+ {
+  "code": "EG-BH-AM",
+  "governorate": "EG-BH",
+  "label_en": "Abu al-Matamir",
+  "label_ar": "أبو المطامير",
+  "sort": 30
+ },
+ {
+  "code": "EG-BH-AH",
+  "governorate": "EG-BH",
+  "label_en": "Abu Hummus",
+  "label_ar": "أبو حمص",
+  "sort": 40
+ },
+ {
+  "code": "EG-BH-IB",
+  "governorate": "EG-BH",
+  "label_en": "Itay al-Barud",
+  "label_ar": "إيتاي البارود",
+  "sort": 50
+ },
+ {
+  "code": "EG-BH-BD",
+  "governorate": "EG-BH",
+  "label_en": "Badr",
+  "label_ar": "بدر",
+  "sort": 60
+ },
+ {
+  "code": "EG-BH-DL",
+  "governorate": "EG-BH",
+  "label_en": "Delengat",
+  "label_ar": "دلنجات",
+  "sort": 70
+ },
+ {
+  "code": "EG-BH-KH",
+  "governorate": "EG-BH",
+  "label_en": "Kom Hamada",
+  "label_ar": "كوم حمادة",
+  "sort": 80
+ },
+ {
+  "code": "EG-BH-MA",
+  "governorate": "EG-BH",
+  "label_en": "Mahmoudiyah",
+  "label_ar": "المحمودية",
+  "sort": 90
+ },
+ {
+  "code": "EG-BH-RA",
+  "governorate": "EG-BH",
+  "label_en": "Rahmaniya",
+  "label_ar": "الرحمانية",
+  "sort": 100
+ },
+ {
+  "code": "EG-BH-SB",
+  "governorate": "EG-BH",
+  "label_en": "Shubrakhit",
+  "label_ar": "شبراخيت",
+  "sort": 110
+ },
+ {
+  "code": "EG-BH-WN",
+  "governorate": "EG-BH",
+  "label_en": "Wadi al-Natrun",
+  "label_ar": "وادي النطرون",
+  "sort": 120
+ },
+ {
+  "code": "EG-BH-NB",
+  "governorate": "EG-BH",
+  "label_en": "Nubaria",
+  "label_ar": "النوبارية",
+  "sort": 130
+ },
+ {
+  "code": "EG-BNS-BS",
+  "governorate": "EG-BNS",
+  "label_en": "Beni Suef",
+  "label_ar": "بني سويف",
+  "sort": 10
+ },
+ {
+  "code": "EG-BNS-BB",
+  "governorate": "EG-BNS",
+  "label_en": "Biba",
+  "label_ar": "ببا",
+  "sort": 20
+ },
+ {
+  "code": "EG-BNS-WS",
+  "governorate": "EG-BNS",
+  "label_en": "El-Wasta",
+  "label_ar": "الواسطة",
+  "sort": 30
+ },
+ {
+  "code": "EG-BNS-NA",
+  "governorate": "EG-BNS",
+  "label_en": "Nasser",
+  "label_ar": "ناصر",
+  "sort": 40
+ },
+ {
+  "code": "EG-BNS-IH",
+  "governorate": "EG-BNS",
+  "label_en": "Ihnasya",
+  "label_ar": "إهناسيا",
+  "sort": 50
+ },
+ {
+  "code": "EG-BNS-FA",
+  "governorate": "EG-BNS",
+  "label_en": "El-Fashn",
+  "label_ar": "الفشن",
+  "sort": 60
+ },
+ {
+  "code": "EG-BNS-SM",
+  "governorate": "EG-BNS",
+  "label_en": "Sumusta",
+  "label_ar": "سمسطا",
+  "sort": 70
+ },
+ {
+  "code": "EG-C-GM",
+  "governorate": "EG-C",
+  "label_en": "Al-Gamaliya",
+  "label_ar": "الجمالية",
+  "sort": 10
+ },
+ {
+  "code": "EG-C-MK",
+  "governorate": "EG-C",
+  "label_en": "Al-Moski",
+  "label_ar": "الموسكي",
+  "sort": 20
+ },
+ {
+  "code": "EG-C-DA",
+  "governorate": "EG-C",
+  "label_en": "Al-Darb al-Ahmar",
+  "label_ar": "الدر بالأحمر",
+  "sort": 30
+ },
+ {
+  "code": "EG-C-SZ",
+  "governorate": "EG-C",
+  "label_en": "Sayeda Zeinab",
+  "label_ar": "السيدة زينب",
+  "sort": 40
+ },
+ {
+  "code": "EG-C-BA",
+  "governorate": "EG-C",
+  "label_en": "Al-Basatin",
+  "label_ar": "البساتين",
+  "sort": 50
+ },
+ {
+  "code": "EG-C-DS",
+  "governorate": "EG-C",
+  "label_en": "Dar al-Salam",
+  "label_ar": "دار السلام",
+  "sort": 60
+ },
+ {
+  "code": "EG-C-MA",
+  "governorate": "EG-C",
+  "label_en": "Al-Maadi",
+  "label_ar": "المعادي",
+  "sort": 70
+ },
+ {
+  "code": "EG-C-TO",
+  "governorate": "EG-C",
+  "label_en": "Tora",
+  "label_ar": "طرة",
+  "sort": 80
+ },
+ {
+  "code": "EG-C-HL",
+  "governorate": "EG-C",
+  "label_en": "Helwan",
+  "label_ar": "حلوان",
+  "sort": 90
+ },
+ {
+  "code": "EG-C-MS",
+  "governorate": "EG-C",
+  "label_en": "Al-Maasara",
+  "label_ar": "المعصرة",
+  "sort": 100
+ },
+ {
+  "code": "EG-C-HQ",
+  "governorate": "EG-C",
+  "label_en": "Hadayek el-Qubba",
+  "label_ar": "حدائق القبة",
+  "sort": 110
+ },
+ {
+  "code": "EG-C-ZH",
+  "governorate": "EG-C",
+  "label_en": "Al-Zawiya al-Hamra",
+  "label_ar": "الزاوية الحمراء",
+  "sort": 120
+ },
+ {
+  "code": "EG-C-WY",
+  "governorate": "EG-C",
+  "label_en": "Al-Wayli",
+  "label_ar": "الوايلي",
+  "sort": 130
+ },
+ {
+  "code": "EG-C-MT",
+  "governorate": "EG-C",
+  "label_en": "Al-Matariya",
+  "label_ar": "المطرية",
+  "sort": 140
+ },
+ {
+  "code": "EG-C-AS",
+  "governorate": "EG-C",
+  "label_en": "Ain Shams",
+  "label_ar": "عين شمس",
+  "sort": 150
+ },
+ {
+  "code": "EG-C-MR",
+  "governorate": "EG-C",
+  "label_en": "Al-Marg",
+  "label_ar": "المرج",
+  "sort": 160
+ },
+ {
+  "code": "EG-C-SL",
+  "governorate": "EG-C",
+  "label_en": "El-Salam",
+  "label_ar": "السلام",
+  "sort": 170
+ },
+ {
+  "code": "EG-C-MQ",
+  "governorate": "EG-C",
+  "label_en": "Al-Muqattam",
+  "label_ar": "المقطم",
+  "sort": 180
+ },
+ {
+  "code": "EG-C-NS",
+  "governorate": "EG-C",
+  "label_en": "Madinat Nasr",
+  "label_ar": "مدينة نصر",
+  "sort": 190
+ },
+ {
+  "code": "EG-C-SH",
+  "governorate": "EG-C",
+  "label_en": "Al-Shorouk",
+  "label_ar": "الشروق",
+  "sort": 200
+ },
+ {
+  "code": "EG-C-NC",
+  "governorate": "EG-C",
+  "label_en": "New Cairo",
+  "label_ar": "القاهرة الجديدة",
+  "sort": 210
+ },
+ {
+  "code": "EG-C-ZY",
+  "governorate": "EG-C",
+  "label_en": "Al-Zaytoun",
+  "label_ar": "الزيتون",
+  "sort": 220
+ },
+ {
+  "code": "EG-C-BS",
+  "governorate": "EG-C",
+  "label_en": "Bab al-Sha'riya",
+  "label_ar": "باب الشعرية",
+  "sort": 230
+ },
+ {
+  "code": "EG-C-KH",
+  "governorate": "EG-C",
+  "label_en": "Al-Khalifa",
+  "label_ar": "الخليفة",
+  "sort": 240
+ },
+ {
+  "code": "EG-DK-MA",
+  "governorate": "EG-DK",
+  "label_en": "Mansoura",
+  "label_ar": "المنصورة",
+  "sort": 10
+ },
+ {
+  "code": "EG-DK-TK",
+  "governorate": "EG-DK",
+  "label_en": "Talkha",
+  "label_ar": "طلخا",
+  "sort": 20
+ },
+ {
+  "code": "EG-DK-MG",
+  "governorate": "EG-DK",
+  "label_en": "Mit Ghamr",
+  "label_ar": "ميت غمر",
+  "sort": 30
+ },
+ {
+  "code": "EG-DK-AG",
+  "governorate": "EG-DK",
+  "label_en": "Aga",
+  "label_ar": "أجا",
+  "sort": 40
+ },
+ {
+  "code": "EG-DK-SH",
+  "governorate": "EG-DK",
+  "label_en": "Sherbin",
+  "label_ar": "شربين",
+  "sort": 50
+ },
+ {
+  "code": "EG-DK-GA",
+  "governorate": "EG-DK",
+  "label_en": "Gamasa",
+  "label_ar": "جمصة",
+  "sort": 60
+ },
+ {
+  "code": "EG-DK-MZ",
+  "governorate": "EG-DK",
+  "label_en": "Manzala",
+  "label_ar": "منزلة",
+  "sort": 70
+ },
+ {
+  "code": "EG-DK-DE",
+  "governorate": "EG-DK",
+  "label_en": "Dekernes",
+  "label_ar": "دكرنس",
+  "sort": 80
+ },
+ {
+  "code": "EG-DK-MS",
+  "governorate": "EG-DK",
+  "label_en": "Mit Salsil",
+  "label_ar": "ميت سلسيل",
+  "sort": 90
+ },
+ {
+  "code": "EG-DK-SB",
+  "governorate": "EG-DK",
+  "label_en": "El-Sinballawain",
+  "label_ar": "السنبلاوين",
+  "sort": 100
+ },
+ {
+  "code": "EG-DK-BK",
+  "governorate": "EG-DK",
+  "label_en": "Birket el-Sab",
+  "label_ar": "بركة السبع",
+  "sort": 110
+ },
+ {
+  "code": "EG-DK-TA",
+  "governorate": "EG-DK",
+  "label_en": "Temay al-Amdid",
+  "label_ar": "تمي الأمديد",
+  "sort": 120
+ },
+ {
+  "code": "EG-DK-MA2",
+  "governorate": "EG-DK",
+  "label_en": "El-Mataria",
+  "label_ar": "المطرية",
+  "sort": 130
+ },
+ {
+  "code": "EG-DT-DA",
+  "governorate": "EG-DT",
+  "label_en": "Damietta",
+  "label_ar": "دمياط",
+  "sort": 10
+ },
+ {
+  "code": "EG-DT-ND",
+  "governorate": "EG-DT",
+  "label_en": "New Damietta",
+  "label_ar": "دمياط الجديدة",
+  "sort": 20
+ },
+ {
+  "code": "EG-DT-FA",
+  "governorate": "EG-DT",
+  "label_en": "Faraskur",
+  "label_ar": "فارسكور",
+  "sort": 30
+ },
+ {
+  "code": "EG-DT-ZR",
+  "governorate": "EG-DT",
+  "label_en": "Zarqa",
+  "label_ar": "الزرقا",
+  "sort": 40
+ },
+ {
+  "code": "EG-DT-KS",
+  "governorate": "EG-DT",
+  "label_en": "Kafr Saad",
+  "label_ar": "كفر سعد",
+  "sort": 50
+ },
+ {
+  "code": "EG-FYM-FY",
+  "governorate": "EG-FYM",
+  "label_en": "Faiyum",
+  "label_ar": "الفيوم",
+  "sort": 10
+ },
+ {
+  "code": "EG-FYM-SI",
+  "governorate": "EG-FYM",
+  "label_en": "Sinnuris",
+  "label_ar": "سنورس",
+  "sort": 20
+ },
+ {
+  "code": "EG-FYM-TA",
+  "governorate": "EG-FYM",
+  "label_en": "Tamiya",
+  "label_ar": "الطامية",
+  "sort": 30
+ },
+ {
+  "code": "EG-FYM-IB",
+  "governorate": "EG-FYM",
+  "label_en": "Ibsheway",
+  "label_ar": "إبشواي",
+  "sort": 40
+ },
+ {
+  "code": "EG-FYM-AT",
+  "governorate": "EG-FYM",
+  "label_en": "Atfih",
+  "label_ar": "أطفلح",
+  "sort": 50
+ },
+ {
+  "code": "EG-FYM-YS",
+  "governorate": "EG-FYM",
+  "label_en": "Yusuf al-Sadiq",
+  "label_ar": "يوسف الصديق",
+  "sort": 60
+ },
+ {
+  "code": "EG-GH-TA",
+  "governorate": "EG-GH",
+  "label_en": "Tanta",
+  "label_ar": "طنطا",
+  "sort": 10
+ },
+ {
+  "code": "EG-GH-MH",
+  "governorate": "EG-GH",
+  "label_en": "El-Mahalla el-Kubra",
+  "label_ar": "المحلة الكبرى",
+  "sort": 20
+ },
+ {
+  "code": "EG-GH-KZ",
+  "governorate": "EG-GH",
+  "label_en": "Kafr al-Zayyat",
+  "label_ar": "كفر الزيات",
+  "sort": 30
+ },
+ {
+  "code": "EG-GH-BY",
+  "governorate": "EG-GH",
+  "label_en": "Basyoun",
+  "label_ar": "بسيون",
+  "sort": 40
+ },
+ {
+  "code": "EG-GH-ZF",
+  "governorate": "EG-GH",
+  "label_en": "Zifta",
+  "label_ar": "زفتى",
+  "sort": 50
+ },
+ {
+  "code": "EG-GH-SD",
+  "governorate": "EG-GH",
+  "label_en": "Samannoud",
+  "label_ar": "سمنود",
+  "sort": 60
+ },
+ {
+  "code": "EG-GH-ST",
+  "governorate": "EG-GH",
+  "label_en": "El-Santa",
+  "label_ar": "السنتا",
+  "sort": 70
+ },
+ {
+  "code": "EG-GH-QT",
+  "governorate": "EG-GH",
+  "label_en": "Qutur",
+  "label_ar": "قطور",
+  "sort": 80
+ },
+ {
+  "code": "EG-GZ-GZ",
+  "governorate": "EG-GZ",
+  "label_en": "Giza",
+  "label_ar": "الجيزة",
+  "sort": 10
+ },
+ {
+  "code": "EG-GZ-BD",
+  "governorate": "EG-GZ",
+  "label_en": "El-Badrashin",
+  "label_ar": "البدرشين",
+  "sort": 20
+ },
+ {
+  "code": "EG-GZ-SF",
+  "governorate": "EG-GZ",
+  "label_en": "El-Saf",
+  "label_ar": "الصف",
+  "sort": 30
+ },
+ {
+  "code": "EG-GZ-KR",
+  "governorate": "EG-GZ",
+  "label_en": "Kerdasa",
+  "label_ar": "كردسة",
+  "sort": 40
+ },
+ {
+  "code": "EG-GZ-OS",
+  "governorate": "EG-GZ",
+  "label_en": "Oseem",
+  "label_ar": "أوسيم",
+  "sort": 50
+ },
+ {
+  "code": "EG-GZ-WK",
+  "governorate": "EG-GZ",
+  "label_en": "El-Warrak",
+  "label_ar": "الوراق",
+  "sort": 60
+ },
+ {
+  "code": "EG-GZ-HW",
+  "governorate": "EG-GZ",
+  "label_en": "Hawamdiya",
+  "label_ar": "الحوامدية",
+  "sort": 70
+ },
+ {
+  "code": "EG-GZ-AN",
+  "governorate": "EG-GZ",
+  "label_en": "Abu an-Namrus",
+  "label_ar": "أبو النمرس",
+  "sort": 80
+ },
+ {
+  "code": "EG-GZ-SZ",
+  "governorate": "EG-GZ",
+  "label_en": "Sheikh Zayed",
+  "label_ar": "الشيخ زايد",
+  "sort": 90
+ },
+ {
+  "code": "EG-GZ-OC",
+  "governorate": "EG-GZ",
+  "label_en": "6th of October",
+  "label_ar": "أكتوبر",
+  "sort": 100
+ },
+ {
+  "code": "EG-GZ-AY",
+  "governorate": "EG-GZ",
+  "label_en": "Al-Ayat",
+  "label_ar": "العياط",
+  "sort": 110
+ },
+ {
+  "code": "EG-IS-IS",
+  "governorate": "EG-IS",
+  "label_en": "Ismailia",
+  "label_ar": "الإسماعيلية",
+  "sort": 10
+ },
+ {
+  "code": "EG-IS-FA",
+  "governorate": "EG-IS",
+  "label_en": "Fayed",
+  "label_ar": "فايد",
+  "sort": 20
+ },
+ {
+  "code": "EG-IS-AS",
+  "governorate": "EG-IS",
+  "label_en": "Abu Sawir",
+  "label_ar": "أبو صوير",
+  "sort": 30
+ },
+ {
+  "code": "EG-IS-QE",
+  "governorate": "EG-IS",
+  "label_en": "El-Qantara East",
+  "label_ar": "القنطرة شرق",
+  "sort": 40
+ },
+ {
+  "code": "EG-IS-QW",
+  "governorate": "EG-IS",
+  "label_en": "El-Qantara West",
+  "label_ar": "القنطرة غرب",
+  "sort": 50
+ },
+ {
+  "code": "EG-IS-TK",
+  "governorate": "EG-IS",
+  "label_en": "Tell el-Kebir",
+  "label_ar": "التل الكبير",
+  "sort": 60
+ },
+ {
+  "code": "EG-KFS-KS",
+  "governorate": "EG-KFS",
+  "label_en": "Kafr el-Sheikh",
+  "label_ar": "كفر الشيخ",
+  "sort": 10
+ },
+ {
+  "code": "EG-KFS-DE",
+  "governorate": "EG-KFS",
+  "label_en": "Desouk",
+  "label_ar": "دسوق",
+  "sort": 20
+ },
+ {
+  "code": "EG-KFS-FU",
+  "governorate": "EG-KFS",
+  "label_en": "Fuwwah",
+  "label_ar": "فوه",
+  "sort": 30
+ },
+ {
+  "code": "EG-KFS-BT",
+  "governorate": "EG-KFS",
+  "label_en": "Baltim",
+  "label_ar": "بلطيم",
+  "sort": 40
+ },
+ {
+  "code": "EG-KFS-BY",
+  "governorate": "EG-KFS",
+  "label_en": "Biyala",
+  "label_ar": "بيلا",
+  "sort": 50
+ },
+ {
+  "code": "EG-KFS-SS",
+  "governorate": "EG-KFS",
+  "label_en": "Sidi Salem",
+  "label_ar": "سيدي سالم",
+  "sort": 60
+ },
+ {
+  "code": "EG-KFS-HM",
+  "governorate": "EG-KFS",
+  "label_en": "El-Hamool",
+  "label_ar": "الحامول",
+  "sort": 70
+ },
+ {
+  "code": "EG-KFS-QA",
+  "governorate": "EG-KFS",
+  "label_en": "Qallin",
+  "label_ar": "قلين",
+  "sort": 80
+ },
+ {
+  "code": "EG-KFS-SG",
+  "governorate": "EG-KFS",
+  "label_en": "Sidi Ghazi",
+  "label_ar": "سيدي غازي",
+  "sort": 90
+ },
+ {
+  "code": "EG-KFS-RD",
+  "governorate": "EG-KFS",
+  "label_en": "El-Riad",
+  "label_ar": "الرياض",
+  "sort": 100
+ },
+ {
+  "code": "EG-LX-LX",
+  "governorate": "EG-LX",
+  "label_en": "Luxor",
+  "label_ar": "الأقصر",
+  "sort": 10
+ },
+ {
+  "code": "EG-LX-AR",
+  "governorate": "EG-LX",
+  "label_en": "Armant",
+  "label_ar": "أرمنت",
+  "sort": 20
+ },
+ {
+  "code": "EG-LX-ES",
+  "governorate": "EG-LX",
+  "label_en": "Esna",
+  "label_ar": "إسنا",
+  "sort": 30
+ },
+ {
+  "code": "EG-MT-MT",
+  "governorate": "EG-MT",
+  "label_en": "Matrouh",
+  "label_ar": "مرسى مطروح",
+  "sort": 10
+ },
+ {
+  "code": "EG-MT-AL",
+  "governorate": "EG-MT",
+  "label_en": "El-Alamein",
+  "label_ar": "العلمين",
+  "sort": 20
+ },
+ {
+  "code": "EG-MT-DB",
+  "governorate": "EG-MT",
+  "label_en": "El-Dabaa",
+  "label_ar": "الضبعة",
+  "sort": 30
+ },
+ {
+  "code": "EG-MT-HM",
+  "governorate": "EG-MT",
+  "label_en": "El-Hamam",
+  "label_ar": "الحمام",
+  "sort": 40
+ },
+ {
+  "code": "EG-MT-NG",
+  "governorate": "EG-MT",
+  "label_en": "El-Negaila",
+  "label_ar": "النجيلة",
+  "sort": 50
+ },
+ {
+  "code": "EG-MT-SB",
+  "governorate": "EG-MT",
+  "label_en": "Sidi Barrani",
+  "label_ar": "سيدي براني",
+  "sort": 60
+ },
+ {
+  "code": "EG-MT-SL",
+  "governorate": "EG-MT",
+  "label_en": "Sallum",
+  "label_ar": "السلوم",
+  "sort": 70
+ },
+ {
+  "code": "EG-MN-MN",
+  "governorate": "EG-MN",
+  "label_en": "Minya",
+  "label_ar": "المنيا",
+  "sort": 10
+ },
+ {
+  "code": "EG-MN-AQ",
+  "governorate": "EG-MN",
+  "label_en": "Abu Qurqas",
+  "label_ar": "أبو قرقاص",
+  "sort": 20
+ },
+ {
+  "code": "EG-MN-ML",
+  "governorate": "EG-MN",
+  "label_en": "Mallawi",
+  "label_ar": "ملوي",
+  "sort": 30
+ },
+ {
+  "code": "EG-MN-DM",
+  "governorate": "EG-MN",
+  "label_en": "Deir Mawas",
+  "label_ar": "دير مواس",
+  "sort": 40
+ },
+ {
+  "code": "EG-MN-MG",
+  "governorate": "EG-MN",
+  "label_en": "Maghagha",
+  "label_ar": "مغاغة",
+  "sort": 50
+ },
+ {
+  "code": "EG-MN-BM",
+  "governorate": "EG-MN",
+  "label_en": "Beni Mazar",
+  "label_ar": "بني مزار",
+  "sort": 60
+ },
+ {
+  "code": "EG-MN-SM",
+  "governorate": "EG-MN",
+  "label_en": "Samalut",
+  "label_ar": "سمالوط",
+  "sort": 70
+ },
+ {
+  "code": "EG-MN-MT",
+  "governorate": "EG-MN",
+  "label_en": "Matay",
+  "label_ar": "مطاي",
+  "sort": 80
+ },
+ {
+  "code": "EG-MN-AD",
+  "governorate": "EG-MN",
+  "label_en": "El-Adwa",
+  "label_ar": "العدوة",
+  "sort": 90
+ },
+ {
+  "code": "EG-MNF-SK",
+  "governorate": "EG-MNF",
+  "label_en": "Shibin el-Kom",
+  "label_ar": "شبين الكوم",
+  "sort": 10
+ },
+ {
+  "code": "EG-MNF-MN",
+  "governorate": "EG-MNF",
+  "label_en": "Menouf",
+  "label_ar": "منوف",
+  "sort": 20
+ },
+ {
+  "code": "EG-MNF-TA",
+  "governorate": "EG-MNF",
+  "label_en": "Tala",
+  "label_ar": "تلا",
+  "sort": 30
+ },
+ {
+  "code": "EG-MNF-AS",
+  "governorate": "EG-MNF",
+  "label_en": "Ashmoun",
+  "label_ar": "أشمون",
+  "sort": 40
+ },
+ {
+  "code": "EG-MNF-SC",
+  "governorate": "EG-MNF",
+  "label_en": "Sadat City",
+  "label_ar": "مدينة السادات",
+  "sort": 50
+ },
+ {
+  "code": "EG-MNF-QS",
+  "governorate": "EG-MNF",
+  "label_en": "Quesna",
+  "label_ar": "قويسنا",
+  "sort": 60
+ },
+ {
+  "code": "EG-MNF-BG",
+  "governorate": "EG-MNF",
+  "label_en": "El-Bagour",
+  "label_ar": "الباجور",
+  "sort": 70
+ },
+ {
+  "code": "EG-MNF-SH",
+  "governorate": "EG-MNF",
+  "label_en": "El-Shohada",
+  "label_ar": "الشهداء",
+  "sort": 80
+ },
+ {
+  "code": "EG-WAD-KH",
+  "governorate": "EG-WAD",
+  "label_en": "Kharga",
+  "label_ar": "الخارجة",
+  "sort": 10
+ },
+ {
+  "code": "EG-WAD-DK",
+  "governorate": "EG-WAD",
+  "label_en": "Dakhla",
+  "label_ar": "الداخلة",
+  "sort": 20
+ },
+ {
+  "code": "EG-WAD-FA",
+  "governorate": "EG-WAD",
+  "label_en": "Farafra",
+  "label_ar": "الفرافرة",
+  "sort": 30
+ },
+ {
+  "code": "EG-WAD-BR",
+  "governorate": "EG-WAD",
+  "label_en": "Baris",
+  "label_ar": "باريس",
+  "sort": 40
+ },
+ {
+  "code": "EG-SIN-AR",
+  "governorate": "EG-SIN",
+  "label_en": "Arish",
+  "label_ar": "العريش",
+  "sort": 10
+ },
+ {
+  "code": "EG-SIN-RA",
+  "governorate": "EG-SIN",
+  "label_en": "Rafah",
+  "label_ar": "رفح",
+  "sort": 20
+ },
+ {
+  "code": "EG-SIN-BA",
+  "governorate": "EG-SIN",
+  "label_en": "Bir al-Abed",
+  "label_ar": "بئر العبد",
+  "sort": 30
+ },
+ {
+  "code": "EG-SIN-HS",
+  "governorate": "EG-SIN",
+  "label_en": "El-Hasana",
+  "label_ar": "الحسنة",
+  "sort": 40
+ },
+ {
+  "code": "EG-SIN-NK",
+  "governorate": "EG-SIN",
+  "label_en": "Nekhel",
+  "label_ar": "نخل",
+  "sort": 50
+ },
+ {
+  "code": "EG-SIN-SZ",
+  "governorate": "EG-SIN",
+  "label_en": "Sheikh Zuweid",
+  "label_ar": "الشيخ زويد",
+  "sort": 60
+ },
+ {
+  "code": "EG-PTS-PS",
+  "governorate": "EG-PTS",
+  "label_en": "Port Said",
+  "label_ar": "بورسعيد",
+  "sort": 10
+ },
+ {
+  "code": "EG-PTS-MK",
+  "governorate": "EG-PTS",
+  "label_en": "El-Manakh",
+  "label_ar": "المناخ",
+  "sort": 20
+ },
+ {
+  "code": "EG-PTS-ZH",
+  "governorate": "EG-PTS",
+  "label_en": "El-Zohour",
+  "label_ar": "الزهور",
+  "sort": 30
+ },
+ {
+  "code": "EG-KB-BA",
+  "governorate": "EG-KB",
+  "label_en": "Banha",
+  "label_ar": "بنها",
+  "sort": 10
+ },
+ {
+  "code": "EG-KB-SK",
+  "governorate": "EG-KB",
+  "label_en": "Shubra el-Kheima",
+  "label_ar": "شبرا الخيمة",
+  "sort": 20
+ },
+ {
+  "code": "EG-KB-QA",
+  "governorate": "EG-KB",
+  "label_en": "Qalyub",
+  "label_ar": "قليوب",
+  "sort": 30
+ },
+ {
+  "code": "EG-KB-KH",
+  "governorate": "EG-KB",
+  "label_en": "El-Khankah",
+  "label_ar": "الخانكة",
+  "sort": 40
+ },
+ {
+  "code": "EG-KB-KS",
+  "governorate": "EG-KB",
+  "label_en": "Kafr Shukr",
+  "label_ar": "كفر شكر",
+  "sort": 50
+ },
+ {
+  "code": "EG-KB-TU",
+  "governorate": "EG-KB",
+  "label_en": "Tukh",
+  "label_ar": "طوخ",
+  "sort": 60
+ },
+ {
+  "code": "EG-KB-QH",
+  "governorate": "EG-KB",
+  "label_en": "Qaha",
+  "label_ar": "قها",
+  "sort": 70
+ },
+ {
+  "code": "EG-KB-SQ",
+  "governorate": "EG-KB",
+  "label_en": "Shebin el-Qanater",
+  "label_ar": "شبين القناطر",
+  "sort": 80
+ },
+ {
+  "code": "EG-KB-OB",
+  "governorate": "EG-KB",
+  "label_en": "El-Ubour",
+  "label_ar": "العبور",
+  "sort": 90
+ },
+ {
+  "code": "EG-KN-QN",
+  "governorate": "EG-KN",
+  "label_en": "Qena",
+  "label_ar": "قنا",
+  "sort": 10
+ },
+ {
+  "code": "EG-KN-QS",
+  "governorate": "EG-KN",
+  "label_en": "Qus",
+  "label_ar": "قوص",
+  "sort": 20
+ },
+ {
+  "code": "EG-KN-NH",
+  "governorate": "EG-KN",
+  "label_en": "Nag Hammadi",
+  "label_ar": "نجع حمادي",
+  "sort": 30
+ },
+ {
+  "code": "EG-KN-AT",
+  "governorate": "EG-KN",
+  "label_en": "Abu Tisht",
+  "label_ar": "أبو تشت",
+  "sort": 40
+ },
+ {
+  "code": "EG-KN-FR",
+  "governorate": "EG-KN",
+  "label_en": "Farshout",
+  "label_ar": "فرشوط",
+  "sort": 50
+ },
+ {
+  "code": "EG-KN-DE",
+  "governorate": "EG-KN",
+  "label_en": "Deshna",
+  "label_ar": "دشنا",
+  "sort": 60
+ },
+ {
+  "code": "EG-KN-NQ",
+  "governorate": "EG-KN",
+  "label_en": "Naqada",
+  "label_ar": "نقادة",
+  "sort": 70
+ },
+ {
+  "code": "EG-KN-WK",
+  "governorate": "EG-KN",
+  "label_en": "El-Waqf",
+  "label_ar": "الوقف",
+  "sort": 80
+ },
+ {
+  "code": "EG-BA-HG",
+  "governorate": "EG-BA",
+  "label_en": "Hurghada",
+  "label_ar": "الغردقة",
+  "sort": 10
+ },
+ {
+  "code": "EG-BA-SF",
+  "governorate": "EG-BA",
+  "label_en": "Safaga",
+  "label_ar": "سفاجا",
+  "sort": 20
+ },
+ {
+  "code": "EG-BA-QS",
+  "governorate": "EG-BA",
+  "label_en": "Quseir",
+  "label_ar": "القصير",
+  "sort": 30
+ },
+ {
+  "code": "EG-BA-MA",
+  "governorate": "EG-BA",
+  "label_en": "Marsa Alam",
+  "label_ar": "مرسى علم",
+  "sort": 40
+ },
+ {
+  "code": "EG-BA-HA",
+  "governorate": "EG-BA",
+  "label_en": "Halayeb",
+  "label_ar": "حلايب",
+  "sort": 50
+ },
+ {
+  "code": "EG-BA-SL",
+  "governorate": "EG-BA",
+  "label_en": "Shalateen",
+  "label_ar": "شلاتين",
+  "sort": 60
+ },
+ {
+  "code": "EG-BA-RG",
+  "governorate": "EG-BA",
+  "label_en": "Ras Ghareb",
+  "label_ar": "رأس غارب",
+  "sort": 70
+ },
+ {
+  "code": "EG-SHR-ZA",
+  "governorate": "EG-SHR",
+  "label_en": "Zagazig",
+  "label_ar": "الزقازيق",
+  "sort": 10
+ },
+ {
+  "code": "EG-SHR-AH",
+  "governorate": "EG-SHR",
+  "label_en": "Abu Hamad",
+  "label_ar": "أبو حماد",
+  "sort": 20
+ },
+ {
+  "code": "EG-SHR-BI",
+  "governorate": "EG-SHR",
+  "label_en": "Bilbeis",
+  "label_ar": "بلبيس",
+  "sort": 30
+ },
+ {
+  "code": "EG-SHR-MQ",
+  "governorate": "EG-SHR",
+  "label_en": "Minya el-Qamh",
+  "label_ar": "منيا القمح",
+  "sort": 40
+ },
+ {
+  "code": "EG-SHR-FA",
+  "governorate": "EG-SHR",
+  "label_en": "Faqous",
+  "label_ar": "فاقوس",
+  "sort": 50
+ },
+ {
+  "code": "EG-SHR-HS",
+  "governorate": "EG-SHR",
+  "label_en": "El-Husseiniya",
+  "label_ar": "الحسينية",
+  "sort": 60
+ },
+ {
+  "code": "EG-SHR-AK",
+  "governorate": "EG-SHR",
+  "label_en": "Abu Kebir",
+  "label_ar": "أبو كبير",
+  "sort": 70
+ },
+ {
+  "code": "EG-SHR-DN",
+  "governorate": "EG-SHR",
+  "label_en": "Deirb Negm",
+  "label_ar": "ديرب نجم",
+  "sort": 80
+ },
+ {
+  "code": "EG-SHR-OS",
+  "governorate": "EG-SHR",
+  "label_en": "Awlad Saqr",
+  "label_ar": "أولاد صقر",
+  "sort": 90
+ },
+ {
+  "code": "EG-SHR-IB",
+  "governorate": "EG-SHR",
+  "label_en": "El-Ibrahimiya",
+  "label_ar": "الإبراهيمية",
+  "sort": 100
+ },
+ {
+  "code": "EG-SHG-SH",
+  "governorate": "EG-SHG",
+  "label_en": "Sohag",
+  "label_ar": "سوهاج",
+  "sort": 10
+ },
+ {
+  "code": "EG-SHG-AK",
+  "governorate": "EG-SHG",
+  "label_en": "Akhmim",
+  "label_ar": "أخميم",
+  "sort": 20
+ },
+ {
+  "code": "EG-SHG-JH",
+  "governorate": "EG-SHG",
+  "label_en": "Juhayna",
+  "label_ar": "الجهاينة",
+  "sort": 30
+ },
+ {
+  "code": "EG-SHG-BL",
+  "governorate": "EG-SHG",
+  "label_en": "Balyana",
+  "label_ar": "بلينا",
+  "sort": 40
+ },
+ {
+  "code": "EG-SHG-MR",
+  "governorate": "EG-SHG",
+  "label_en": "Maragha",
+  "label_ar": "المراغة",
+  "sort": 50
+ },
+ {
+  "code": "EG-SHG-TI",
+  "governorate": "EG-SHG",
+  "label_en": "Tima",
+  "label_ar": "طما",
+  "sort": 60
+ },
+ {
+  "code": "EG-SHG-DS",
+  "governorate": "EG-SHG",
+  "label_en": "Dar el-Salam",
+  "label_ar": "دار السلام",
+  "sort": 70
+ },
+ {
+  "code": "EG-SHG-MS",
+  "governorate": "EG-SHG",
+  "label_en": "El-Monshaa",
+  "label_ar": "المنشأة",
+  "sort": 80
+ },
+ {
+  "code": "EG-JS-ET",
+  "governorate": "EG-JS",
+  "label_en": "El-Tor",
+  "label_ar": "الطور",
+  "sort": 10
+ },
+ {
+  "code": "EG-JS-SS",
+  "governorate": "EG-JS",
+  "label_en": "Sharm el-Sheikh",
+  "label_ar": "شرم الشيخ",
+  "sort": 20
+ },
+ {
+  "code": "EG-JS-RS",
+  "governorate": "EG-JS",
+  "label_en": "Ras Sidr",
+  "label_ar": "رأس سدر",
+  "sort": 30
+ },
+ {
+  "code": "EG-JS-AR",
+  "governorate": "EG-JS",
+  "label_en": "Abu Redis",
+  "label_ar": "أبو رديس",
+  "sort": 40
+ },
+ {
+  "code": "EG-JS-SC",
+  "governorate": "EG-JS",
+  "label_en": "Saint Catherine",
+  "label_ar": "سانت كاترين",
+  "sort": 50
+ },
+ {
+  "code": "EG-JS-NW",
+  "governorate": "EG-JS",
+  "label_en": "Nuweiba",
+  "label_ar": "نويبع",
+  "sort": 60
+ },
+ {
+  "code": "EG-SUZ-SU",
+  "governorate": "EG-SUZ",
+  "label_en": "Suez",
+  "label_ar": "السويس",
+  "sort": 10
+ },
+ {
+  "code": "EG-SUZ-AT",
+  "governorate": "EG-SUZ",
+  "label_en": "Ataka",
+  "label_ar": "عتاقة",
+  "sort": 20
+ },
+ {
+  "code": "EG-SUZ-GA",
+  "governorate": "EG-SUZ",
+  "label_en": "El-Ganayen",
+  "label_ar": "الجناين",
+  "sort": 30
+ },
+ {
+  "code": "SA-01-RY",
+  "governorate": "SA-01",
+  "label_en": "Riyadh",
+  "label_ar": "الرياض",
+  "sort": 10
+ },
+ {
+  "code": "SA-01-DR",
+  "governorate": "SA-01",
+  "label_en": "Diriyah",
+  "label_ar": "الدرعية",
+  "sort": 20
+ },
+ {
+  "code": "SA-01-KH",
+  "governorate": "SA-01",
+  "label_en": "Al-Kharj",
+  "label_ar": "الخرج",
+  "sort": 30
+ },
+ {
+  "code": "SA-01-DW",
+  "governorate": "SA-01",
+  "label_en": "Dawadmi",
+  "label_ar": "الدوادمي",
+  "sort": 40
+ },
+ {
+  "code": "SA-01-MJ",
+  "governorate": "SA-01",
+  "label_en": "Al-Majma'ah",
+  "label_ar": "المجمعة",
+  "sort": 50
+ },
+ {
+  "code": "SA-01-QU",
+  "governorate": "SA-01",
+  "label_en": "Al-Quway'iyah",
+  "label_ar": "القويعية",
+  "sort": 60
+ },
+ {
+  "code": "SA-01-AF",
+  "governorate": "SA-01",
+  "label_en": "Al-Aflaj",
+  "label_ar": "الأفلاج",
+  "sort": 70
+ },
+ {
+  "code": "SA-01-HR",
+  "governorate": "SA-01",
+  "label_en": "Al-Hariq",
+  "label_ar": "الحريق",
+  "sort": 80
+ },
+ {
+  "code": "SA-01-MZ",
+  "governorate": "SA-01",
+  "label_en": "Al-Muzahmiyah",
+  "label_ar": "المزاحمية",
+  "sort": 90
+ },
+ {
+  "code": "SA-01-TH",
+  "governorate": "SA-01",
+  "label_en": "Thadiq",
+  "label_ar": "ثادق",
+  "sort": 100
+ },
+ {
+  "code": "SA-01-HM",
+  "governorate": "SA-01",
+  "label_en": "Huraymila",
+  "label_ar": "حريملاء",
+  "sort": 110
+ },
+ {
+  "code": "SA-01-RM",
+  "governorate": "SA-01",
+  "label_en": "Al-Rimah",
+  "label_ar": "الرامة",
+  "sort": 120
+ },
+ {
+  "code": "SA-01-AQ",
+  "governorate": "SA-01",
+  "label_en": "Afif",
+  "label_ar": "عفيف",
+  "sort": 130
+ },
+ {
+  "code": "SA-01-SL",
+  "governorate": "SA-01",
+  "label_en": "Sulayyil",
+  "label_ar": "السليل",
+  "sort": 140
+ },
+ {
+  "code": "SA-01-DH",
+  "governorate": "SA-01",
+  "label_en": "Dhurma",
+  "label_ar": "ضرما",
+  "sort": 150
+ },
+ {
+  "code": "SA-01-GH",
+  "governorate": "SA-01",
+  "label_en": "Al-Ghat",
+  "label_ar": "الغاط",
+  "sort": 160
+ },
+ {
+  "code": "SA-01-RU",
+  "governorate": "SA-01",
+  "label_en": "Rumah",
+  "label_ar": "رماح",
+  "sort": 170
+ },
+ {
+  "code": "SA-01-HS",
+  "governorate": "SA-01",
+  "label_en": "Houtat Sudair",
+  "label_ar": "حوطة سدير",
+  "sort": 180
+ },
+ {
+  "code": "SA-01-JA",
+  "governorate": "SA-01",
+  "label_en": "Jalajil",
+  "label_ar": "جلاجل",
+  "sort": 190
+ },
+ {
+  "code": "SA-01-HR2",
+  "governorate": "SA-01",
+  "label_en": "Harmah",
+  "label_ar": "حرمة",
+  "sort": 200
+ },
+ {
+  "code": "SA-01-MR",
+  "governorate": "SA-01",
+  "label_en": "Marat",
+  "label_ar": "مرات",
+  "sort": 210
+ },
+ {
+  "code": "SA-01-TU",
+  "governorate": "SA-01",
+  "label_en": "Tumair",
+  "label_ar": "تمير",
+  "sort": 220
+ },
+ {
+  "code": "SA-02-MK",
+  "governorate": "SA-02",
+  "label_en": "Makkah",
+  "label_ar": "مكة",
+  "sort": 10
+ },
+ {
+  "code": "SA-02-JD",
+  "governorate": "SA-02",
+  "label_en": "Jeddah",
+  "label_ar": "جدة",
+  "sort": 20
+ },
+ {
+  "code": "SA-02-TA",
+  "governorate": "SA-02",
+  "label_en": "Taif",
+  "label_ar": "الطائف",
+  "sort": 30
+ },
+ {
+  "code": "SA-02-LT",
+  "governorate": "SA-02",
+  "label_en": "Al-Lith",
+  "label_ar": "الليث",
+  "sort": 40
+ },
+ {
+  "code": "SA-02-QD",
+  "governorate": "SA-02",
+  "label_en": "Al-Qunfudhah",
+  "label_ar": "القنفذة",
+  "sort": 50
+ },
+ {
+  "code": "SA-02-KM",
+  "governorate": "SA-02",
+  "label_en": "Al-Kamil",
+  "label_ar": "الكامل",
+  "sort": 60
+ },
+ {
+  "code": "SA-02-KR",
+  "governorate": "SA-02",
+  "label_en": "Al-Khurmah",
+  "label_ar": "الخرمة",
+  "sort": 70
+ },
+ {
+  "code": "SA-02-RA",
+  "governorate": "SA-02",
+  "label_en": "Rania",
+  "label_ar": "الرنية",
+  "sort": 80
+ },
+ {
+  "code": "SA-02-TB",
+  "governorate": "SA-02",
+  "label_en": "Turubah",
+  "label_ar": "تربة",
+  "sort": 90
+ },
+ {
+  "code": "SA-02-KL",
+  "governorate": "SA-02",
+  "label_en": "Khulays",
+  "label_ar": "خليص",
+  "sort": 100
+ },
+ {
+  "code": "SA-02-RB",
+  "governorate": "SA-02",
+  "label_en": "Rabigh",
+  "label_ar": "رابغ",
+  "sort": 110
+ },
+ {
+  "code": "SA-02-JM",
+  "governorate": "SA-02",
+  "label_en": "Al-Jamum",
+  "label_ar": "الجموم",
+  "sort": 120
+ },
+ {
+  "code": "SA-02-BH",
+  "governorate": "SA-02",
+  "label_en": "Bahra",
+  "label_ar": "بحرة",
+  "sort": 130
+ },
+ {
+  "code": "SA-02-MW",
+  "governorate": "SA-02",
+  "label_en": "Al-Muwassam",
+  "label_ar": "المؤتمة",
+  "sort": 140
+ },
+ {
+  "code": "SA-03-MD",
+  "governorate": "SA-03",
+  "label_en": "Madinah",
+  "label_ar": "المدينة المنورة",
+  "sort": 10
+ },
+ {
+  "code": "SA-03-UL",
+  "governorate": "SA-03",
+  "label_en": "Al-Ula",
+  "label_ar": "العلا",
+  "sort": 20
+ },
+ {
+  "code": "SA-03-BD",
+  "governorate": "SA-03",
+  "label_en": "Badr",
+  "label_ar": "بدر",
+  "sort": 30
+ },
+ {
+  "code": "SA-03-KY",
+  "governorate": "SA-03",
+  "label_en": "Khaybar",
+  "label_ar": "خيبر",
+  "sort": 40
+ },
+ {
+  "code": "SA-03-MA",
+  "governorate": "SA-03",
+  "label_en": "Al-Mahd",
+  "label_ar": "المهد",
+  "sort": 50
+ },
+ {
+  "code": "SA-03-YN",
+  "governorate": "SA-03",
+  "label_en": "Yanbu",
+  "label_ar": "ينبع",
+  "sort": 60
+ },
+ {
+  "code": "SA-03-AI",
+  "governorate": "SA-03",
+  "label_en": "Al-Ais",
+  "label_ar": "العيص",
+  "sort": 70
+ },
+ {
+  "code": "SA-03-HN",
+  "governorate": "SA-03",
+  "label_en": "Hanakiya",
+  "label_ar": "الحناكية",
+  "sort": 80
+ },
+ {
+  "code": "SA-03-WF",
+  "governorate": "SA-03",
+  "label_en": "Wadi al-Fir'a",
+  "label_ar": "وادي الفرع",
+  "sort": 90
+ },
+ {
+  "code": "SA-04-DA",
+  "governorate": "SA-04",
+  "label_en": "Dammam",
+  "label_ar": "الدمام",
+  "sort": 10
+ },
+ {
+  "code": "SA-04-KB",
+  "governorate": "SA-04",
+  "label_en": "Al-Khobar",
+  "label_ar": "الخبر",
+  "sort": 20
+ },
+ {
+  "code": "SA-04-DH",
+  "governorate": "SA-04",
+  "label_en": "Dhahran",
+  "label_ar": "الظهران",
+  "sort": 30
+ },
+ {
+  "code": "SA-04-AH",
+  "governorate": "SA-04",
+  "label_en": "Al-Ahsa",
+  "label_ar": "الأحساء",
+  "sort": 40
+ },
+ {
+  "code": "SA-04-QT",
+  "governorate": "SA-04",
+  "label_en": "Qatif",
+  "label_ar": "القطيف",
+  "sort": 50
+ },
+ {
+  "code": "SA-04-JB",
+  "governorate": "SA-04",
+  "label_en": "Jubail",
+  "label_ar": "الجبيل",
+  "sort": 60
+ },
+ {
+  "code": "SA-04-AB",
+  "governorate": "SA-04",
+  "label_en": "Abqaiq",
+  "label_ar": "بقيق",
+  "sort": 70
+ },
+ {
+  "code": "SA-04-KJ",
+  "governorate": "SA-04",
+  "label_en": "Khafji",
+  "label_ar": "الخفجي",
+  "sort": 80
+ },
+ {
+  "code": "SA-04-NU",
+  "governorate": "SA-04",
+  "label_en": "Al-Nu'ayriyah",
+  "label_ar": "النعيرية",
+  "sort": 90
+ },
+ {
+  "code": "SA-04-UD",
+  "governorate": "SA-04",
+  "label_en": "Udhailiyah",
+  "label_ar": "العضيلية",
+  "sort": 100
+ },
+ {
+  "code": "SA-04-HB",
+  "governorate": "SA-04",
+  "label_en": "Hafar al-Batin",
+  "label_ar": "حفر الباطن",
+  "sort": 110
+ },
+ {
+  "code": "SA-05-BR",
+  "governorate": "SA-05",
+  "label_en": "Buraydah",
+  "label_ar": "بريدة",
+  "sort": 10
+ },
+ {
+  "code": "SA-05-UZ",
+  "governorate": "SA-05",
+  "label_en": "Unaizah",
+  "label_ar": "عنيزة",
+  "sort": 20
+ },
+ {
+  "code": "SA-05-RS",
+  "governorate": "SA-05",
+  "label_en": "Al-Rass",
+  "label_ar": "الرس",
+  "sort": 30
+ },
+ {
+  "code": "SA-05-MT",
+  "governorate": "SA-05",
+  "label_en": "Al-Mithnab",
+  "label_ar": "المذنب",
+  "sort": 40
+ },
+ {
+  "code": "SA-05-BK",
+  "governorate": "SA-05",
+  "label_en": "Al-Bukayriyah",
+  "label_ar": "البكيرية",
+  "sort": 50
+ },
+ {
+  "code": "SA-05-AS",
+  "governorate": "SA-05",
+  "label_en": "Al-Asyah",
+  "label_ar": "الأسياح",
+  "sort": 60
+ },
+ {
+  "code": "SA-05-BD",
+  "governorate": "SA-05",
+  "label_en": "Al-Badayea",
+  "label_ar": "البدائع",
+  "sort": 70
+ },
+ {
+  "code": "SA-05-NB",
+  "governorate": "SA-05",
+  "label_en": "Al-Nabhaniyah",
+  "label_ar": "النبهانية",
+  "sort": 80
+ },
+ {
+  "code": "SA-05-RK",
+  "governorate": "SA-05",
+  "label_en": "Riyadh al-Khabra",
+  "label_ar": "رياض الخبراء",
+  "sort": 90
+ },
+ {
+  "code": "SA-05-AJ",
+  "governorate": "SA-05",
+  "label_en": "Ayyun al-Jawa",
+  "label_ar": "عيون الجواء",
+  "sort": 100
+ },
+ {
+  "code": "SA-05-DR",
+  "governorate": "SA-05",
+  "label_en": "Dhariyah",
+  "label_ar": "ضرية",
+  "sort": 110
+ },
+ {
+  "code": "SA-06-HA",
+  "governorate": "SA-06",
+  "label_en": "Ha'il",
+  "label_ar": "حائل",
+  "sort": 10
+ },
+ {
+  "code": "SA-06-BQ",
+  "governorate": "SA-06",
+  "label_en": "Baqa",
+  "label_ar": "بقعاء",
+  "sort": 20
+ },
+ {
+  "code": "SA-06-GZ",
+  "governorate": "SA-06",
+  "label_en": "Al-Ghazalah",
+  "label_ar": "الغزالة",
+  "sort": 30
+ },
+ {
+  "code": "SA-06-SH",
+  "governorate": "SA-06",
+  "label_en": "Al-Shinan",
+  "label_ar": "الشنان",
+  "sort": 40
+ },
+ {
+  "code": "SA-06-HT",
+  "governorate": "SA-06",
+  "label_en": "Al-Hait",
+  "label_ar": "الحائط",
+  "sort": 50
+ },
+ {
+  "code": "SA-07-TB",
+  "governorate": "SA-07",
+  "label_en": "Tabuk",
+  "label_ar": "تبوك",
+  "sort": 10
+ },
+ {
+  "code": "SA-07-DB",
+  "governorate": "SA-07",
+  "label_en": "Duba",
+  "label_ar": "ضباء",
+  "sort": 20
+ },
+ {
+  "code": "SA-07-WJ",
+  "governorate": "SA-07",
+  "label_en": "Al-Wajh",
+  "label_ar": "الوجه",
+  "sort": 30
+ },
+ {
+  "code": "SA-07-HQ",
+  "governorate": "SA-07",
+  "label_en": "Haql",
+  "label_ar": "حقل",
+  "sort": 40
+ },
+ {
+  "code": "SA-07-TY",
+  "governorate": "SA-07",
+  "label_en": "Tayma",
+  "label_ar": "تيماء",
+  "sort": 50
+ },
+ {
+  "code": "SA-07-BD",
+  "governorate": "SA-07",
+  "label_en": "Al-Bad'",
+  "label_ar": "البدع",
+  "sort": 60
+ },
+ {
+  "code": "SA-08-AR",
+  "governorate": "SA-08",
+  "label_en": "Arar",
+  "label_ar": "عرعر",
+  "sort": 10
+ },
+ {
+  "code": "SA-08-RF",
+  "governorate": "SA-08",
+  "label_en": "Rafha",
+  "label_ar": "رفحاء",
+  "sort": 20
+ },
+ {
+  "code": "SA-08-TR",
+  "governorate": "SA-08",
+  "label_en": "Turaif",
+  "label_ar": "طريف",
+  "sort": 30
+ },
+ {
+  "code": "SA-09-JZ",
+  "governorate": "SA-09",
+  "label_en": "Jizan",
+  "label_ar": "جازان",
+  "sort": 10
+ },
+ {
+  "code": "SA-09-AA",
+  "governorate": "SA-09",
+  "label_en": "Abu Arish",
+  "label_ar": "أبو عريش",
+  "sort": 20
+ },
+ {
+  "code": "SA-09-SB",
+  "governorate": "SA-09",
+  "label_en": "Sabya",
+  "label_ar": "صبيا",
+  "sort": 30
+ },
+ {
+  "code": "SA-09-SM",
+  "governorate": "SA-09",
+  "label_en": "Samtah",
+  "label_ar": "صامطة",
+  "sort": 40
+ },
+ {
+  "code": "SA-09-DR",
+  "governorate": "SA-09",
+  "label_en": "Al-Darb",
+  "label_ar": "الدرب",
+  "sort": 50
+ },
+ {
+  "code": "SA-09-AR",
+  "governorate": "SA-09",
+  "label_en": "Al-Aridhah",
+  "label_ar": "العارضة",
+  "sort": 60
+ },
+ {
+  "code": "SA-09-RT",
+  "governorate": "SA-09",
+  "label_en": "Al-Rayth",
+  "label_ar": "الريث",
+  "sort": 70
+ },
+ {
+  "code": "SA-09-HR",
+  "governorate": "SA-09",
+  "label_en": "Al-Harith",
+  "label_ar": "الحرث",
+  "sort": 80
+ },
+ {
+  "code": "SA-09-DA",
+  "governorate": "SA-09",
+  "label_en": "Al-Dair",
+  "label_ar": "الدائر",
+  "sort": 90
+ },
+ {
+  "code": "SA-09-FR",
+  "governorate": "SA-09",
+  "label_en": "Farasan",
+  "label_ar": "فرسان",
+  "sort": 100
+ },
+ {
+  "code": "SA-09-AM",
+  "governorate": "SA-09",
+  "label_en": "Ahad al-Masarihah",
+  "label_ar": "أحد المسارحة",
+  "sort": 110
+ },
+ {
+  "code": "SA-09-BA",
+  "governorate": "SA-09",
+  "label_en": "Al-Baish",
+  "label_ar": "البيش",
+  "sort": 120
+ },
+ {
+  "code": "SA-09-SQ",
+  "governorate": "SA-09",
+  "label_en": "Al-Shuqaiq",
+  "label_ar": "الشقيق",
+  "sort": 130
+ },
+ {
+  "code": "SA-10-NJ",
+  "governorate": "SA-10",
+  "label_en": "Najran",
+  "label_ar": "نجران",
+  "sort": 10
+ },
+ {
+  "code": "SA-10-SR",
+  "governorate": "SA-10",
+  "label_en": "Sharurah",
+  "label_ar": "شرورة",
+  "sort": 20
+ },
+ {
+  "code": "SA-10-BJ",
+  "governorate": "SA-10",
+  "label_en": "Badr al-Janub",
+  "label_ar": "بدر الجنوب",
+  "sort": 30
+ },
+ {
+  "code": "SA-10-YA",
+  "governorate": "SA-10",
+  "label_en": "Yadamah",
+  "label_ar": "يدمة",
+  "sort": 40
+ },
+ {
+  "code": "SA-10-TH",
+  "governorate": "SA-10",
+  "label_en": "Thar",
+  "label_ar": "ثار",
+  "sort": 50
+ },
+ {
+  "code": "SA-10-KH",
+  "governorate": "SA-10",
+  "label_en": "Khubash",
+  "label_ar": "خباش",
+  "sort": 60
+ },
+ {
+  "code": "SA-11-BA",
+  "governorate": "SA-11",
+  "label_en": "Al-Bahah",
+  "label_ar": "الباحة",
+  "sort": 10
+ },
+ {
+  "code": "SA-11-BJ",
+  "governorate": "SA-11",
+  "label_en": "Baljurashi",
+  "label_ar": "بلجرشي",
+  "sort": 20
+ },
+ {
+  "code": "SA-11-MD",
+  "governorate": "SA-11",
+  "label_en": "Al-Mandaq",
+  "label_ar": "المندق",
+  "sort": 30
+ },
+ {
+  "code": "SA-11-MK",
+  "governorate": "SA-11",
+  "label_en": "Al-Mikhwah",
+  "label_ar": "المخواة",
+  "sort": 40
+ },
+ {
+  "code": "SA-11-AQ",
+  "governorate": "SA-11",
+  "label_en": "Al-Aqiq",
+  "label_ar": "العقيق",
+  "sort": 50
+ },
+ {
+  "code": "SA-11-QL",
+  "governorate": "SA-11",
+  "label_en": "Qilwah",
+  "label_ar": "قلوة",
+  "sort": 60
+ },
+ {
+  "code": "SA-11-HJ",
+  "governorate": "SA-11",
+  "label_en": "Al-Hajrah",
+  "label_ar": "الحجرة",
+  "sort": 70
+ },
+ {
+  "code": "SA-12-SK",
+  "governorate": "SA-12",
+  "label_en": "Sakaka",
+  "label_ar": "سكاكا",
+  "sort": 10
+ },
+ {
+  "code": "SA-12-QR",
+  "governorate": "SA-12",
+  "label_en": "Qurayyat",
+  "label_ar": "القريات",
+  "sort": 20
+ },
+ {
+  "code": "SA-12-DJ",
+  "governorate": "SA-12",
+  "label_en": "Dumat al-Jandal",
+  "label_ar": "دومة الجندل",
+  "sort": 30
+ },
+ {
+  "code": "SA-14-AB",
+  "governorate": "SA-14",
+  "label_en": "Abha",
+  "label_ar": "أبها",
+  "sort": 10
+ },
+ {
+  "code": "SA-14-KM",
+  "governorate": "SA-14",
+  "label_en": "Khamis Mushait",
+  "label_ar": "خميس مشيط",
+  "sort": 20
+ },
+ {
+  "code": "SA-14-NM",
+  "governorate": "SA-14",
+  "label_en": "Al-Namas",
+  "label_ar": "النماص",
+  "sort": 30
+ },
+ {
+  "code": "SA-14-BI",
+  "governorate": "SA-14",
+  "label_en": "Bisha",
+  "label_ar": "بيشة",
+  "sort": 40
+ },
+ {
+  "code": "SA-14-MA",
+  "governorate": "SA-14",
+  "label_en": "Mahayil Asir",
+  "label_ar": "محايل عسير",
+  "sort": 50
+ },
+ {
+  "code": "SA-14-DJ",
+  "governorate": "SA-14",
+  "label_en": "Dhahran al-Junub",
+  "label_ar": "ظهران الجنوب",
+  "sort": 60
+ },
+ {
+  "code": "SA-14-BQ",
+  "governorate": "SA-14",
+  "label_en": "Balqarn",
+  "label_ar": "بلقرن",
+  "sort": 70
+ },
+ {
+  "code": "SA-14-TT",
+  "governorate": "SA-14",
+  "label_en": "Tathlith",
+  "label_ar": "تثليث",
+  "sort": 80
+ },
+ {
+  "code": "SA-14-BK",
+  "governorate": "SA-14",
+  "label_en": "Al-Barak",
+  "label_ar": "البرك",
+  "sort": 90
+ },
+ {
+  "code": "SA-14-SA",
+  "governorate": "SA-14",
+  "label_en": "Sarat Abidah",
+  "label_ar": "سراة عبيدة",
+  "sort": 100
+ },
+ {
+  "code": "SA-14-RY",
+  "governorate": "SA-14",
+  "label_en": "Al-Rayth",
+  "label_ar": "الريث",
+  "sort": 110
+ },
+ {
+  "code": "SA-14-MG",
+  "governorate": "SA-14",
+  "label_en": "Al-Majardah",
+  "label_ar": "المجاردة",
+  "sort": 120
+ },
+ {
+  "code": "SA-14-BQ2",
+  "governorate": "SA-14",
+  "label_en": "Bariq",
+  "label_ar": "بارق",
+  "sort": 130
+ },
+ {
+  "code": "KW-KU-KC",
+  "governorate": "KW-KU",
+  "label_en": "Kuwait City",
+  "label_ar": "مدينة الكويت",
+  "sort": 10
+ },
+ {
+  "code": "KW-KU-DS",
+  "governorate": "KW-KU",
+  "label_en": "Dasman",
+  "label_ar": "دسمان",
+  "sort": 20
+ },
+ {
+  "code": "KW-KU-MG",
+  "governorate": "KW-KU",
+  "label_en": "Mirgab",
+  "label_ar": "مرقاب",
+  "sort": 30
+ },
+ {
+  "code": "KW-KU-JB",
+  "governorate": "KW-KU",
+  "label_en": "Jibla",
+  "label_ar": "قبلة",
+  "sort": 40
+ },
+ {
+  "code": "KW-KU-QA",
+  "governorate": "KW-KU",
+  "label_en": "Qadsiya",
+  "label_ar": "القادسية",
+  "sort": 50
+ },
+ {
+  "code": "KW-KU-MN",
+  "governorate": "KW-KU",
+  "label_en": "Mansouriya",
+  "label_ar": "المنصورية",
+  "sort": 60
+ },
+ {
+  "code": "KW-KU-KF",
+  "governorate": "KW-KU",
+  "label_en": "Kaifan",
+  "label_ar": "كيفان",
+  "sort": 70
+ },
+ {
+  "code": "KW-KU-NZ",
+  "governorate": "KW-KU",
+  "label_en": "Nuzha",
+  "label_ar": "النزهة",
+  "sort": 80
+ },
+ {
+  "code": "KW-KU-AD",
+  "governorate": "KW-KU",
+  "label_en": "Adailiya",
+  "label_ar": "العديلية",
+  "sort": 90
+ },
+ {
+  "code": "KW-KU-SM",
+  "governorate": "KW-KU",
+  "label_en": "Shamiya",
+  "label_ar": "الشامية",
+  "sort": 100
+ },
+ {
+  "code": "KW-KU-SL",
+  "governorate": "KW-KU",
+  "label_en": "Salhiya",
+  "label_ar": "الصالحية",
+  "sort": 110
+ },
+ {
+  "code": "KW-KU-BQ",
+  "governorate": "KW-KU",
+  "label_en": "Bneid al-Qar",
+  "label_ar": "بنيد القار",
+  "sort": 120
+ },
+ {
+  "code": "KW-HA-HW",
+  "governorate": "KW-HA",
+  "label_en": "Hawalli",
+  "label_ar": "حولي",
+  "sort": 10
+ },
+ {
+  "code": "KW-HA-SM",
+  "governorate": "KW-HA",
+  "label_en": "Salmiya",
+  "label_ar": "السالمية",
+  "sort": 20
+ },
+ {
+  "code": "KW-HA-JB",
+  "governorate": "KW-HA",
+  "label_en": "Jabriya",
+  "label_ar": "الجابرية",
+  "sort": 30
+ },
+ {
+  "code": "KW-HA-RM",
+  "governorate": "KW-HA",
+  "label_en": "Rumaithiya",
+  "label_ar": "الرميثية",
+  "sort": 40
+ },
+ {
+  "code": "KW-HA-MS",
+  "governorate": "KW-HA",
+  "label_en": "Mishref",
+  "label_ar": "مشرف",
+  "sort": 50
+ },
+ {
+  "code": "KW-HA-SH",
+  "governorate": "KW-HA",
+  "label_en": "Sha'ab",
+  "label_ar": "الشعب",
+  "sort": 60
+ },
+ {
+  "code": "KW-HA-BY",
+  "governorate": "KW-HA",
+  "label_en": "Bayan",
+  "label_ar": "بيان",
+  "sort": 70
+ },
+ {
+  "code": "KW-HA-SW",
+  "governorate": "KW-HA",
+  "label_en": "Salwa",
+  "label_ar": "سلوى",
+  "sort": 80
+ },
+ {
+  "code": "KW-FA-FW",
+  "governorate": "KW-FA",
+  "label_en": "Farwaniyah",
+  "label_ar": "الفروانية",
+  "sort": 10
+ },
+ {
+  "code": "KW-FA-KH",
+  "governorate": "KW-FA",
+  "label_en": "Khaitan",
+  "label_ar": "خيطان",
+  "sort": 20
+ },
+ {
+  "code": "KW-FA-JS",
+  "governorate": "KW-FA",
+  "label_en": "Jleeb al-Shuyoukh",
+  "label_ar": "جليب الشيوخ",
+  "sort": 30
+ },
+ {
+  "code": "KW-FA-AR",
+  "governorate": "KW-FA",
+  "label_en": "Al-Ardhiyah",
+  "label_ar": "العارضية",
+  "sort": 40
+ },
+ {
+  "code": "KW-FA-RB",
+  "governorate": "KW-FA",
+  "label_en": "Rabia",
+  "label_ar": "الرابية",
+  "sort": 50
+ },
+ {
+  "code": "KW-FA-OM",
+  "governorate": "KW-FA",
+  "label_en": "Omariya",
+  "label_ar": "العمرية",
+  "sort": 60
+ },
+ {
+  "code": "KW-AH-AH",
+  "governorate": "KW-AH",
+  "label_en": "Ahmadi",
+  "label_ar": "الأحمدي",
+  "sort": 10
+ },
+ {
+  "code": "KW-AH-FH",
+  "governorate": "KW-AH",
+  "label_en": "Fahaheel",
+  "label_ar": "الفحيحيل",
+  "sort": 20
+ },
+ {
+  "code": "KW-AH-MG",
+  "governorate": "KW-AH",
+  "label_en": "Mangaf",
+  "label_ar": "المنقف",
+  "sort": 30
+ },
+ {
+  "code": "KW-AH-AH2",
+  "governorate": "KW-AH",
+  "label_en": "Abu Halifa",
+  "label_ar": "أبو حليفة",
+  "sort": 40
+ },
+ {
+  "code": "KW-AH-FN",
+  "governorate": "KW-AH",
+  "label_en": "Fintas",
+  "label_ar": "الفنطاس",
+  "sort": 50
+ },
+ {
+  "code": "KW-AH-WR",
+  "governorate": "KW-AH",
+  "label_en": "Wafra",
+  "label_ar": "الوفرة",
+  "sort": 60
+ },
+ {
+  "code": "KW-AH-KR",
+  "governorate": "KW-AH",
+  "label_en": "Khiran",
+  "label_ar": "الخيران",
+  "sort": 70
+ },
+ {
+  "code": "KW-JA-JA",
+  "governorate": "KW-JA",
+  "label_en": "Jahra",
+  "label_ar": "الجهراء",
+  "sort": 10
+ },
+ {
+  "code": "KW-JA-SA",
+  "governorate": "KW-JA",
+  "label_en": "Saad al-Abdullah",
+  "label_ar": "سعد العبد الله",
+  "sort": 20
+ },
+ {
+  "code": "KW-JA-QR",
+  "governorate": "KW-JA",
+  "label_en": "Al-Qairawan",
+  "label_ar": "القيروان",
+  "sort": 30
+ },
+ {
+  "code": "KW-JA-OY",
+  "governorate": "KW-JA",
+  "label_en": "Al-Oyoun",
+  "label_ar": "العيون",
+  "sort": 40
+ },
+ {
+  "code": "KW-JA-AB",
+  "governorate": "KW-JA",
+  "label_en": "Al-Abdali",
+  "label_ar": "العبدلي",
+  "sort": 50
+ },
+ {
+  "code": "KW-MU-MK",
+  "governorate": "KW-MU",
+  "label_en": "Mubarak al-Kabeer",
+  "label_ar": "مبارك الكبير",
+  "sort": 10
+ },
+ {
+  "code": "KW-MU-QT",
+  "governorate": "KW-MU",
+  "label_en": "Qortuba",
+  "label_ar": "قرطبة",
+  "sort": 20
+ },
+ {
+  "code": "KW-MU-SS",
+  "governorate": "KW-MU",
+  "label_en": "Sabah al-Salem",
+  "label_ar": "صباح السالم",
+  "sort": 30
+ },
+ {
+  "code": "KW-MU-MS",
+  "governorate": "KW-MU",
+  "label_en": "Messila",
+  "label_ar": "المسيلة",
+  "sort": 40
+ },
+ {
+  "code": "KW-MU-AD",
+  "governorate": "KW-MU",
+  "label_en": "Adan",
+  "label_ar": "عدان",
+  "sort": 50
+ },
+ {
+  "code": "KW-MU-AF",
+  "governorate": "KW-MU",
+  "label_en": "Abu Fatira",
+  "label_ar": "أبو فطيرة",
+  "sort": 60
+ },
+ {
+  "code": "BH-13-MA",
+  "governorate": "BH-13",
+  "label_en": "Manama",
+  "label_ar": "المنامة",
+  "sort": 10
+ },
+ {
+  "code": "BH-13-JU",
+  "governorate": "BH-13",
+  "label_en": "Juffair",
+  "label_ar": "الجفير",
+  "sort": 20
+ },
+ {
+  "code": "BH-13-HO",
+  "governorate": "BH-13",
+  "label_en": "Hoora",
+  "label_ar": "الحورة",
+  "sort": 30
+ },
+ {
+  "code": "BH-13-AD",
+  "governorate": "BH-13",
+  "label_en": "Adliya",
+  "label_ar": "العدلية",
+  "sort": 40
+ },
+ {
+  "code": "BH-13-GU",
+  "governorate": "BH-13",
+  "label_en": "Gudaibiya",
+  "label_ar": "القضيبية",
+  "sort": 50
+ },
+ {
+  "code": "BH-13-UH",
+  "governorate": "BH-13",
+  "label_en": "Umm Al Hassam",
+  "label_ar": "أم الحصم",
+  "sort": 60
+ },
+ {
+  "code": "BH-15-MH",
+  "governorate": "BH-15",
+  "label_en": "Muharraq",
+  "label_ar": "المحرق",
+  "sort": 10
+ },
+ {
+  "code": "BH-15-HD",
+  "governorate": "BH-15",
+  "label_en": "Hidd",
+  "label_ar": "الحد",
+  "sort": 20
+ },
+ {
+  "code": "BH-15-BU",
+  "governorate": "BH-15",
+  "label_en": "Busaiteen",
+  "label_ar": "بوسايتين",
+  "sort": 30
+ },
+ {
+  "code": "BH-15-GA",
+  "governorate": "BH-15",
+  "label_en": "Galali",
+  "label_ar": "جالالي",
+  "sort": 40
+ },
+ {
+  "code": "BH-15-AR",
+  "governorate": "BH-15",
+  "label_en": "Arad",
+  "label_ar": "عراد",
+  "sort": 50
+ },
+ {
+  "code": "BH-15-SM",
+  "governorate": "BH-15",
+  "label_en": "Samaheej",
+  "label_ar": "سماهيج",
+  "sort": 60
+ },
+ {
+  "code": "BH-17-BD",
+  "governorate": "BH-17",
+  "label_en": "Budaiya",
+  "label_ar": "البديعة",
+  "sort": 10
+ },
+ {
+  "code": "BH-17-DR",
+  "governorate": "BH-17",
+  "label_en": "Diraz",
+  "label_ar": "الدراز",
+  "sort": 20
+ },
+ {
+  "code": "BH-17-BA",
+  "governorate": "BH-17",
+  "label_en": "Barbar",
+  "label_ar": "بربر",
+  "sort": 30
+ },
+ {
+  "code": "BH-17-TS",
+  "governorate": "BH-17",
+  "label_en": "Tashan",
+  "label_ar": "طشان",
+  "sort": 40
+ },
+ {
+  "code": "BH-17-JD",
+  "governorate": "BH-17",
+  "label_en": "Jidhabs",
+  "label_ar": "جدحفص",
+  "sort": 50
+ },
+ {
+  "code": "BH-17-KR",
+  "governorate": "BH-17",
+  "label_en": "Karranah",
+  "label_ar": "كرانة",
+  "sort": 60
+ },
+ {
+  "code": "BH-17-KZ",
+  "governorate": "BH-17",
+  "label_en": "Karzakan",
+  "label_ar": "كركان",
+  "sort": 70
+ },
+ {
+  "code": "BH-17-MK",
+  "governorate": "BH-17",
+  "label_en": "Al-Malikiyah",
+  "label_ar": "المالكية",
+  "sort": 80
+ },
+ {
+  "code": "BH-17-SR",
+  "governorate": "BH-17",
+  "label_en": "Saar",
+  "label_ar": "سار",
+  "sort": 90
+ },
+ {
+  "code": "BH-14-RF",
+  "governorate": "BH-14",
+  "label_en": "Riffa",
+  "label_ar": "الرفاع",
+  "sort": 10
+ },
+ {
+  "code": "BH-14-AL",
+  "governorate": "BH-14",
+  "label_en": "A'ali",
+  "label_ar": "عالي",
+  "sort": 20
+ },
+ {
+  "code": "BH-14-IT",
+  "governorate": "BH-14",
+  "label_en": "Isa Town",
+  "label_ar": "مدينة عيسى",
+  "sort": 30
+ },
+ {
+  "code": "BH-14-HT",
+  "governorate": "BH-14",
+  "label_en": "Hamad Town",
+  "label_ar": "مدينة حمد",
+  "sort": 40
+ },
+ {
+  "code": "BH-14-ZQ",
+  "governorate": "BH-14",
+  "label_en": "Zallaq",
+  "label_ar": "الزلاق",
+  "sort": 50
+ },
+ {
+  "code": "BH-14-AW",
+  "governorate": "BH-14",
+  "label_en": "Awali",
+  "label_ar": "العوالي",
+  "sort": 60
+ },
+ {
+  "code": "BH-14-ST",
+  "governorate": "BH-14",
+  "label_en": "Sitra",
+  "label_ar": "سترة",
+  "sort": 70
+ },
+ {
+  "code": "QA-DA-DO",
+  "governorate": "QA-DA",
+  "label_en": "Doha",
+  "label_ar": "الدوحة",
+  "sort": 10
+ },
+ {
+  "code": "QA-DA-SD",
+  "governorate": "QA-DA",
+  "label_en": "Al Sadd",
+  "label_ar": "السد",
+  "sort": 20
+ },
+ {
+  "code": "QA-DA-MQ",
+  "governorate": "QA-DA",
+  "label_en": "Al Mirqab",
+  "label_ar": "المرقاب",
+  "sort": 30
+ },
+ {
+  "code": "QA-DA-BD",
+  "governorate": "QA-DA",
+  "label_en": "Al Bidda",
+  "label_ar": "البدع",
+  "sort": 40
+ },
+ {
+  "code": "QA-DA-MS",
+  "governorate": "QA-DA",
+  "label_en": "Musheireb",
+  "label_ar": "مشيرب",
+  "sort": 50
+ },
+ {
+  "code": "QA-DA-WB",
+  "governorate": "QA-DA",
+  "label_en": "West Bay",
+  "label_ar": "الخليج الغربي",
+  "sort": 60
+ },
+ {
+  "code": "QA-DA-WA",
+  "governorate": "QA-DA",
+  "label_en": "Al Waab",
+  "label_ar": "الوعب",
+  "sort": 70
+ },
+ {
+  "code": "QA-RA-RY",
+  "governorate": "QA-RA",
+  "label_en": "Al Rayyan",
+  "label_ar": "الريان",
+  "sort": 10
+ },
+ {
+  "code": "QA-RA-GH",
+  "governorate": "QA-RA",
+  "label_en": "Al Gharafa",
+  "label_ar": "الغرافة",
+  "sort": 20
+ },
+ {
+  "code": "QA-RA-AZ",
+  "governorate": "QA-RA",
+  "label_en": "Al Aziziya",
+  "label_ar": "العزيزية",
+  "sort": 30
+ },
+ {
+  "code": "QA-RA-MU",
+  "governorate": "QA-RA",
+  "label_en": "Muaither",
+  "label_ar": "معيذر",
+  "sort": 40
+ },
+ {
+  "code": "QA-RA-FS",
+  "governorate": "QA-RA",
+  "label_en": "Fereej Al Soudan",
+  "label_ar": "فريج السودان",
+  "sort": 50
+ },
+ {
+  "code": "QA-KH-KH",
+  "governorate": "QA-KH",
+  "label_en": "Al Khor",
+  "label_ar": "الخور",
+  "sort": 10
+ },
+ {
+  "code": "QA-KH-TH",
+  "governorate": "QA-KH",
+  "label_en": "Al Thakhira",
+  "label_ar": "الثاكرة",
+  "sort": 20
+ },
+ {
+  "code": "QA-KH-SM",
+  "governorate": "QA-KH",
+  "label_en": "Simaisma",
+  "label_ar": "السمايسمة",
+  "sort": 30
+ },
+ {
+  "code": "QA-KH-FU",
+  "governorate": "QA-KH",
+  "label_en": "Fuwairat",
+  "label_ar": "فويرط",
+  "sort": 40
+ },
+ {
+  "code": "QA-WA-WK",
+  "governorate": "QA-WA",
+  "label_en": "Al Wakrah",
+  "label_ar": "الوكرة",
+  "sort": 10
+ },
+ {
+  "code": "QA-WA-WU",
+  "governorate": "QA-WA",
+  "label_en": "Al Wukair",
+  "label_ar": "الوكير",
+  "sort": 20
+ },
+ {
+  "code": "QA-WA-MY",
+  "governorate": "QA-WA",
+  "label_en": "Mesaieed",
+  "label_ar": "مسيعيد",
+  "sort": 30
+ },
+ {
+  "code": "QA-MS-SH",
+  "governorate": "QA-MS",
+  "label_en": "Madinat ash Shamal",
+  "label_ar": "مدينة الشمال",
+  "sort": 10
+ },
+ {
+  "code": "QA-MS-RU",
+  "governorate": "QA-MS",
+  "label_en": "Ar Ru'ays",
+  "label_ar": "الرويس",
+  "sort": 20
+ },
+ {
+  "code": "QA-MS-JM",
+  "governorate": "QA-MS",
+  "label_en": "Al Jumail",
+  "label_ar": "الجميل",
+  "sort": 30
+ },
+ {
+  "code": "QA-SH-SN",
+  "governorate": "QA-SH",
+  "label_en": "Al Shahaniya",
+  "label_ar": "الشحانية",
+  "sort": 10
+ },
+ {
+  "code": "QA-SH-NS",
+  "governorate": "QA-SH",
+  "label_en": "Al Nasraniyah",
+  "label_ar": "النصرانية",
+  "sort": 20
+ },
+ {
+  "code": "QA-US-UM",
+  "governorate": "QA-US",
+  "label_en": "Umm Salal",
+  "label_ar": "أم صلال",
+  "sort": 10
+ },
+ {
+  "code": "QA-US-UM2",
+  "governorate": "QA-US",
+  "label_en": "Umm Salal Mohammed",
+  "label_ar": "أم صلال محمد",
+  "sort": 20
+ },
+ {
+  "code": "QA-US-UA",
+  "governorate": "QA-US",
+  "label_en": "Umm Salal Ali",
+  "label_ar": "أم صلال علي",
+  "sort": 30
+ },
+ {
+  "code": "QA-ZA-LU",
+  "governorate": "QA-ZA",
+  "label_en": "Lusail",
+  "label_ar": "لوسيل",
+  "sort": 10
+ },
+ {
+  "code": "QA-ZA-KH",
+  "governorate": "QA-ZA",
+  "label_en": "Al Kheesa",
+  "label_ar": "الخيسة",
+  "sort": 20
+ },
+ {
+  "code": "QA-ZA-UQ",
+  "governorate": "QA-ZA",
+  "label_en": "Umm Qarn",
+  "label_ar": "أم قرن",
+  "sort": 30
+ },
+ {
+  "code": "AE-AZ-AB",
+  "governorate": "AE-AZ",
+  "label_en": "Abu Dhabi",
+  "label_ar": "أبوظبي",
+  "sort": 10
+ },
+ {
+  "code": "AE-AZ-AN",
+  "governorate": "AE-AZ",
+  "label_en": "Al Ain",
+  "label_ar": "العين",
+  "sort": 20
+ },
+ {
+  "code": "AE-AZ-DH",
+  "governorate": "AE-AZ",
+  "label_en": "Al Dhafra",
+  "label_ar": "الظفرة",
+  "sort": 30
+ },
+ {
+  "code": "AE-AZ-MZ",
+  "governorate": "AE-AZ",
+  "label_en": "Madinat Zayed",
+  "label_ar": "مدينة زايد",
+  "sort": 40
+ },
+ {
+  "code": "AE-AZ-SL",
+  "governorate": "AE-AZ",
+  "label_en": "Sila",
+  "label_ar": "السلع",
+  "sort": 50
+ },
+ {
+  "code": "AE-AZ-GH",
+  "governorate": "AE-AZ",
+  "label_en": "Ghayathi",
+  "label_ar": "الغياثي",
+  "sort": 60
+ },
+ {
+  "code": "AE-DU-DU",
+  "governorate": "AE-DU",
+  "label_en": "Dubai",
+  "label_ar": "دبي",
+  "sort": 10
+ },
+ {
+  "code": "AE-DU-DE",
+  "governorate": "AE-DU",
+  "label_en": "Deira",
+  "label_ar": "ديرة",
+  "sort": 20
+ },
+ {
+  "code": "AE-DU-BR",
+  "governorate": "AE-DU",
+  "label_en": "Bur Dubai",
+  "label_ar": "بر دبي",
+  "sort": 30
+ },
+ {
+  "code": "AE-DU-JM",
+  "governorate": "AE-DU",
+  "label_en": "Jumeirah",
+  "label_ar": "جميرا",
+  "sort": 40
+ },
+ {
+  "code": "AE-DU-HT",
+  "governorate": "AE-DU",
+  "label_en": "Hatta",
+  "label_ar": "حتا",
+  "sort": 50
+ },
+ {
+  "code": "AE-SH-SH",
+  "governorate": "AE-SH",
+  "label_en": "Sharjah",
+  "label_ar": "الشارقة",
+  "sort": 10
+ },
+ {
+  "code": "AE-SH-KF",
+  "governorate": "AE-SH",
+  "label_en": "Khor Fakkan",
+  "label_ar": "خورفكان",
+  "sort": 20
+ },
+ {
+  "code": "AE-SH-KL",
+  "governorate": "AE-SH",
+  "label_en": "Kalba",
+  "label_ar": "كلباء",
+  "sort": 30
+ },
+ {
+  "code": "AE-SH-DH",
+  "governorate": "AE-SH",
+  "label_en": "Dibba Al-Hisn",
+  "label_ar": "دبا الحصن",
+  "sort": 40
+ },
+ {
+  "code": "AE-SH-DD",
+  "governorate": "AE-SH",
+  "label_en": "Al Dhaid",
+  "label_ar": "الذيد",
+  "sort": 50
+ },
+ {
+  "code": "AE-SH-ML",
+  "governorate": "AE-SH",
+  "label_en": "Mleiha",
+  "label_ar": "المليلة",
+  "sort": 60
+ },
+ {
+  "code": "AE-AJ-AJ",
+  "governorate": "AE-AJ",
+  "label_en": "Ajman",
+  "label_ar": "عجمان",
+  "sort": 10
+ },
+ {
+  "code": "AE-AJ-MF",
+  "governorate": "AE-AJ",
+  "label_en": "Masfout",
+  "label_ar": "مصفوت",
+  "sort": 20
+ },
+ {
+  "code": "AE-AJ-MA",
+  "governorate": "AE-AJ",
+  "label_en": "Manama",
+  "label_ar": "المنامة",
+  "sort": 30
+ },
+ {
+  "code": "AE-UQ-UQ",
+  "governorate": "AE-UQ",
+  "label_en": "Umm al-Quwain",
+  "label_ar": "أم القيوين",
+  "sort": 10
+ },
+ {
+  "code": "AE-UQ-FM",
+  "governorate": "AE-UQ",
+  "label_en": "Falaj al-Mualla",
+  "label_ar": "فلج المعلا",
+  "sort": 20
+ },
+ {
+  "code": "AE-RK-RK",
+  "governorate": "AE-RK",
+  "label_en": "Ras al-Khaimah",
+  "label_ar": "رأس الخيمة",
+  "sort": 10
+ },
+ {
+  "code": "AE-RK-JH",
+  "governorate": "AE-RK",
+  "label_en": "Al-Jazirah Al-Hamra",
+  "label_ar": "الجزيرة الحمراء",
+  "sort": 20
+ },
+ {
+  "code": "AE-RK-KT",
+  "governorate": "AE-RK",
+  "label_en": "Khatt",
+  "label_ar": "خت",
+  "sort": 30
+ },
+ {
+  "code": "AE-RK-RM",
+  "governorate": "AE-RK",
+  "label_en": "Rams",
+  "label_ar": "رمس",
+  "sort": 40
+ },
+ {
+  "code": "AE-FU-FU",
+  "governorate": "AE-FU",
+  "label_en": "Fujairah",
+  "label_ar": "الفجيرة",
+  "sort": 10
+ },
+ {
+  "code": "AE-FU-DF",
+  "governorate": "AE-FU",
+  "label_en": "Dibba Al-Fujairah",
+  "label_ar": "دبا الفجيرة",
+  "sort": 20
+ },
+ {
+  "code": "AE-FU-MF",
+  "governorate": "AE-FU",
+  "label_en": "Masafi",
+  "label_ar": "مصفى",
+  "sort": 30
+ },
+ {
+  "code": "AE-FU-BD",
+  "governorate": "AE-FU",
+  "label_en": "Al-Bidyah",
+  "label_ar": "البدية",
+  "sort": 40
+ },
+ {
+  "code": "AE-FU-QD",
+  "governorate": "AE-FU",
+  "label_en": "Qidfa",
+  "label_ar": "قدفع",
+  "sort": 50
+ },
+ {
+  "code": "OM-MA-SB",
+  "governorate": "OM-MA",
+  "label_en": "Seeb",
+  "label_ar": "السيب",
+  "sort": 10
+ },
+ {
+  "code": "OM-MA-BW",
+  "governorate": "OM-MA",
+  "label_en": "Bawshar",
+  "label_ar": "بوشر",
+  "sort": 20
+ },
+ {
+  "code": "OM-MA-AM",
+  "governorate": "OM-MA",
+  "label_en": "Al Amarat",
+  "label_ar": "العامرات",
+  "sort": 30
+ },
+ {
+  "code": "OM-MA-MS",
+  "governorate": "OM-MA",
+  "label_en": "Muscat",
+  "label_ar": "مسقط",
+  "sort": 40
+ },
+ {
+  "code": "OM-MA-MT",
+  "governorate": "OM-MA",
+  "label_en": "Muttrah",
+  "label_ar": "مطرح",
+  "sort": 50
+ },
+ {
+  "code": "OM-MA-QR",
+  "governorate": "OM-MA",
+  "label_en": "Qurayyat",
+  "label_ar": "القريات",
+  "sort": 60
+ },
+ {
+  "code": "OM-ZU-SL",
+  "governorate": "OM-ZU",
+  "label_en": "Salalah",
+  "label_ar": "صلالة",
+  "sort": 10
+ },
+ {
+  "code": "OM-ZU-TQ",
+  "governorate": "OM-ZU",
+  "label_en": "Taqah",
+  "label_ar": "طاقة",
+  "sort": 20
+ },
+ {
+  "code": "OM-ZU-MB",
+  "governorate": "OM-ZU",
+  "label_en": "Mirbat",
+  "label_ar": "مرباط",
+  "sort": 30
+ },
+ {
+  "code": "OM-ZU-TH",
+  "governorate": "OM-ZU",
+  "label_en": "Thumrait",
+  "label_ar": "ثمريت",
+  "sort": 40
+ },
+ {
+  "code": "OM-ZU-SD",
+  "governorate": "OM-ZU",
+  "label_en": "Sadah",
+  "label_ar": "سدح",
+  "sort": 50
+ },
+ {
+  "code": "OM-ZU-RK",
+  "governorate": "OM-ZU",
+  "label_en": "Rakhyut",
+  "label_ar": "رخيوت",
+  "sort": 60
+ },
+ {
+  "code": "OM-ZU-DK",
+  "governorate": "OM-ZU",
+  "label_en": "Dhalkut",
+  "label_ar": "ضلكوت",
+  "sort": 70
+ },
+ {
+  "code": "OM-ZU-MZ",
+  "governorate": "OM-ZU",
+  "label_en": "Al-Mazyunah",
+  "label_ar": "المزيونة",
+  "sort": 80
+ },
+ {
+  "code": "OM-ZU-MQ",
+  "governorate": "OM-ZU",
+  "label_en": "Muqshin",
+  "label_ar": "مقشن",
+  "sort": 90
+ },
+ {
+  "code": "OM-ZU-SH",
+  "governorate": "OM-ZU",
+  "label_en": "Shaleem",
+  "label_ar": "شليم",
+  "sort": 100
+ },
+ {
+  "code": "OM-MU-KH",
+  "governorate": "OM-MU",
+  "label_en": "Khasab",
+  "label_ar": "خصب",
+  "sort": 10
+ },
+ {
+  "code": "OM-MU-DB",
+  "governorate": "OM-MU",
+  "label_en": "Dibba",
+  "label_ar": "دبا",
+  "sort": 20
+ },
+ {
+  "code": "OM-MU-BK",
+  "governorate": "OM-MU",
+  "label_en": "Bukha",
+  "label_ar": "بخاء",
+  "sort": 30
+ },
+ {
+  "code": "OM-BU-BU",
+  "governorate": "OM-BU",
+  "label_en": "Al Buraimi",
+  "label_ar": "البريمي",
+  "sort": 10
+ },
+ {
+  "code": "OM-BU-SN",
+  "governorate": "OM-BU",
+  "label_en": "Al-Sinainah",
+  "label_ar": "السنينة",
+  "sort": 20
+ },
+ {
+  "code": "OM-BU-MH",
+  "governorate": "OM-BU",
+  "label_en": "Mahdha",
+  "label_ar": "محضة",
+  "sort": 30
+ },
+ {
+  "code": "OM-DA-NZ",
+  "governorate": "OM-DA",
+  "label_en": "Nizwa",
+  "label_ar": "نزوى",
+  "sort": 10
+ },
+ {
+  "code": "OM-DA-BH",
+  "governorate": "OM-DA",
+  "label_en": "Bahla",
+  "label_ar": "بهلاء",
+  "sort": 20
+ },
+ {
+  "code": "OM-DA-SM",
+  "governorate": "OM-DA",
+  "label_en": "Samail",
+  "label_ar": "سمائل",
+  "sort": 30
+ },
+ {
+  "code": "OM-DA-IZ",
+  "governorate": "OM-DA",
+  "label_en": "Izki",
+  "label_ar": "إزكي",
+  "sort": 40
+ },
+ {
+  "code": "OM-DA-MN",
+  "governorate": "OM-DA",
+  "label_en": "Manah",
+  "label_ar": "منح",
+  "sort": 50
+ },
+ {
+  "code": "OM-DA-HA",
+  "governorate": "OM-DA",
+  "label_en": "Al Hamra",
+  "label_ar": "الحمراء",
+  "sort": 60
+ },
+ {
+  "code": "OM-DA-AD",
+  "governorate": "OM-DA",
+  "label_en": "Adam",
+  "label_ar": "دم",
+  "sort": 70
+ },
+ {
+  "code": "OM-DA-BB",
+  "governorate": "OM-DA",
+  "label_en": "Bidbid",
+  "label_ar": "بدبد",
+  "sort": 80
+ },
+ {
+  "code": "OM-ZA-IB",
+  "governorate": "OM-ZA",
+  "label_en": "Ibri",
+  "label_ar": "عبري",
+  "sort": 10
+ },
+ {
+  "code": "OM-ZA-YQ",
+  "governorate": "OM-ZA",
+  "label_en": "Yanqul",
+  "label_ar": "ينقل",
+  "sort": 20
+ },
+ {
+  "code": "OM-ZA-DK",
+  "governorate": "OM-ZA",
+  "label_en": "Dank",
+  "label_ar": "ضنك",
+  "sort": 30
+ },
+ {
+  "code": "OM-ZA-SN",
+  "governorate": "OM-ZA",
+  "label_en": "Al-Sunaynah",
+  "label_ar": "السنينة",
+  "sort": 40
+ },
+ {
+  "code": "OM-BS-SH",
+  "governorate": "OM-BS",
+  "label_en": "Sohar",
+  "label_ar": "صحار",
+  "sort": 10
+ },
+ {
+  "code": "OM-BS-SN",
+  "governorate": "OM-BS",
+  "label_en": "Shinas",
+  "label_ar": "شناص",
+  "sort": 20
+ },
+ {
+  "code": "OM-BS-LW",
+  "governorate": "OM-BS",
+  "label_en": "Liwa",
+  "label_ar": "لوى",
+  "sort": 30
+ },
+ {
+  "code": "OM-BS-SM",
+  "governorate": "OM-BS",
+  "label_en": "Saham",
+  "label_ar": "صحم",
+  "sort": 40
+ },
+ {
+  "code": "OM-BS-KH",
+  "governorate": "OM-BS",
+  "label_en": "Al-Khaburah",
+  "label_ar": "الخابورة",
+  "sort": 50
+ },
+ {
+  "code": "OM-BS-SQ",
+  "governorate": "OM-BS",
+  "label_en": "Suwayq",
+  "label_ar": "السويق",
+  "sort": 60
+ },
+ {
+  "code": "OM-BS-MS",
+  "governorate": "OM-BS",
+  "label_en": "Al-Masna'ah",
+  "label_ar": "المصنعة",
+  "sort": 70
+ },
+ {
+  "code": "OM-BJ-BR",
+  "governorate": "OM-BJ",
+  "label_en": "Barka",
+  "label_ar": "بركاء",
+  "sort": 10
+ },
+ {
+  "code": "OM-BJ-NK",
+  "governorate": "OM-BJ",
+  "label_en": "Nakhal",
+  "label_ar": "نخل",
+  "sort": 20
+ },
+ {
+  "code": "OM-BJ-AW",
+  "governorate": "OM-BJ",
+  "label_en": "Al-Awabi",
+  "label_ar": "العوابي",
+  "sort": 30
+ },
+ {
+  "code": "OM-BJ-WM",
+  "governorate": "OM-BJ",
+  "label_en": "Wadi al-Ma'awil",
+  "label_ar": "وادي المعاول",
+  "sort": 40
+ },
+ {
+  "code": "OM-BJ-RA",
+  "governorate": "OM-BJ",
+  "label_en": "Rustaq",
+  "label_ar": "الرستاق",
+  "sort": 50
+ },
+ {
+  "code": "OM-SS-IB",
+  "governorate": "OM-SS",
+  "label_en": "Ibra",
+  "label_ar": "إبراء",
+  "sort": 10
+ },
+ {
+  "code": "OM-SS-BD",
+  "governorate": "OM-SS",
+  "label_en": "Bidiya",
+  "label_ar": "بدية",
+  "sort": 20
+ },
+ {
+  "code": "OM-SS-MD",
+  "governorate": "OM-SS",
+  "label_en": "Al-Mudhaibi",
+  "label_ar": "المضيبي",
+  "sort": 30
+ },
+ {
+  "code": "OM-SS-SS",
+  "governorate": "OM-SS",
+  "label_en": "Samad al-Shan",
+  "label_ar": "صمد الشان",
+  "sort": 40
+ },
+ {
+  "code": "OM-SS-DT",
+  "governorate": "OM-SS",
+  "label_en": "Dema wa Tha'een",
+  "label_ar": "دماء والطعاين",
+  "sort": 50
+ },
+ {
+  "code": "OM-SS-WK",
+  "governorate": "OM-SS",
+  "label_en": "Wadi Bani Khalid",
+  "label_ar": "وادي بني خالد",
+  "sort": 60
+ },
+ {
+  "code": "OM-SS-SU",
+  "governorate": "OM-SS",
+  "label_en": "Sur",
+  "label_ar": "صور",
+  "sort": 70
+ },
+ {
+  "code": "OM-SS-KW",
+  "governorate": "OM-SS",
+  "label_en": "Al-Kamil wa al-Wafi",
+  "label_ar": "الكامل والوافي",
+  "sort": 80
+ },
+ {
+  "code": "OM-SJ-JB",
+  "governorate": "OM-SJ",
+  "label_en": "Jalan Bani Bu Ali",
+  "label_ar": "جال بني بو علي",
+  "sort": 10
+ },
+ {
+  "code": "OM-SJ-JH",
+  "governorate": "OM-SJ",
+  "label_en": "Jalan Bani Bu Hassan",
+  "label_ar": "جال بني بو حسن",
+  "sort": 20
+ },
+ {
+  "code": "OM-SJ-MR",
+  "governorate": "OM-SJ",
+  "label_en": "Masirah",
+  "label_ar": "مصيرة",
+  "sort": 30
+ },
+ {
+  "code": "OM-WU-HM",
+  "governorate": "OM-WU",
+  "label_en": "Haima",
+  "label_ar": "هيمى",
+  "sort": 10
+ },
+ {
+  "code": "OM-WU-MO",
+  "governorate": "OM-WU",
+  "label_en": "Mahout",
+  "label_ar": "محوت",
+  "sort": 20
+ },
+ {
+  "code": "OM-WU-DQ",
+  "governorate": "OM-WU",
+  "label_en": "Duqm",
+  "label_ar": "الدقم",
+  "sort": 30
+ },
+ {
+  "code": "OM-WU-JZ",
+  "governorate": "OM-WU",
+  "label_en": "Al-Jazir",
+  "label_ar": "الجازر",
+  "sort": 40
+ },
+ {
+  "code": "YE-AB-ZJ",
+  "governorate": "YE-AB",
+  "label_en": "Zinjibar",
+  "label_ar": "زنجبار",
+  "sort": 10
+ },
+ {
+  "code": "YE-AB-JA",
+  "governorate": "YE-AB",
+  "label_en": "Ja'ar",
+  "label_ar": "جعار",
+  "sort": 20
+ },
+ {
+  "code": "YE-AB-LW",
+  "governorate": "YE-AB",
+  "label_en": "Lawdar",
+  "label_ar": "لودر",
+  "sort": 30
+ },
+ {
+  "code": "YE-AB-AH",
+  "governorate": "YE-AB",
+  "label_en": "Ahwar",
+  "label_ar": "أحور",
+  "sort": 40
+ },
+ {
+  "code": "YE-AB-MD",
+  "governorate": "YE-AB",
+  "label_en": "Mudiyah",
+  "label_ar": "مودية",
+  "sort": 50
+ },
+ {
+  "code": "YE-AB-KF",
+  "governorate": "YE-AB",
+  "label_en": "Khanfir",
+  "label_ar": "خنفر",
+  "sort": 60
+ },
+ {
+  "code": "YE-AB-WD",
+  "governorate": "YE-AB",
+  "label_en": "al-Wad'ah",
+  "label_ar": "الوضعة",
+  "sort": 70
+ },
+ {
+  "code": "YE-AB-MH",
+  "governorate": "YE-AB",
+  "label_en": "al-Mahfad",
+  "label_ar": "المحفد",
+  "sort": 80
+ },
+ {
+  "code": "YE-AD-CR",
+  "governorate": "YE-AD",
+  "label_en": "Crater",
+  "label_ar": "كريتر",
+  "sort": 10
+ },
+ {
+  "code": "YE-AD-MU",
+  "governorate": "YE-AD",
+  "label_en": "Al-Mualla",
+  "label_ar": "المعلا",
+  "sort": 20
+ },
+ {
+  "code": "YE-AD-KM",
+  "governorate": "YE-AD",
+  "label_en": "Khour Maksar",
+  "label_ar": "خور مكسر",
+  "sort": 30
+ },
+ {
+  "code": "YE-AD-SO",
+  "governorate": "YE-AD",
+  "label_en": "Sheikh Othman",
+  "label_ar": "الشيخ عثمان",
+  "sort": 40
+ },
+ {
+  "code": "YE-AD-DS",
+  "governorate": "YE-AD",
+  "label_en": "Dar Saad",
+  "label_ar": "دار سعد",
+  "sort": 50
+ },
+ {
+  "code": "YE-AD-BQ",
+  "governorate": "YE-AD",
+  "label_en": "al-Buraiqeh",
+  "label_ar": "البريقة",
+  "sort": 60
+ },
+ {
+  "code": "YE-AD-TA",
+  "governorate": "YE-AD",
+  "label_en": "Attawahi",
+  "label_ar": "التواهي",
+  "sort": 70
+ },
+ {
+  "code": "YE-AD-MN",
+  "governorate": "YE-AD",
+  "label_en": "al-Mansoura",
+  "label_ar": "المنصورة",
+  "sort": 80
+ },
+ {
+  "code": "YE-AM-AM",
+  "governorate": "YE-AM",
+  "label_en": "Amran",
+  "label_ar": "عمران",
+  "sort": 10
+ },
+ {
+  "code": "YE-AM-KH",
+  "governorate": "YE-AM",
+  "label_en": "Khamir",
+  "label_ar": "خمر",
+  "sort": 20
+ },
+ {
+  "code": "YE-AM-TH",
+  "governorate": "YE-AM",
+  "label_en": "Thula",
+  "label_ar": "ثلا",
+  "sort": 30
+ },
+ {
+  "code": "YE-AM-SH",
+  "governorate": "YE-AM",
+  "label_en": "Shaharah",
+  "label_ar": "شهارة",
+  "sort": 40
+ },
+ {
+  "code": "YE-AM-BS",
+  "governorate": "YE-AM",
+  "label_en": "Bani Suraim",
+  "label_ar": "بني صريم",
+  "sort": 50
+ },
+ {
+  "code": "YE-AM-MS",
+  "governorate": "YE-AM",
+  "label_en": "Maswar",
+  "label_ar": "مسور",
+  "sort": 60
+ },
+ {
+  "code": "YE-BA-BD",
+  "governorate": "YE-BA",
+  "label_en": "Beida",
+  "label_ar": "البيضاء",
+  "sort": 10
+ },
+ {
+  "code": "YE-BA-RA",
+  "governorate": "YE-BA",
+  "label_en": "Rada'a",
+  "label_ar": "رداع",
+  "sort": 20
+ },
+ {
+  "code": "YE-BA-ML",
+  "governorate": "YE-BA",
+  "label_en": "al-Malagim",
+  "label_ar": "الملاجم",
+  "sort": 30
+ },
+ {
+  "code": "YE-BA-QF",
+  "governorate": "YE-BA",
+  "label_en": "Qayfah",
+  "label_ar": "قيفة",
+  "sort": 40
+ },
+ {
+  "code": "YE-BA-NM",
+  "governorate": "YE-BA",
+  "label_en": "Naman",
+  "label_ar": "نعمان",
+  "sort": 50
+ },
+ {
+  "code": "YE-DA-DL",
+  "governorate": "YE-DA",
+  "label_en": "Dhale",
+  "label_ar": "الضالع",
+  "sort": 10
+ },
+ {
+  "code": "YE-DA-DT",
+  "governorate": "YE-DA",
+  "label_en": "Damt",
+  "label_ar": "دمت",
+  "sort": 20
+ },
+ {
+  "code": "YE-DA-HS",
+  "governorate": "YE-DA",
+  "label_en": "al-Husha",
+  "label_ar": "الحشاء",
+  "sort": 30
+ },
+ {
+  "code": "YE-DA-QT",
+  "governorate": "YE-DA",
+  "label_en": "Qa'atabah",
+  "label_ar": "قطعة",
+  "sort": 40
+ },
+ {
+  "code": "YE-DH-DM",
+  "governorate": "YE-DH",
+  "label_en": "Dhamar",
+  "label_ar": "ذمار",
+  "sort": 10
+ },
+ {
+  "code": "YE-DH-AN",
+  "governorate": "YE-DH",
+  "label_en": "Anis",
+  "label_ar": "عنس",
+  "sort": 20
+ },
+ {
+  "code": "YE-DH-UT",
+  "governorate": "YE-DH",
+  "label_en": "Utm",
+  "label_ar": "وتم",
+  "sort": 30
+ },
+ {
+  "code": "YE-DH-JH",
+  "governorate": "YE-DH",
+  "label_en": "Jahran",
+  "label_ar": "جهران",
+  "sort": 40
+ },
+ {
+  "code": "YE-DH-MA",
+  "governorate": "YE-DH",
+  "label_en": "al-Manar",
+  "label_ar": "المنار",
+  "sort": 50
+ },
+ {
+  "code": "YE-DH-MI",
+  "governorate": "YE-DH",
+  "label_en": "Maghirib Anis",
+  "label_ar": "مغرب عنس",
+  "sort": 60
+ },
+ {
+  "code": "YE-DH-MY",
+  "governorate": "YE-DH",
+  "label_en": "Mayfa'at Anis",
+  "label_ar": "ميفعة عنس",
+  "sort": 70
+ },
+ {
+  "code": "YE-HD-SY",
+  "governorate": "YE-HD",
+  "label_en": "Seiyun",
+  "label_ar": "سيئون",
+  "sort": 10
+ },
+ {
+  "code": "YE-HD-TR",
+  "governorate": "YE-HD",
+  "label_en": "Tarim",
+  "label_ar": "تريم",
+  "sort": 20
+ },
+ {
+  "code": "YE-HD-SB",
+  "governorate": "YE-HD",
+  "label_en": "Shibam",
+  "label_ar": "شبام",
+  "sort": 30
+ },
+ {
+  "code": "YE-HD-AB",
+  "governorate": "YE-HD",
+  "label_en": "Abr",
+  "label_ar": "عبر",
+  "sort": 40
+ },
+ {
+  "code": "YE-HD-GH",
+  "governorate": "YE-HD",
+  "label_en": "al-Ghail",
+  "label_ar": "الغيل",
+  "sort": 50
+ },
+ {
+  "code": "YE-HD-HR",
+  "governorate": "YE-HD",
+  "label_en": "Houra",
+  "label_ar": "حورة",
+  "sort": 60
+ },
+ {
+  "code": "YE-HD-RK",
+  "governorate": "YE-HD",
+  "label_en": "Rakhyah",
+  "label_ar": "رخية",
+  "sort": 70
+ },
+ {
+  "code": "YE-HD-SA",
+  "governorate": "YE-HD",
+  "label_en": "Sah",
+  "label_ar": "ساه",
+  "sort": 80
+ },
+ {
+  "code": "YE-HD-MK",
+  "governorate": "YE-HD",
+  "label_en": "al-Mukalla",
+  "label_ar": "المكلا",
+  "sort": 90
+ },
+ {
+  "code": "YE-HD-AS",
+  "governorate": "YE-HD",
+  "label_en": "Ash Shihr",
+  "label_ar": "الشحر",
+  "sort": 100
+ },
+ {
+  "code": "YE-HD-TH",
+  "governorate": "YE-HD",
+  "label_en": "Thamud",
+  "label_ar": "ثمود",
+  "sort": 110
+ },
+ {
+  "code": "YE-HJ-HJ",
+  "governorate": "YE-HJ",
+  "label_en": "Hajjah",
+  "label_ar": "حجة",
+  "sort": 10
+ },
+ {
+  "code": "YE-HJ-AB",
+  "governorate": "YE-HJ",
+  "label_en": "Abs",
+  "label_ar": "عبس",
+  "sort": 20
+ },
+ {
+  "code": "YE-HJ-SG",
+  "governorate": "YE-HJ",
+  "label_en": "al-Shaghadirah",
+  "label_ar": "الشغادرة",
+  "sort": 30
+ },
+ {
+  "code": "YE-HJ-KS",
+  "governorate": "YE-HJ",
+  "label_en": "Kushar",
+  "label_ar": "كشر",
+  "sort": 40
+ },
+ {
+  "code": "YE-HJ-BQ",
+  "governorate": "YE-HJ",
+  "label_en": "Bani Qais",
+  "label_ar": "بني قيس",
+  "sort": 50
+ },
+ {
+  "code": "YE-HJ-MB",
+  "governorate": "YE-HJ",
+  "label_en": "Mabyan",
+  "label_ar": "مبعان",
+  "sort": 60
+ },
+ {
+  "code": "YE-IB-IB",
+  "governorate": "YE-IB",
+  "label_en": "Ibb",
+  "label_ar": "إب",
+  "sort": 10
+ },
+ {
+  "code": "YE-IB-YR",
+  "governorate": "YE-IB",
+  "label_en": "Yarim",
+  "label_ar": "يريم",
+  "sort": 20
+ },
+ {
+  "code": "YE-IB-JB",
+  "governorate": "YE-IB",
+  "label_en": "Jiblah",
+  "label_ar": "جبلة",
+  "sort": 30
+ },
+ {
+  "code": "YE-IB-QF",
+  "governorate": "YE-IB",
+  "label_en": "al-Qafr",
+  "label_ar": "القفر",
+  "sort": 40
+ },
+ {
+  "code": "YE-IB-RM",
+  "governorate": "YE-IB",
+  "label_en": "al-Radmah",
+  "label_ar": "الردمة",
+  "sort": 50
+ },
+ {
+  "code": "YE-IB-MD",
+  "governorate": "YE-IB",
+  "label_en": "Mudhaykhirah",
+  "label_ar": "مذيخرة",
+  "sort": 60
+ },
+ {
+  "code": "YE-IB-MK",
+  "governorate": "YE-IB",
+  "label_en": "al-Makhadir",
+  "label_ar": "المخادر",
+  "sort": 70
+ },
+ {
+  "code": "YE-IB-HZ",
+  "governorate": "YE-IB",
+  "label_en": "Hazm al-Adin",
+  "label_ar": "حزم العدين",
+  "sort": 80
+ },
+ {
+  "code": "YE-IB-UD",
+  "governorate": "YE-IB",
+  "label_en": "al-Udayn",
+  "label_ar": "العدين",
+  "sort": 90
+ },
+ {
+  "code": "YE-IB-BA",
+  "governorate": "YE-IB",
+  "label_en": "Ba'dan",
+  "label_ar": "بعدان",
+  "sort": 100
+ },
+ {
+  "code": "YE-JA-HZ",
+  "governorate": "YE-JA",
+  "label_en": "al-Hazm",
+  "label_ar": "الحزم",
+  "sort": 10
+ },
+ {
+  "code": "YE-JA-KS",
+  "governorate": "YE-JA",
+  "label_en": "Khab wa al-Sha'af",
+  "label_ar": "خب والشعف",
+  "sort": 20
+ },
+ {
+  "code": "YE-JA-MT",
+  "governorate": "YE-JA",
+  "label_en": "al-Maton",
+  "label_ar": "المتون",
+  "sort": 30
+ },
+ {
+  "code": "YE-JA-RJ",
+  "governorate": "YE-JA",
+  "label_en": "Rajuzah",
+  "label_ar": "رجوزة",
+  "sort": 40
+ },
+ {
+  "code": "YE-LA-HO",
+  "governorate": "YE-LA",
+  "label_en": "al-Houta",
+  "label_ar": "الحطة",
+  "sort": 10
+ },
+ {
+  "code": "YE-LA-RD",
+  "governorate": "YE-LA",
+  "label_en": "Radfan",
+  "label_ar": "ردفان",
+  "sort": 20
+ },
+ {
+  "code": "YE-LA-TB",
+  "governorate": "YE-LA",
+  "label_en": "Tuban",
+  "label_ar": "تبن",
+  "sort": 30
+ },
+ {
+  "code": "YE-LA-MS",
+  "governorate": "YE-LA",
+  "label_en": "al-Musaymir",
+  "label_ar": "المسيمير",
+  "sort": 40
+ },
+ {
+  "code": "YE-LA-MA",
+  "governorate": "YE-LA",
+  "label_en": "al-Madaribah wa al-Arah",
+  "label_ar": "المضاربة والعراه",
+  "sort": 50
+ },
+ {
+  "code": "YE-MR-GH",
+  "governorate": "YE-MR",
+  "label_en": "al-Ghaydah",
+  "label_ar": "الغيضة",
+  "sort": 10
+ },
+ {
+  "code": "YE-MR-SH",
+  "governorate": "YE-MR",
+  "label_en": "Sayhut",
+  "label_ar": "سيحوت",
+  "sort": 20
+ },
+ {
+  "code": "YE-MR-MS",
+  "governorate": "YE-MR",
+  "label_en": "al-Masilah",
+  "label_ar": "المسيلة",
+  "sort": 30
+ },
+ {
+  "code": "YE-MR-HT",
+  "governorate": "YE-MR",
+  "label_en": "Hat",
+  "label_ar": "حات",
+  "sort": 40
+ },
+ {
+  "code": "YE-MW-MW",
+  "governorate": "YE-MW",
+  "label_en": "Mahwit",
+  "label_ar": "المحويت",
+  "sort": 10
+ },
+ {
+  "code": "YE-MW-SK",
+  "governorate": "YE-MW",
+  "label_en": "Shibam Kawkaban",
+  "label_ar": "شبام كوكبان",
+  "sort": 20
+ },
+ {
+  "code": "YE-MW-HF",
+  "governorate": "YE-MW",
+  "label_en": "Hufash",
+  "label_ar": "حوفش",
+  "sort": 30
+ },
+ {
+  "code": "YE-MW-BS",
+  "governorate": "YE-MW",
+  "label_en": "Bani Sa'd",
+  "label_ar": "بني سعد",
+  "sort": 40
+ },
+ {
+  "code": "YE-MA-MB",
+  "governorate": "YE-MA",
+  "label_en": "Marib",
+  "label_ar": "مأرب",
+  "sort": 10
+ },
+ {
+  "code": "YE-MA-JB",
+  "governorate": "YE-MA",
+  "label_en": "al-Jubah",
+  "label_ar": "الجوبة",
+  "sort": 20
+ },
+ {
+  "code": "YE-MA-MD",
+  "governorate": "YE-MA",
+  "label_en": "Medghal",
+  "label_ar": "مدغل",
+  "sort": 30
+ },
+ {
+  "code": "YE-MA-HR",
+  "governorate": "YE-MA",
+  "label_en": "Harib",
+  "label_ar": "حريب",
+  "sort": 40
+ },
+ {
+  "code": "YE-MA-MA",
+  "governorate": "YE-MA",
+  "label_en": "al-Abdiyah",
+  "label_ar": "العبدية",
+  "sort": 50
+ },
+ {
+  "code": "YE-MA-ML",
+  "governorate": "YE-MA",
+  "label_en": "Mahliyah",
+  "label_ar": "مليحة",
+  "sort": 60
+ },
+ {
+  "code": "YE-MA-RG",
+  "governorate": "YE-MA",
+  "label_en": "Raghwan",
+  "label_ar": "رغوان",
+  "sort": 70
+ },
+ {
+  "code": "YE-MA-BB",
+  "governorate": "YE-MA",
+  "label_en": "Bidbadah",
+  "label_ar": "بدبدة",
+  "sort": 80
+ },
+ {
+  "code": "YE-RA-JB",
+  "governorate": "YE-RA",
+  "label_en": "al-Jabin",
+  "label_ar": "الجبين",
+  "sort": 10
+ },
+ {
+  "code": "YE-RA-KS",
+  "governorate": "YE-RA",
+  "label_en": "Kusmah",
+  "label_ar": "كسمة",
+  "sort": 20
+ },
+ {
+  "code": "YE-RA-SL",
+  "governorate": "YE-RA",
+  "label_en": "al-Salafiyah",
+  "label_ar": "السلفية",
+  "sort": 30
+ },
+ {
+  "code": "YE-RA-BT",
+  "governorate": "YE-RA",
+  "label_en": "Bilad al-Ta'am",
+  "label_ar": "بلاد الطعام",
+  "sort": 40
+ },
+ {
+  "code": "YE-SD-SD",
+  "governorate": "YE-SD",
+  "label_en": "Saada",
+  "label_ar": "صعدة",
+  "sort": 10
+ },
+ {
+  "code": "YE-SD-DH",
+  "governorate": "YE-SD",
+  "label_en": "al-Dhaher",
+  "label_ar": "الظاهر",
+  "sort": 20
+ },
+ {
+  "code": "YE-SD-KA",
+  "governorate": "YE-SD",
+  "label_en": "Kitaf wa al-Alab",
+  "label_ar": "كتاف والعلب",
+  "sort": 30
+ },
+ {
+  "code": "YE-SD-MJ",
+  "governorate": "YE-SD",
+  "label_en": "Majz",
+  "label_ar": "مجز",
+  "sort": 40
+ },
+ {
+  "code": "YE-SD-SF",
+  "governorate": "YE-SD",
+  "label_en": "Safra",
+  "label_ar": "صفراء",
+  "sort": 50
+ },
+ {
+  "code": "YE-SD-HT",
+  "governorate": "YE-SD",
+  "label_en": "al-Hashwah",
+  "label_ar": "الحشوة",
+  "sort": 60
+ },
+ {
+  "code": "YE-SA-AR",
+  "governorate": "YE-SA",
+  "label_en": "Arhab",
+  "label_ar": "أرحب",
+  "sort": 10
+ },
+ {
+  "code": "YE-SA-BM",
+  "governorate": "YE-SA",
+  "label_en": "Bani Matar",
+  "label_ar": "بني مطر",
+  "sort": 20
+ },
+ {
+  "code": "YE-SA-BH",
+  "governorate": "YE-SA",
+  "label_en": "Bani Hushaysh",
+  "label_ar": "بني حشيش",
+  "sort": 30
+ },
+ {
+  "code": "YE-SA-SN",
+  "governorate": "YE-SA",
+  "label_en": "Sanhan",
+  "label_ar": "صنعان",
+  "sort": 40
+ },
+ {
+  "code": "YE-SA-JH",
+  "governorate": "YE-SA",
+  "label_en": "Jihanah",
+  "label_ar": "جحانة",
+  "sort": 50
+ },
+ {
+  "code": "YE-SA-KL",
+  "governorate": "YE-SA",
+  "label_en": "Khawlan",
+  "label_ar": "خولان",
+  "sort": 60
+ },
+ {
+  "code": "YE-SA-NH",
+  "governorate": "YE-SA",
+  "label_en": "Nihm",
+  "label_ar": "نهم",
+  "sort": 70
+ },
+ {
+  "code": "YE-SA-HY",
+  "governorate": "YE-SA",
+  "label_en": "al-Haymah",
+  "label_ar": "الحيمة",
+  "sort": 80
+ },
+ {
+  "code": "YE-SN-SA",
+  "governorate": "YE-SN",
+  "label_en": "Sana'a",
+  "label_ar": "صنعاء",
+  "sort": 10
+ },
+ {
+  "code": "YE-SN-SU",
+  "governorate": "YE-SN",
+  "label_en": "Shu'ub",
+  "label_ar": "شعب",
+  "sort": 20
+ },
+ {
+  "code": "YE-SN-MA",
+  "governorate": "YE-SN",
+  "label_en": "Ma'ain",
+  "label_ar": "معين",
+  "sort": 30
+ },
+ {
+  "code": "YE-SN-RD",
+  "governorate": "YE-SN",
+  "label_en": "al-Rawdah",
+  "label_ar": "الروضة",
+  "sort": 40
+ },
+ {
+  "code": "YE-SH-AQ",
+  "governorate": "YE-SH",
+  "label_en": "Ataq",
+  "label_ar": "عتق",
+  "sort": 10
+ },
+ {
+  "code": "YE-SH-BH",
+  "governorate": "YE-SH",
+  "label_en": "Bayhan",
+  "label_ar": "بيحان",
+  "sort": 20
+ },
+ {
+  "code": "YE-SH-AI",
+  "governorate": "YE-SH",
+  "label_en": "Ain",
+  "label_ar": "عين",
+  "sort": 30
+ },
+ {
+  "code": "YE-SH-US",
+  "governorate": "YE-SH",
+  "label_en": "Usaylan",
+  "label_ar": "عسيلان",
+  "sort": 40
+ },
+ {
+  "code": "YE-SH-JD",
+  "governorate": "YE-SH",
+  "label_en": "Jardan",
+  "label_ar": "جردان",
+  "sort": 50
+ },
+ {
+  "code": "YE-SH-HB",
+  "governorate": "YE-SH",
+  "label_en": "Habban",
+  "label_ar": "حبان",
+  "sort": 60
+ },
+ {
+  "code": "YE-SH-MK",
+  "governorate": "YE-SH",
+  "label_en": "Merkhah al-Olya",
+  "label_ar": "مرخة العليا",
+  "sort": 70
+ },
+ {
+  "code": "YE-SU-HB",
+  "governorate": "YE-SU",
+  "label_en": "Hadibo",
+  "label_ar": "حديبو",
+  "sort": 10
+ },
+ {
+  "code": "YE-SU-QA",
+  "governorate": "YE-SU",
+  "label_en": "Qalansiyah",
+  "label_ar": "قلنسية",
+  "sort": 20
+ },
+ {
+  "code": "YE-TA-TA",
+  "governorate": "YE-TA",
+  "label_en": "Taiz",
+  "label_ar": "تعز",
+  "sort": 10
+ },
+ {
+  "code": "YE-TA-MF",
+  "governorate": "YE-TA",
+  "label_en": "al-Maafer",
+  "label_ar": "المعافر",
+  "sort": 20
+ },
+ {
+  "code": "YE-TA-SM",
+  "governorate": "YE-TA",
+  "label_en": "al-Shamayatayn",
+  "label_ar": "الشمايتين",
+  "sort": 30
+ },
+ {
+  "code": "YE-TA-MQ",
+  "governorate": "YE-TA",
+  "label_en": "Maqbanah",
+  "label_ar": "مقبنة",
+  "sort": 40
+ },
+ {
+  "code": "YE-TA-MW",
+  "governorate": "YE-TA",
+  "label_en": "al-Mawasit",
+  "label_ar": "المواسط",
+  "sort": 50
+ },
+ {
+  "code": "YE-TA-JH",
+  "governorate": "YE-TA",
+  "label_en": "Jabal al-Habashi",
+  "label_ar": "الجبل الحبشي",
+  "sort": 60
+ },
+ {
+  "code": "YE-TA-SL",
+  "governorate": "YE-TA",
+  "label_en": "al-Silw",
+  "label_ar": "الصلو",
+  "sort": 70
+ },
+ {
+  "code": "YE-TA-WA",
+  "governorate": "YE-TA",
+  "label_en": "al-Wazi'iyah",
+  "label_ar": "الوزاعية",
+  "sort": 80
+ },
+ {
+  "code": "YE-HU-HD",
+  "governorate": "YE-HU",
+  "label_en": "al-Hudaydah",
+  "label_ar": "الحديدة",
+  "sort": 10
+ },
+ {
+  "code": "YE-HU-BJ",
+  "governorate": "YE-HU",
+  "label_en": "Bajil",
+  "label_ar": "بجيل",
+  "sort": 20
+ },
+ {
+  "code": "YE-HU-DR",
+  "governorate": "YE-HU",
+  "label_en": "al-Durayhimi",
+  "label_ar": "الدريهمي",
+  "sort": 30
+ },
+ {
+  "code": "YE-HU-ZB",
+  "governorate": "YE-HU",
+  "label_en": "Zabid",
+  "label_ar": "زبيد",
+  "sort": 40
+ },
+ {
+  "code": "YE-HU-TU",
+  "governorate": "YE-HU",
+  "label_en": "al-Tuhaytah",
+  "label_ar": "التحيتة",
+  "sort": 50
+ },
+ {
+  "code": "YE-HU-KK",
+  "governorate": "YE-HU",
+  "label_en": "al-Khawkhah",
+  "label_ar": "الخوخة",
+  "sort": 60
+ },
+ {
+  "code": "YE-HU-LY",
+  "governorate": "YE-HU",
+  "label_en": "al-Luhayyah",
+  "label_ar": "اللحية",
+  "sort": 70
+ },
+ {
+  "code": "YE-HU-QN",
+  "governorate": "YE-HU",
+  "label_en": "al-Qanawis",
+  "label_ar": "القنابس",
+  "sort": 80
+ },
+ {
+  "code": "YE-HU-BF",
+  "governorate": "YE-HU",
+  "label_en": "Bayt al-Faqih",
+  "label_ar": "بيت الفقيه",
+  "sort": 90
+ },
+ {
+  "code": "YE-HU-HY",
+  "governorate": "YE-HU",
+  "label_en": "Hays",
+  "label_ar": "حيس",
+  "sort": 100
+ },
+ {
+  "code": "YE-HU-MA",
+  "governorate": "YE-HU",
+  "label_en": "al-Marawi'ah",
+  "label_ar": "المرابية",
+  "sort": 110
+ },
+ {
+  "code": "LY-TB-TR",
+  "governorate": "LY-TB",
+  "label_en": "Tripoli",
+  "label_ar": "طرابلس",
+  "sort": 10
+ },
+ {
+  "code": "LY-TB-TJ",
+  "governorate": "LY-TB",
+  "label_en": "Tajoura",
+  "label_ar": "تاجورا",
+  "sort": 20
+ },
+ {
+  "code": "LY-TB-SK",
+  "governorate": "LY-TB",
+  "label_en": "Suq al-Khamis",
+  "label_ar": "سوق الخميس",
+  "sort": 30
+ },
+ {
+  "code": "LY-JI-AZ",
+  "governorate": "LY-JI",
+  "label_en": "al-Aziziyah",
+  "label_ar": "العزيزية",
+  "sort": 10
+ },
+ {
+  "code": "LY-JI-JM",
+  "governorate": "LY-JI",
+  "label_en": "al-Jumail",
+  "label_ar": "الجميل",
+  "sort": 20
+ },
+ {
+  "code": "LY-ZA-ZW",
+  "governorate": "LY-ZA",
+  "label_en": "Zawiya",
+  "label_ar": "زاوية",
+  "sort": 10
+ },
+ {
+  "code": "LY-ZA-RM",
+  "governorate": "LY-ZA",
+  "label_en": "Riqdalin",
+  "label_ar": "رقدالين",
+  "sort": 20
+ },
+ {
+  "code": "LY-MB-ZL",
+  "governorate": "LY-MB",
+  "label_en": "Zliten",
+  "label_ar": "زليتن",
+  "sort": 10
+ },
+ {
+  "code": "LY-MB-KH",
+  "governorate": "LY-MB",
+  "label_en": "al-Khums",
+  "label_ar": "الخمس",
+  "sort": 20
+ },
+ {
+  "code": "LY-MB-TH",
+  "governorate": "LY-MB",
+  "label_en": "Tarhunah",
+  "label_ar": "ترهونة",
+  "sort": 30
+ },
+ {
+  "code": "LY-MB-MS",
+  "governorate": "LY-MB",
+  "label_en": "Msallata",
+  "label_ar": "مسلاتة",
+  "sort": 40
+ },
+ {
+  "code": "LY-MI-MI",
+  "governorate": "LY-MI",
+  "label_en": "Misrata",
+  "label_ar": "مصراتة",
+  "sort": 10
+ },
+ {
+  "code": "LY-BA-BG",
+  "governorate": "LY-BA",
+  "label_en": "Benghazi",
+  "label_ar": "بنغازي",
+  "sort": 10
+ },
+ {
+  "code": "LY-BA-SQ",
+  "governorate": "LY-BA",
+  "label_en": "Suluq",
+  "label_ar": "سلوق",
+  "sort": 20
+ },
+ {
+  "code": "LY-JA-BD",
+  "governorate": "LY-JA",
+  "label_en": "al-Bayda",
+  "label_ar": "البيضاء",
+  "sort": 10
+ },
+ {
+  "code": "LY-JA-SH",
+  "governorate": "LY-JA",
+  "label_en": "Shahhat",
+  "label_ar": "شحات",
+  "sort": 20
+ },
+ {
+  "code": "LY-JA-QY",
+  "governorate": "LY-JA",
+  "label_en": "al-Qubah",
+  "label_ar": "القبة",
+  "sort": 30
+ },
+ {
+  "code": "LY-JA-AB",
+  "governorate": "LY-JA",
+  "label_en": "al-Abyar",
+  "label_ar": "الأبيار",
+  "sort": 40
+ },
+ {
+  "code": "LY-MJ-MJ",
+  "governorate": "LY-MJ",
+  "label_en": "al-Marj",
+  "label_ar": "المرج",
+  "sort": 10
+ },
+ {
+  "code": "LY-DR-DR",
+  "governorate": "LY-DR",
+  "label_en": "Derna",
+  "label_ar": "درنة",
+  "sort": 10
+ },
+ {
+  "code": "LY-DR-RH",
+  "governorate": "LY-DR",
+  "label_en": "Ras al-Hilal",
+  "label_ar": "رأس الهلال",
+  "sort": 20
+ },
+ {
+  "code": "LY-BU-TB",
+  "governorate": "LY-BU",
+  "label_en": "Tobruk",
+  "label_ar": "طبرق",
+  "sort": 10
+ },
+ {
+  "code": "LY-BU-BR",
+  "governorate": "LY-BU",
+  "label_en": "Bardia",
+  "label_ar": "بردية",
+  "sort": 20
+ },
+ {
+  "code": "LY-BU-MS",
+  "governorate": "LY-BU",
+  "label_en": "al-Musaid",
+  "label_ar": "المساعد",
+  "sort": 30
+ },
+ {
+  "code": "LY-SR-SR",
+  "governorate": "LY-SR",
+  "label_en": "Sirte",
+  "label_ar": "سرت",
+  "sort": 10
+ },
+ {
+  "code": "LY-SR-NW",
+  "governorate": "LY-SR",
+  "label_en": "al-Nawfaliyah",
+  "label_ar": "النوفلية",
+  "sort": 20
+ },
+ {
+  "code": "LY-JU-HN",
+  "governorate": "LY-JU",
+  "label_en": "Hun",
+  "label_ar": "هون",
+  "sort": 10
+ },
+ {
+  "code": "LY-JU-WD",
+  "governorate": "LY-JU",
+  "label_en": "Waddan",
+  "label_ar": "ودان",
+  "sort": 20
+ },
+ {
+  "code": "LY-KF-KF",
+  "governorate": "LY-KF",
+  "label_en": "al-Kufra",
+  "label_ar": "الكفرة",
+  "sort": 10
+ },
+ {
+  "code": "LY-KF-TZ",
+  "governorate": "LY-KF",
+  "label_en": "Tazirbu",
+  "label_ar": "تازربو",
+  "sort": 20
+ },
+ {
+  "code": "LY-SB-SB",
+  "governorate": "LY-SB",
+  "label_en": "Sabha",
+  "label_ar": "سبها",
+  "sort": 10
+ },
+ {
+  "code": "LY-SB-SM",
+  "governorate": "LY-SB",
+  "label_en": "Samnu",
+  "label_ar": "سمنو",
+  "sort": 20
+ },
+ {
+  "code": "LY-WS-BR",
+  "governorate": "LY-WS",
+  "label_en": "Brak",
+  "label_ar": "براك",
+  "sort": 10
+ },
+ {
+  "code": "LY-WS-ST",
+  "governorate": "LY-WS",
+  "label_en": "al-Shati",
+  "label_ar": "الشاطئ",
+  "sort": 20
+ },
+ {
+  "code": "LY-WD-UB",
+  "governorate": "LY-WD",
+  "label_en": "Ubari",
+  "label_ar": "أوباري",
+  "sort": 10
+ },
+ {
+  "code": "LY-MQ-MQ",
+  "governorate": "LY-MQ",
+  "label_en": "Murzuq",
+  "label_ar": "مرزوق",
+  "sort": 10
+ },
+ {
+  "code": "LY-MQ-QT",
+  "governorate": "LY-MQ",
+  "label_en": "Qatrun",
+  "label_ar": "قطران",
+  "sort": 20
+ },
+ {
+  "code": "LY-GT-GT",
+  "governorate": "LY-GT",
+  "label_en": "Ghat",
+  "label_ar": "غات",
+  "sort": 10
+ },
+ {
+  "code": "LY-GT-BK",
+  "governorate": "LY-GT",
+  "label_en": "al-Barkat",
+  "label_ar": "البركت",
+  "sort": 20
+ },
+ {
+  "code": "LY-NL-NL",
+  "governorate": "LY-NL",
+  "label_en": "Nalut",
+  "label_ar": "نالوت",
+  "sort": 10
+ },
+ {
+  "code": "LY-NL-JD",
+  "governorate": "LY-NL",
+  "label_en": "Jadu",
+  "label_ar": "جادو",
+  "sort": 20
+ },
+ {
+  "code": "LY-NL-WZ",
+  "governorate": "LY-NL",
+  "label_en": "Wazzin",
+  "label_ar": "الوزن",
+  "sort": 30
+ },
+ {
+  "code": "LY-NQ-ZW",
+  "governorate": "LY-NQ",
+  "label_en": "Zuwara",
+  "label_ar": "زوارة",
+  "sort": 10
+ },
+ {
+  "code": "LY-NQ-SB",
+  "governorate": "LY-NQ",
+  "label_en": "Sabratha",
+  "label_ar": "صبراتة",
+  "sort": 20
+ },
+ {
+  "code": "LY-NQ-SR",
+  "governorate": "LY-NQ",
+  "label_en": "Sorman",
+  "label_ar": "صرمان",
+  "sort": 30
+ },
+ {
+  "code": "LY-NQ-AJ",
+  "governorate": "LY-NQ",
+  "label_en": "al-Ajaylat",
+  "label_ar": "العجيلات",
+  "sort": 40
+ },
+ {
+  "code": "LY-WA-JA",
+  "governorate": "LY-WA",
+  "label_en": "Jalu",
+  "label_ar": "جالو",
+  "sort": 10
+ },
+ {
+  "code": "LY-WA-AW",
+  "governorate": "LY-WA",
+  "label_en": "Awjila",
+  "label_ar": "أوجيلة",
+  "sort": 20
+ },
+ {
+  "code": "LY-JG-GH",
+  "governorate": "LY-JG",
+  "label_en": "Gharyan",
+  "label_ar": "غريان",
+  "sort": 10
+ },
+ {
+  "code": "LY-JG-YF",
+  "governorate": "LY-JG",
+  "label_en": "Yafran",
+  "label_ar": "يفرن",
+  "sort": 20
+ },
+ {
+  "code": "LY-JG-KB",
+  "governorate": "LY-JG",
+  "label_en": "Kabaw",
+  "label_ar": "كابو",
+  "sort": 30
+ },
+ {
+  "code": "LY-JG-RJ",
+  "governorate": "LY-JG",
+  "label_en": "Rujban",
+  "label_ar": "الرجبان",
+  "sort": 40
+ },
+ {
+  "code": "LY-MI-TK",
+  "governorate": "LY-MI",
+  "label_en": "Tawurgha",
+  "label_ar": "تاورغاء",
+  "sort": 20
+ },
+ {
+  "code": "YE-AM-HB",
+  "governorate": "YE-AM",
+  "label_en": "Habur",
+  "label_ar": "حبور",
+  "sort": 70
+ },
+ {
+  "code": "TN-11-TU",
+  "governorate": "TN-11",
+  "label_en": "Tunis",
+  "label_ar": "تونس",
+  "sort": 10
+ },
+ {
+  "code": "TN-11-BB",
+  "governorate": "TN-11",
+  "label_en": "Bab Bhar",
+  "label_ar": "باب البحر",
+  "sort": 20
+ },
+ {
+  "code": "TN-11-BS",
+  "governorate": "TN-11",
+  "label_en": "Bab Souika",
+  "label_ar": "باب سويقة",
+  "sort": 30
+ },
+ {
+  "code": "TN-11-MD",
+  "governorate": "TN-11",
+  "label_en": "Médina",
+  "label_ar": "المدينة",
+  "sort": 40
+ },
+ {
+  "code": "TN-11-OM",
+  "governorate": "TN-11",
+  "label_en": "El Omrane",
+  "label_ar": "العمران",
+  "sort": 50
+ },
+ {
+  "code": "TN-11-MZ",
+  "governorate": "TN-11",
+  "label_en": "El Menzah",
+  "label_ar": "المنزه",
+  "sort": 60
+ },
+ {
+  "code": "TN-12-AR",
+  "governorate": "TN-12",
+  "label_en": "Ariana",
+  "label_ar": "أريانة",
+  "sort": 10
+ },
+ {
+  "code": "TN-12-KA",
+  "governorate": "TN-12",
+  "label_en": "Kalâat el-Andalous",
+  "label_ar": "قلعة الأندلس",
+  "sort": 20
+ },
+ {
+  "code": "TN-12-ST",
+  "governorate": "TN-12",
+  "label_en": "Sidi Thabet",
+  "label_ar": "سيدي ثابت",
+  "sort": 30
+ },
+ {
+  "code": "TN-12-RD",
+  "governorate": "TN-12",
+  "label_en": "Raoued",
+  "label_ar": "رواد",
+  "sort": 40
+ },
+ {
+  "code": "TN-13-BN",
+  "governorate": "TN-13",
+  "label_en": "Ben Arous",
+  "label_ar": "بن عروس",
+  "sort": 10
+ },
+ {
+  "code": "TN-13-HL",
+  "governorate": "TN-13",
+  "label_en": "Hammam Lif",
+  "label_ar": "حمام الأنف",
+  "sort": 20
+ },
+ {
+  "code": "TN-13-RA",
+  "governorate": "TN-13",
+  "label_en": "Radès",
+  "label_ar": "رادس",
+  "sort": 30
+ },
+ {
+  "code": "TN-13-MG",
+  "governorate": "TN-13",
+  "label_en": "Mégrine",
+  "label_ar": "المقرين",
+  "sort": 40
+ },
+ {
+  "code": "TN-13-FS",
+  "governorate": "TN-13",
+  "label_en": "Fouchana",
+  "label_ar": "فوشانة",
+  "sort": 50
+ },
+ {
+  "code": "TN-14-MA",
+  "governorate": "TN-14",
+  "label_en": "Manouba",
+  "label_ar": "منوبة",
+  "sort": 10
+ },
+ {
+  "code": "TN-14-DH",
+  "governorate": "TN-14",
+  "label_en": "Douar Hicher",
+  "label_ar": "دوار هيشر",
+  "sort": 20
+ },
+ {
+  "code": "TN-14-TB",
+  "governorate": "TN-14",
+  "label_en": "Tebourba",
+  "label_ar": "طبربة",
+  "sort": 30
+ },
+ {
+  "code": "TN-14-OE",
+  "governorate": "TN-14",
+  "label_en": "Oued Ellil",
+  "label_ar": "وادي الليل",
+  "sort": 40
+ },
+ {
+  "code": "TN-21-NA",
+  "governorate": "TN-21",
+  "label_en": "Nabeul",
+  "label_ar": "نابل",
+  "sort": 10
+ },
+ {
+  "code": "TN-21-HA",
+  "governorate": "TN-21",
+  "label_en": "Hammamet",
+  "label_ar": "الحمامات",
+  "sort": 20
+ },
+ {
+  "code": "TN-21-GR",
+  "governorate": "TN-21",
+  "label_en": "Grombalia",
+  "label_ar": "قرمبالية",
+  "sort": 30
+ },
+ {
+  "code": "TN-21-SL",
+  "governorate": "TN-21",
+  "label_en": "Soliman",
+  "label_ar": "سليمان",
+  "sort": 40
+ },
+ {
+  "code": "TN-21-KB",
+  "governorate": "TN-21",
+  "label_en": "Korba",
+  "label_ar": "قربة",
+  "sort": 50
+ },
+ {
+  "code": "TN-21-MT",
+  "governorate": "TN-21",
+  "label_en": "Menzel Temime",
+  "label_ar": "منزل تميم",
+  "sort": 60
+ },
+ {
+  "code": "TN-22-ZA",
+  "governorate": "TN-22",
+  "label_en": "Zaghouan",
+  "label_ar": "زغوان",
+  "sort": 10
+ },
+ {
+  "code": "TN-22-ZB",
+  "governorate": "TN-22",
+  "label_en": "Zriba",
+  "label_ar": "الزريبة",
+  "sort": 20
+ },
+ {
+  "code": "TN-22-FH",
+  "governorate": "TN-22",
+  "label_en": "Fahs",
+  "label_ar": "الفحص",
+  "sort": 30
+ },
+ {
+  "code": "TN-22-ND",
+  "governorate": "TN-22",
+  "label_en": "Nadhour",
+  "label_ar": "الناظور",
+  "sort": 40
+ },
+ {
+  "code": "TN-23-BZ",
+  "governorate": "TN-23",
+  "label_en": "Bizerte",
+  "label_ar": "بنزرت",
+  "sort": 10
+ },
+ {
+  "code": "TN-23-MB",
+  "governorate": "TN-23",
+  "label_en": "Menzel Bourguiba",
+  "label_ar": "منزل بورقيبة",
+  "sort": 20
+ },
+ {
+  "code": "TN-23-MA",
+  "governorate": "TN-23",
+  "label_en": "Mateur",
+  "label_ar": "ماطر",
+  "sort": 30
+ },
+ {
+  "code": "TN-23-RJ",
+  "governorate": "TN-23",
+  "label_en": "Ras Jebel",
+  "label_ar": "رأس الجبل",
+  "sort": 40
+ },
+ {
+  "code": "TN-23-GM",
+  "governorate": "TN-23",
+  "label_en": "Ghar El Melh",
+  "label_ar": "غار الملح",
+  "sort": 50
+ },
+ {
+  "code": "TN-31-BJ",
+  "governorate": "TN-31",
+  "label_en": "Béja",
+  "label_ar": "باجة",
+  "sort": 10
+ },
+ {
+  "code": "TN-31-NF",
+  "governorate": "TN-31",
+  "label_en": "Nefza",
+  "label_ar": "نفزة",
+  "sort": 20
+ },
+ {
+  "code": "TN-31-MB",
+  "governorate": "TN-31",
+  "label_en": "Medjez El Bab",
+  "label_ar": "مجاز الباب",
+  "sort": 30
+ },
+ {
+  "code": "TN-31-AM",
+  "governorate": "TN-31",
+  "label_en": "Amdoun",
+  "label_ar": "عمدون",
+  "sort": 40
+ },
+ {
+  "code": "TN-32-JD",
+  "governorate": "TN-32",
+  "label_en": "Jendouba",
+  "label_ar": "جندوبة",
+  "sort": 10
+ },
+ {
+  "code": "TN-32-AD",
+  "governorate": "TN-32",
+  "label_en": "Aïn Draham",
+  "label_ar": "عين دراهم",
+  "sort": 20
+ },
+ {
+  "code": "TN-32-GH",
+  "governorate": "TN-32",
+  "label_en": "Ghardimaou",
+  "label_ar": "غار الدماء",
+  "sort": 30
+ },
+ {
+  "code": "TN-32-TB",
+  "governorate": "TN-32",
+  "label_en": "Tabarka",
+  "label_ar": "طبرقة",
+  "sort": 40
+ },
+ {
+  "code": "TN-32-BS",
+  "governorate": "TN-32",
+  "label_en": "Bou Salem",
+  "label_ar": "بوسالم",
+  "sort": 50
+ },
+ {
+  "code": "TN-33-KF",
+  "governorate": "TN-33",
+  "label_en": "Le Kef",
+  "label_ar": "الكاف",
+  "sort": 10
+ },
+ {
+  "code": "TN-33-DH",
+  "governorate": "TN-33",
+  "label_en": "Dahmani",
+  "label_ar": "الدهماني",
+  "sort": 20
+ },
+ {
+  "code": "TN-33-TJ",
+  "governorate": "TN-33",
+  "label_en": "Tajerouine",
+  "label_ar": "تاجروين",
+  "sort": 30
+ },
+ {
+  "code": "TN-33-SK",
+  "governorate": "TN-33",
+  "label_en": "Sakiet Sidi Youssef",
+  "label_ar": "ساقية سيدي يوسف",
+  "sort": 40
+ },
+ {
+  "code": "TN-34-SL",
+  "governorate": "TN-34",
+  "label_en": "Siliana",
+  "label_ar": "سليانة",
+  "sort": 10
+ },
+ {
+  "code": "TN-34-KR",
+  "governorate": "TN-34",
+  "label_en": "El Krib",
+  "label_ar": "الكريب",
+  "sort": 20
+ },
+ {
+  "code": "TN-34-RH",
+  "governorate": "TN-34",
+  "label_en": "Rouhia",
+  "label_ar": "الروحية",
+  "sort": 30
+ },
+ {
+  "code": "TN-34-BR",
+  "governorate": "TN-34",
+  "label_en": "Bargou",
+  "label_ar": "برقو",
+  "sort": 40
+ },
+ {
+  "code": "TN-41-KR",
+  "governorate": "TN-41",
+  "label_en": "Kairouan",
+  "label_ar": "القيروان",
+  "sort": 10
+ },
+ {
+  "code": "TN-41-SB",
+  "governorate": "TN-41",
+  "label_en": "Sbikha",
+  "label_ar": "سبيخة",
+  "sort": 20
+ },
+ {
+  "code": "TN-41-HF",
+  "governorate": "TN-41",
+  "label_en": "Haffouz",
+  "label_ar": "حفوز",
+  "sort": 30
+ },
+ {
+  "code": "TN-41-NS",
+  "governorate": "TN-41",
+  "label_en": "Nasrallah",
+  "label_ar": "نصرالله",
+  "sort": 40
+ },
+ {
+  "code": "TN-42-KS",
+  "governorate": "TN-42",
+  "label_en": "Kasserine",
+  "label_ar": "القصرين",
+  "sort": 10
+ },
+ {
+  "code": "TN-42-SB",
+  "governorate": "TN-42",
+  "label_en": "Sbeitla",
+  "label_ar": "سبيطلة",
+  "sort": 20
+ },
+ {
+  "code": "TN-42-FR",
+  "governorate": "TN-42",
+  "label_en": "Fériana",
+  "label_ar": "فريانة",
+  "sort": 30
+ },
+ {
+  "code": "TN-42-TH",
+  "governorate": "TN-42",
+  "label_en": "Thala",
+  "label_ar": "طالة",
+  "sort": 40
+ },
+ {
+  "code": "TN-42-JD",
+  "governorate": "TN-42",
+  "label_en": "Jedelienne",
+  "label_ar": "جديليانة",
+  "sort": 50
+ },
+ {
+  "code": "TN-43-SB",
+  "governorate": "TN-43",
+  "label_en": "Sidi Bouzid",
+  "label_ar": "سيدي بوزيد",
+  "sort": 10
+ },
+ {
+  "code": "TN-43-JM",
+  "governorate": "TN-43",
+  "label_en": "Jelma",
+  "label_ar": "جلمة",
+  "sort": 20
+ },
+ {
+  "code": "TN-43-RG",
+  "governorate": "TN-43",
+  "label_en": "Regueb",
+  "label_ar": "الرقاب",
+  "sort": 30
+ },
+ {
+  "code": "TN-43-MK",
+  "governorate": "TN-43",
+  "label_en": "Meknassy",
+  "label_ar": "المكناسي",
+  "sort": 40
+ },
+ {
+  "code": "TN-43-SA",
+  "governorate": "TN-43",
+  "label_en": "Sidi Ali Ben Aoun",
+  "label_ar": "سيدي علي بن عون",
+  "sort": 50
+ },
+ {
+  "code": "TN-51-SU",
+  "governorate": "TN-51",
+  "label_en": "Sousse",
+  "label_ar": "سوسة",
+  "sort": 10
+ },
+ {
+  "code": "TN-51-KM",
+  "governorate": "TN-51",
+  "label_en": "Ksibet el-Médiouni",
+  "label_ar": "القصيبة المديوني",
+  "sort": 20
+ },
+ {
+  "code": "TN-51-AK",
+  "governorate": "TN-51",
+  "label_en": "Akouda",
+  "label_ar": "أكودة",
+  "sort": 30
+ },
+ {
+  "code": "TN-51-SA",
+  "governorate": "TN-51",
+  "label_en": "Sidi Bou Ali",
+  "label_ar": "سيدي بو علي",
+  "sort": 40
+ },
+ {
+  "code": "TN-51-HR",
+  "governorate": "TN-51",
+  "label_en": "Hergla",
+  "label_ar": "هرقلة",
+  "sort": 50
+ },
+ {
+  "code": "TN-51-KK",
+  "governorate": "TN-51",
+  "label_en": "Kalaa Kebira",
+  "label_ar": "القلعة الكبرى",
+  "sort": 60
+ },
+ {
+  "code": "TN-52-MS",
+  "governorate": "TN-52",
+  "label_en": "Monastir",
+  "label_ar": "المنستير",
+  "sort": 10
+ },
+ {
+  "code": "TN-52-JM",
+  "governorate": "TN-52",
+  "label_en": "Jemmal",
+  "label_ar": "جمال",
+  "sort": 20
+ },
+ {
+  "code": "TN-52-KH",
+  "governorate": "TN-52",
+  "label_en": "Ksar Hellal",
+  "label_ar": "قصر هلال",
+  "sort": 30
+ },
+ {
+  "code": "TN-52-TB",
+  "governorate": "TN-52",
+  "label_en": "Téboulba",
+  "label_ar": "طبلبة",
+  "sort": 40
+ },
+ {
+  "code": "TN-52-BK",
+  "governorate": "TN-52",
+  "label_en": "Bekalta",
+  "label_ar": "بكالتة",
+  "sort": 50
+ },
+ {
+  "code": "TN-53-MH",
+  "governorate": "TN-53",
+  "label_en": "Mahdia",
+  "label_ar": "المهدية",
+  "sort": 10
+ },
+ {
+  "code": "TN-53-KS",
+  "governorate": "TN-53",
+  "label_en": "Ksour Essef",
+  "label_ar": "القصور الساف",
+  "sort": 20
+ },
+ {
+  "code": "TN-53-CH",
+  "governorate": "TN-53",
+  "label_en": "Chebba",
+  "label_ar": "الشابة",
+  "sort": 30
+ },
+ {
+  "code": "TN-53-SS",
+  "governorate": "TN-53",
+  "label_en": "Souassi",
+  "label_ar": "السواسي",
+  "sort": 40
+ },
+ {
+  "code": "TN-53-EJ",
+  "governorate": "TN-53",
+  "label_en": "El Jem",
+  "label_ar": "الجم",
+  "sort": 50
+ },
+ {
+  "code": "TN-61-SF",
+  "governorate": "TN-61",
+  "label_en": "Sfax",
+  "label_ar": "صفاقس",
+  "sort": 10
+ },
+ {
+  "code": "TN-61-SZ",
+  "governorate": "TN-61",
+  "label_en": "Sakiet Ezzit",
+  "label_ar": "ساقية الزيت",
+  "sort": 20
+ },
+ {
+  "code": "TN-61-AG",
+  "governorate": "TN-61",
+  "label_en": "Agareb",
+  "label_ar": "العقارب",
+  "sort": 30
+ },
+ {
+  "code": "TN-61-JE",
+  "governorate": "TN-61",
+  "label_en": "Jebiniana",
+  "label_ar": "جبنيانة",
+  "sort": 40
+ },
+ {
+  "code": "TN-61-MH",
+  "governorate": "TN-61",
+  "label_en": "Mahrès",
+  "label_ar": "المحرس",
+  "sort": 50
+ },
+ {
+  "code": "TN-61-KR",
+  "governorate": "TN-61",
+  "label_en": "Kerkennah",
+  "label_ar": "قرقنة",
+  "sort": 60
+ },
+ {
+  "code": "TN-71-GF",
+  "governorate": "TN-71",
+  "label_en": "Gafsa",
+  "label_ar": "قفصة",
+  "sort": 10
+ },
+ {
+  "code": "TN-71-MT",
+  "governorate": "TN-71",
+  "label_en": "Métlaoui",
+  "label_ar": "المتلوي",
+  "sort": 20
+ },
+ {
+  "code": "TN-71-KS",
+  "governorate": "TN-71",
+  "label_en": "Ksar",
+  "label_ar": "القصر",
+  "sort": 30
+ },
+ {
+  "code": "TN-71-SD",
+  "governorate": "TN-71",
+  "label_en": "Sened",
+  "label_ar": "السناد",
+  "sort": 40
+ },
+ {
+  "code": "TN-71-RD",
+  "governorate": "TN-71",
+  "label_en": "Redeyef",
+  "label_ar": "الرديف",
+  "sort": 50
+ },
+ {
+  "code": "TN-72-TZ",
+  "governorate": "TN-72",
+  "label_en": "Tozeur",
+  "label_ar": "توزر",
+  "sort": 10
+ },
+ {
+  "code": "TN-72-NF",
+  "governorate": "TN-72",
+  "label_en": "Nefta",
+  "label_ar": "نفطة",
+  "sort": 20
+ },
+ {
+  "code": "TN-72-HZ",
+  "governorate": "TN-72",
+  "label_en": "Hazoua",
+  "label_ar": "حزوة",
+  "sort": 30
+ },
+ {
+  "code": "TN-72-TM",
+  "governorate": "TN-72",
+  "label_en": "Tamerza",
+  "label_ar": "تمغزة",
+  "sort": 40
+ },
+ {
+  "code": "TN-73-KB",
+  "governorate": "TN-73",
+  "label_en": "Kébili",
+  "label_ar": "قبيلي",
+  "sort": 10
+ },
+ {
+  "code": "TN-73-DZ",
+  "governorate": "TN-73",
+  "label_en": "Douz",
+  "label_ar": "دوز",
+  "sort": 20
+ },
+ {
+  "code": "TN-73-SL",
+  "governorate": "TN-73",
+  "label_en": "Souk Lahad",
+  "label_ar": "سوق الأحد",
+  "sort": 30
+ },
+ {
+  "code": "TN-73-EG",
+  "governorate": "TN-73",
+  "label_en": "El Golâa",
+  "label_ar": "القلعة",
+  "sort": 40
+ },
+ {
+  "code": "TN-81-GB",
+  "governorate": "TN-81",
+  "label_en": "Gabès",
+  "label_ar": "قابس",
+  "sort": 10
+ },
+ {
+  "code": "TN-81-MR",
+  "governorate": "TN-81",
+  "label_en": "Mareth",
+  "label_ar": "مارث",
+  "sort": 20
+ },
+ {
+  "code": "TN-81-MT",
+  "governorate": "TN-81",
+  "label_en": "Matmata",
+  "label_ar": "مطماطة",
+  "sort": 30
+ },
+ {
+  "code": "TN-81-GH",
+  "governorate": "TN-81",
+  "label_en": "Ghannouch",
+  "label_ar": "غنوش",
+  "sort": 40
+ },
+ {
+  "code": "TN-81-MB",
+  "governorate": "TN-81",
+  "label_en": "Menzel Habib",
+  "label_ar": "منزل حبيب",
+  "sort": 50
+ },
+ {
+  "code": "TN-82-MD",
+  "governorate": "TN-82",
+  "label_en": "Médenine",
+  "label_ar": "مدنين",
+  "sort": 10
+ },
+ {
+  "code": "TN-82-ZS",
+  "governorate": "TN-82",
+  "label_en": "Zarzis",
+  "label_ar": "جرجيس",
+  "sort": 20
+ },
+ {
+  "code": "TN-82-BG",
+  "governorate": "TN-82",
+  "label_en": "Ben Gardane",
+  "label_ar": "بن قردان",
+  "sort": 30
+ },
+ {
+  "code": "TN-82-HS",
+  "governorate": "TN-82",
+  "label_en": "Houmt Souk",
+  "label_ar": "حومة السوق",
+  "sort": 40
+ },
+ {
+  "code": "TN-82-MDN",
+  "governorate": "TN-82",
+  "label_en": "Midoun",
+  "label_ar": "ميدون",
+  "sort": 50
+ },
+ {
+  "code": "TN-83-TT",
+  "governorate": "TN-83",
+  "label_en": "Tataouine",
+  "label_ar": "تطاوين",
+  "sort": 10
+ },
+ {
+  "code": "TN-83-GH",
+  "governorate": "TN-83",
+  "label_en": "Ghomrassen",
+  "label_ar": "غمرسن",
+  "sort": 20
+ },
+ {
+  "code": "TN-83-SM",
+  "governorate": "TN-83",
+  "label_en": "Smar",
+  "label_ar": "الصمار",
+  "sort": 30
+ },
+ {
+  "code": "TN-83-RM",
+  "governorate": "TN-83",
+  "label_en": "Remada",
+  "label_ar": "رمادة",
+  "sort": 40
+ },
+ {
+  "code": "DZ-05-BT",
+  "governorate": "DZ-05",
+  "label_en": "Batna",
+  "label_ar": "باتنة",
+  "sort": 10
+ },
+ {
+  "code": "DZ-05-BK",
+  "governorate": "DZ-05",
+  "label_en": "Barika",
+  "label_ar": "بريكة",
+  "sort": 20
+ },
+ {
+  "code": "DZ-05-MR",
+  "governorate": "DZ-05",
+  "label_en": "Merouana",
+  "label_ar": "مروانة",
+  "sort": 30
+ },
+ {
+  "code": "DZ-05-AT",
+  "governorate": "DZ-05",
+  "label_en": "Aïn Touta",
+  "label_ar": "عين التوتة",
+  "sort": 40
+ },
+ {
+  "code": "DZ-05-NG",
+  "governorate": "DZ-05",
+  "label_en": "N'Gaous",
+  "label_ar": "نقاوس",
+  "sort": 50
+ },
+ {
+  "code": "DZ-06-BJ",
+  "governorate": "DZ-06",
+  "label_en": "Béjaïa",
+  "label_ar": "بجاية",
+  "sort": 10
+ },
+ {
+  "code": "DZ-06-AK",
+  "governorate": "DZ-06",
+  "label_en": "Akbou",
+  "label_ar": "أقبو",
+  "sort": 20
+ },
+ {
+  "code": "DZ-06-KH",
+  "governorate": "DZ-06",
+  "label_en": "Kherrata",
+  "label_ar": "خراطة",
+  "sort": 30
+ },
+ {
+  "code": "DZ-06-SA",
+  "governorate": "DZ-06",
+  "label_en": "Sidi Aïch",
+  "label_ar": "سيدي عيش",
+  "sort": 40
+ },
+ {
+  "code": "DZ-06-EK",
+  "governorate": "DZ-06",
+  "label_en": "El Kseur",
+  "label_ar": "القصر",
+  "sort": 50
+ },
+ {
+  "code": "DZ-08-BC",
+  "governorate": "DZ-08",
+  "label_en": "Béchar",
+  "label_ar": "بشار",
+  "sort": 10
+ },
+ {
+  "code": "DZ-08-KN",
+  "governorate": "DZ-08",
+  "label_en": "Kenadsa",
+  "label_ar": "القنادسة",
+  "sort": 20
+ },
+ {
+  "code": "DZ-08-TG",
+  "governorate": "DZ-08",
+  "label_en": "Taghit",
+  "label_ar": "تاغيت",
+  "sort": 30
+ },
+ {
+  "code": "DZ-12-TB",
+  "governorate": "DZ-12",
+  "label_en": "Tébessa",
+  "label_ar": "تبسة",
+  "sort": 10
+ },
+ {
+  "code": "DZ-12-CH",
+  "governorate": "DZ-12",
+  "label_en": "Cheria",
+  "label_ar": "الشريعة",
+  "sort": 20
+ },
+ {
+  "code": "DZ-12-BA",
+  "governorate": "DZ-12",
+  "label_en": "Bir El Ater",
+  "label_ar": "بئر العاتر",
+  "sort": 30
+ },
+ {
+  "code": "DZ-12-NG",
+  "governorate": "DZ-12",
+  "label_en": "Negrine",
+  "label_ar": "نقرين",
+  "sort": 40
+ },
+ {
+  "code": "DZ-14-TR",
+  "governorate": "DZ-14",
+  "label_en": "Tiaret",
+  "label_ar": "تيارت",
+  "sort": 10
+ },
+ {
+  "code": "DZ-14-SQ",
+  "governorate": "DZ-14",
+  "label_en": "Sougueur",
+  "label_ar": "السوقر",
+  "sort": 20
+ },
+ {
+  "code": "DZ-14-FR",
+  "governorate": "DZ-14",
+  "label_en": "Frenda",
+  "label_ar": "فرندة",
+  "sort": 30
+ },
+ {
+  "code": "DZ-14-MH",
+  "governorate": "DZ-14",
+  "label_en": "Mahdia",
+  "label_ar": "المهدية",
+  "sort": 40
+ },
+ {
+  "code": "DZ-15-TZ",
+  "governorate": "DZ-15",
+  "label_en": "Tizi Ouzou",
+  "label_ar": "تيزي وزو",
+  "sort": 10
+ },
+ {
+  "code": "DZ-15-AZ",
+  "governorate": "DZ-15",
+  "label_en": "Azazga",
+  "label_ar": "عزازقة",
+  "sort": 20
+ },
+ {
+  "code": "DZ-15-BO",
+  "governorate": "DZ-15",
+  "label_en": "Boghni",
+  "label_ar": "بوغني",
+  "sort": 30
+ },
+ {
+  "code": "DZ-15-DR",
+  "governorate": "DZ-15",
+  "label_en": "Draâ Ben Khedda",
+  "label_ar": "ذراع بن خدة",
+  "sort": 40
+ },
+ {
+  "code": "DZ-17-DF",
+  "governorate": "DZ-17",
+  "label_en": "Djelfa",
+  "label_ar": "الجلفة",
+  "sort": 10
+ },
+ {
+  "code": "DZ-17-AM",
+  "governorate": "DZ-17",
+  "label_en": "Aïn Oussera",
+  "label_ar": "عين وسارة",
+  "sort": 20
+ },
+ {
+  "code": "DZ-17-MS",
+  "governorate": "DZ-17",
+  "label_en": "Messaad",
+  "label_ar": "مسعد",
+  "sort": 30
+ },
+ {
+  "code": "DZ-17-HA",
+  "governorate": "DZ-17",
+  "label_en": "Hassi Bahbah",
+  "label_ar": "حاسي بحبح",
+  "sort": 40
+ },
+ {
+  "code": "DZ-20-SD",
+  "governorate": "DZ-20",
+  "label_en": "Saïda",
+  "label_ar": "سعيدة",
+  "sort": 10
+ },
+ {
+  "code": "DZ-20-AH",
+  "governorate": "DZ-20",
+  "label_en": "Aïn El Hadjar",
+  "label_ar": "عين الحجر",
+  "sort": 20
+ },
+ {
+  "code": "DZ-20-YB",
+  "governorate": "DZ-20",
+  "label_en": "Youb",
+  "label_ar": "يوب",
+  "sort": 30
+ },
+ {
+  "code": "DZ-20-OS",
+  "governorate": "DZ-20",
+  "label_en": "Ouled Brahim",
+  "label_ar": "أولاد إبراهيم",
+  "sort": 40
+ },
+ {
+  "code": "DZ-29-MS",
+  "governorate": "DZ-29",
+  "label_en": "Mascara",
+  "label_ar": "معسكر",
+  "sort": 10
+ },
+ {
+  "code": "DZ-29-MT",
+  "governorate": "DZ-29",
+  "label_en": "Mohammadia",
+  "label_ar": "المحمدية",
+  "sort": 20
+ },
+ {
+  "code": "DZ-29-TG",
+  "governorate": "DZ-29",
+  "label_en": "Tighennif",
+  "label_ar": "تيغنيف",
+  "sort": 30
+ },
+ {
+  "code": "DZ-29-SG",
+  "governorate": "DZ-29",
+  "label_en": "Sig",
+  "label_ar": "سيق",
+  "sort": 40
+ },
+ {
+  "code": "DZ-30-OG",
+  "governorate": "DZ-30",
+  "label_en": "Ouargla",
+  "label_ar": "ورقلة",
+  "sort": 10
+ },
+ {
+  "code": "DZ-30-HR",
+  "governorate": "DZ-30",
+  "label_en": "Hassi Messaoud",
+  "label_ar": "حاسي مسعود",
+  "sort": 20
+ },
+ {
+  "code": "DZ-30-NR",
+  "governorate": "DZ-30",
+  "label_en": "N'Goussa",
+  "label_ar": "انقوسة",
+  "sort": 30
+ },
+ {
+  "code": "DZ-30-RO",
+  "governorate": "DZ-30",
+  "label_en": "Rouissat",
+  "label_ar": "الرويسات",
+  "sort": 40
+ },
+ {
+  "code": "DZ-35-BA",
+  "governorate": "DZ-35",
+  "label_en": "Boumerdès",
+  "label_ar": "بومرداس",
+  "sort": 10
+ },
+ {
+  "code": "DZ-35-BD",
+  "governorate": "DZ-35",
+  "label_en": "Boudouaou",
+  "label_ar": "بودواو",
+  "sort": 20
+ },
+ {
+  "code": "DZ-35-TH",
+  "governorate": "DZ-35",
+  "label_en": "Thénia",
+  "label_ar": "الثنية",
+  "sort": 30
+ },
+ {
+  "code": "DZ-35-DL",
+  "governorate": "DZ-35",
+  "label_en": "Dellys",
+  "label_ar": "دلس",
+  "sort": 40
+ },
+ {
+  "code": "DZ-04-OB",
+  "governorate": "DZ-04",
+  "label_en": "Oum el-Bouaghi",
+  "label_ar": "أم البواقي",
+  "sort": 10
+ },
+ {
+  "code": "DZ-04-AB",
+  "governorate": "DZ-04",
+  "label_en": "Aïn Beïda",
+  "label_ar": "عين البيضاء",
+  "sort": 20
+ },
+ {
+  "code": "DZ-04-AM",
+  "governorate": "DZ-04",
+  "label_en": "Aïn M'lila",
+  "label_ar": "عين مليلة",
+  "sort": 30
+ },
+ {
+  "code": "DZ-04-MK",
+  "governorate": "DZ-04",
+  "label_en": "Meskiana",
+  "label_ar": "مسكيانة",
+  "sort": 40
+ },
+ {
+  "code": "DZ-11-TM",
+  "governorate": "DZ-11",
+  "label_en": "Tamanrasset",
+  "label_ar": "تمنراست",
+  "sort": 10
+ },
+ {
+  "code": "DZ-11-AZ",
+  "governorate": "DZ-11",
+  "label_en": "Abalessa",
+  "label_ar": "أبلسة",
+  "sort": 20
+ },
+ {
+  "code": "DZ-11-TT",
+  "governorate": "DZ-11",
+  "label_en": "Tazrouk",
+  "label_ar": "تاظروك",
+  "sort": 30
+ },
+ {
+  "code": "MA-HAO-TH",
+  "governorate": "MA-HAO",
+  "label_en": "Tahannaout",
+  "label_ar": "تحناوت",
+  "sort": 10
+ },
+ {
+  "code": "MA-HAO-AM",
+  "governorate": "MA-HAO",
+  "label_en": "Amizmiz",
+  "label_ar": "أمزميز",
+  "sort": 20
+ },
+ {
+  "code": "MA-HOC-HC",
+  "governorate": "MA-HOC",
+  "label_en": "Al Hoceïma",
+  "label_ar": "الحسيمة",
+  "sort": 10
+ },
+ {
+  "code": "MA-HOC-IZ",
+  "governorate": "MA-HOC",
+  "label_en": "Imzouren",
+  "label_ar": "إمزورن",
+  "sort": 20
+ },
+ {
+  "code": "MA-HOC-BB",
+  "governorate": "MA-HOC",
+  "label_en": "Bani Bouayach",
+  "label_ar": "بني بوعياش",
+  "sort": 30
+ },
+ {
+  "code": "MA-AZI-AZ",
+  "governorate": "MA-AZI",
+  "label_en": "Azilal",
+  "label_ar": "أزيلال",
+  "sort": 10
+ },
+ {
+  "code": "MA-AZI-DM",
+  "governorate": "MA-AZI",
+  "label_en": "Demnate",
+  "label_ar": "دمنات",
+  "sort": 20
+ },
+ {
+  "code": "MA-BES-BS",
+  "governorate": "MA-BES",
+  "label_en": "Benslimane",
+  "label_ar": "بنسليمان",
+  "sort": 10
+ },
+ {
+  "code": "MA-BER-BR",
+  "governorate": "MA-BER",
+  "label_en": "Berkane",
+  "label_ar": "بركان",
+  "sort": 10
+ },
+ {
+  "code": "MA-BER-AF",
+  "governorate": "MA-BER",
+  "label_en": "Ahfir",
+  "label_ar": "أحفير",
+  "sort": 20
+ },
+ {
+  "code": "MA-BRR-RR",
+  "governorate": "MA-BRR",
+  "label_en": "Berrechid",
+  "label_ar": "برشيد",
+  "sort": 10
+ },
+ {
+  "code": "MA-BOM-IM",
+  "governorate": "MA-BOM",
+  "label_en": "Immouzer Marmoucha",
+  "label_ar": "إموزار مرموشة",
+  "sort": 10
+ },
+ {
+  "code": "MA-BEM-BM",
+  "governorate": "MA-BEM",
+  "label_en": "Béni Mellal",
+  "label_ar": "بني ملال",
+  "sort": 10
+ },
+ {
+  "code": "MA-BEM-KT",
+  "governorate": "MA-BEM",
+  "label_en": "Kasba Tadla",
+  "label_ar": "قصبة تادلة",
+  "sort": 20
+ },
+ {
+  "code": "MA-CHE-CH",
+  "governorate": "MA-CHE",
+  "label_en": "Chefchaouen",
+  "label_ar": "شفشاون",
+  "sort": 10
+ },
+ {
+  "code": "MA-CHE-BT",
+  "governorate": "MA-CHE",
+  "label_en": "Bab Taza",
+  "label_ar": "باب تازة",
+  "sort": 20
+ },
+ {
+  "code": "MA-CHI-CI",
+  "governorate": "MA-CHI",
+  "label_en": "Chichaoua",
+  "label_ar": "شيشاوة",
+  "sort": 10
+ },
+ {
+  "code": "MA-CHT-BG",
+  "governorate": "MA-CHT",
+  "label_en": "Biougra",
+  "label_ar": "بيوكرى",
+  "sort": 10
+ },
+ {
+  "code": "MA-CHT-AB",
+  "governorate": "MA-CHT",
+  "label_en": "Aït Baha",
+  "label_ar": "آيت باها",
+  "sort": 20
+ },
+ {
+  "code": "MA-DRI-DR",
+  "governorate": "MA-DRI",
+  "label_en": "Driouch",
+  "label_ar": "دريوش",
+  "sort": 10
+ },
+ {
+  "code": "MA-DRI-BT",
+  "governorate": "MA-DRI",
+  "label_en": "Ben Taieb",
+  "label_ar": "بن طيب",
+  "sort": 20
+ },
+ {
+  "code": "MA-HAJ-HJ",
+  "governorate": "MA-HAJ",
+  "label_en": "El Hajeb",
+  "label_ar": "الحاجب",
+  "sort": 10
+ },
+ {
+  "code": "MA-HAJ-AT",
+  "governorate": "MA-HAJ",
+  "label_en": "Aïn Taoujdate",
+  "label_ar": "عين توجطات",
+  "sort": 20
+ },
+ {
+  "code": "MA-JDI-JD",
+  "governorate": "MA-JDI",
+  "label_en": "El Jadida",
+  "label_ar": "الجديدة",
+  "sort": 10
+ },
+ {
+  "code": "MA-JDI-AZ",
+  "governorate": "MA-JDI",
+  "label_en": "Azemmour",
+  "label_ar": "أزمور",
+  "sort": 20
+ },
+ {
+  "code": "MA-ERR-ER",
+  "governorate": "MA-ERR",
+  "label_en": "Errachidia",
+  "label_ar": "الرشيدية",
+  "sort": 10
+ },
+ {
+  "code": "MA-ERR-EF",
+  "governorate": "MA-ERR",
+  "label_en": "Erfoud",
+  "label_ar": "إرفود",
+  "sort": 20
+ },
+ {
+  "code": "MA-ESM-ES",
+  "governorate": "MA-ESM",
+  "label_en": "Es-Semara",
+  "label_ar": "السمارة",
+  "sort": 10
+ },
+ {
+  "code": "MA-ESI-EI",
+  "governorate": "MA-ESI",
+  "label_en": "Essaouira",
+  "label_ar": "الصويرة",
+  "sort": 10
+ },
+ {
+  "code": "MA-FAH-FA",
+  "governorate": "MA-FAH",
+  "label_en": "Fahs",
+  "label_ar": "الفحص",
+  "sort": 10
+ },
+ {
+  "code": "MA-FAH-AN",
+  "governorate": "MA-FAH",
+  "label_en": "Anjra",
+  "label_ar": "أنجرة",
+  "sort": 20
+ },
+ {
+  "code": "MA-FIG-FG",
+  "governorate": "MA-FIG",
+  "label_en": "Figuig",
+  "label_ar": "فجيج",
+  "sort": 10
+ },
+ {
+  "code": "MA-FIG-BF",
+  "governorate": "MA-FIG",
+  "label_en": "Bouarfa",
+  "label_ar": "بوعرفة",
+  "sort": 20
+ },
+ {
+  "code": "MA-FQH-FB",
+  "governorate": "MA-FQH",
+  "label_en": "Fquih Ben Salah",
+  "label_ar": "الفقيه بن صالح",
+  "sort": 10
+ },
+ {
+  "code": "MA-FQH-OA",
+  "governorate": "MA-FQH",
+  "label_en": "Oulad Ayad",
+  "label_ar": "أولاد عياد",
+  "sort": 20
+ },
+ {
+  "code": "MA-GUE-GE",
+  "governorate": "MA-GUE",
+  "label_en": "Guelmim",
+  "label_ar": "كلميم",
+  "sort": 10
+ },
+ {
+  "code": "MA-GUE-TG",
+  "governorate": "MA-GUE",
+  "label_en": "Tagounite",
+  "label_ar": "تگونيت",
+  "sort": 20
+ },
+ {
+  "code": "MA-GUF-GF",
+  "governorate": "MA-GUF",
+  "label_en": "Guercif",
+  "label_ar": "جرسيف",
+  "sort": 10
+ },
+ {
+  "code": "MA-IFR-IF",
+  "governorate": "MA-IFR",
+  "label_en": "Ifrane",
+  "label_ar": "إفران",
+  "sort": 10
+ },
+ {
+  "code": "MA-IFR-AZ",
+  "governorate": "MA-IFR",
+  "label_en": "Azrou",
+  "label_ar": "أزرو",
+  "sort": 20
+ },
+ {
+  "code": "MA-JRA-JR",
+  "governorate": "MA-JRA",
+  "label_en": "Jerada",
+  "label_ar": "جرادة",
+  "sort": 10
+ },
+ {
+  "code": "MA-JRA-AM",
+  "governorate": "MA-JRA",
+  "label_en": "Aïn Bni Mathar",
+  "label_ar": "عين بني مطهر",
+  "sort": 20
+ },
+ {
+  "code": "MA-KES-KS",
+  "governorate": "MA-KES",
+  "label_en": "Kelaat Sraghna",
+  "label_ar": "قلعة السراغنة",
+  "sort": 10
+ },
+ {
+  "code": "MA-KHO-KO",
+  "governorate": "MA-KHO",
+  "label_en": "Khouribga",
+  "label_ar": "خريبكة",
+  "sort": 10
+ },
+ {
+  "code": "MA-KHO-OZ",
+  "governorate": "MA-KHO",
+  "label_en": "Oued Zem",
+  "label_ar": "وادي زم",
+  "sort": 20
+ },
+ {
+  "code": "MA-KHE-KH",
+  "governorate": "MA-KHE",
+  "label_en": "Khémisset",
+  "label_ar": "الخميسات",
+  "sort": 10
+ },
+ {
+  "code": "MA-KHE-TF",
+  "governorate": "MA-KHE",
+  "label_en": "Tiflet",
+  "label_ar": "تيفلت",
+  "sort": 20
+ },
+ {
+  "code": "MA-KHE-RM",
+  "governorate": "MA-KHE",
+  "label_en": "Rommani",
+  "label_ar": "الرماني",
+  "sort": 30
+ },
+ {
+  "code": "MA-KHN-KN",
+  "governorate": "MA-KHN",
+  "label_en": "Khénifra",
+  "label_ar": "خنيفرة",
+  "sort": 10
+ },
+ {
+  "code": "MA-KHN-MR",
+  "governorate": "MA-KHN",
+  "label_en": "Mrirt",
+  "label_ar": "مريرت",
+  "sort": 20
+ },
+ {
+  "code": "MA-KEN-KE",
+  "governorate": "MA-KEN",
+  "label_en": "Kénitra",
+  "label_ar": "القنيطرة",
+  "sort": 10
+ },
+ {
+  "code": "MA-KEN-SA",
+  "governorate": "MA-KEN",
+  "label_en": "Souk El Arbaa",
+  "label_ar": "سوق الأربعاء",
+  "sort": 20
+ },
+ {
+  "code": "MA-LAR-LA",
+  "governorate": "MA-LAR",
+  "label_en": "Larache",
+  "label_ar": "العرائش",
+  "sort": 10
+ },
+ {
+  "code": "MA-LAR-KK",
+  "governorate": "MA-LAR",
+  "label_en": "Ksar El Kébir",
+  "label_ar": "القصر الكبير",
+  "sort": 20
+ },
+ {
+  "code": "MA-LAR-AS",
+  "governorate": "MA-LAR",
+  "label_en": "Asilah",
+  "label_ar": "أصيلة",
+  "sort": 30
+ },
+ {
+  "code": "MA-LAA-LY",
+  "governorate": "MA-LAA",
+  "label_en": "Laâyoune",
+  "label_ar": "العيون",
+  "sort": 10
+ },
+ {
+  "code": "MA-MID-MI",
+  "governorate": "MA-MID",
+  "label_en": "Midelt",
+  "label_ar": "ميدلت",
+  "sort": 10
+ },
+ {
+  "code": "MA-MOU-MY",
+  "governorate": "MA-MOU",
+  "label_en": "Moulay Yacoub",
+  "label_ar": "مولاي يعقوب",
+  "sort": 10
+ },
+ {
+  "code": "MA-MED-ME",
+  "governorate": "MA-MED",
+  "label_en": "Médiouna",
+  "label_ar": "المديونة",
+  "sort": 10
+ },
+ {
+  "code": "MA-NAD-ND",
+  "governorate": "MA-NAD",
+  "label_en": "Nador",
+  "label_ar": "الناظور",
+  "sort": 10
+ },
+ {
+  "code": "MA-NAD-SL",
+  "governorate": "MA-NAD",
+  "label_en": "Selouane",
+  "label_ar": "سلوان",
+  "sort": 20
+ },
+ {
+  "code": "MA-NAD-AR",
+  "governorate": "MA-NAD",
+  "label_en": "Al Aroui",
+  "label_ar": "العروي",
+  "sort": 30
+ },
+ {
+  "code": "MA-NOU-NU",
+  "governorate": "MA-NOU",
+  "label_en": "Nouaceur",
+  "label_ar": "النواصر",
+  "sort": 10
+ },
+ {
+  "code": "MA-NOU-BS",
+  "governorate": "MA-NOU",
+  "label_en": "Bouskoura",
+  "label_ar": "بوسكورة",
+  "sort": 20
+ },
+ {
+  "code": "MA-OUA-OU",
+  "governorate": "MA-OUA",
+  "label_en": "Ouarzazate",
+  "label_ar": "ورزازات",
+  "sort": 10
+ },
+ {
+  "code": "MA-OUA-SK",
+  "governorate": "MA-OUA",
+  "label_en": "Skoura",
+  "label_ar": "سكورة",
+  "sort": 20
+ },
+ {
+  "code": "MA-OUD-DK",
+  "governorate": "MA-OUD",
+  "label_en": "Dakhla",
+  "label_ar": "الداخلة",
+  "sort": 10
+ },
+ {
+  "code": "MA-OUZ-OZ",
+  "governorate": "MA-OUZ",
+  "label_en": "Ouezzane",
+  "label_ar": "وزان",
+  "sort": 10
+ },
+ {
+  "code": "MA-REH-BJ",
+  "governorate": "MA-REH",
+  "label_en": "Benguerir",
+  "label_ar": "بنجرير",
+  "sort": 10
+ },
+ {
+  "code": "MA-REH-SB",
+  "governorate": "MA-REH",
+  "label_en": "Sidi Bou Othmane",
+  "label_ar": "سيدي بو عثمان",
+  "sort": 20
+ },
+ {
+  "code": "MA-SAF-SF",
+  "governorate": "MA-SAF",
+  "label_en": "Safi",
+  "label_ar": "آسفي",
+  "sort": 10
+ },
+ {
+  "code": "MA-SEF-SE",
+  "governorate": "MA-SEF",
+  "label_en": "Sefrou",
+  "label_ar": "صفرو",
+  "sort": 10
+ },
+ {
+  "code": "MA-SEF-EM",
+  "governorate": "MA-SEF",
+  "label_en": "El Menzel",
+  "label_ar": "المنزل",
+  "sort": 20
+ },
+ {
+  "code": "MA-SET-ST",
+  "governorate": "MA-SET",
+  "label_en": "Settat",
+  "label_ar": "سطات",
+  "sort": 10
+ },
+ {
+  "code": "MA-SET-BA",
+  "governorate": "MA-SET",
+  "label_en": "Ben Ahmed",
+  "label_ar": "بن أحمد",
+  "sort": 20
+ },
+ {
+  "code": "MA-SET-EB",
+  "governorate": "MA-SET",
+  "label_en": "El Borouj",
+  "label_ar": "البروج",
+  "sort": 30
+ },
+ {
+  "code": "MA-SIB-SB",
+  "governorate": "MA-SIB",
+  "label_en": "Sidi Bennour",
+  "label_ar": "سيدي بنور",
+  "sort": 10
+ },
+ {
+  "code": "MA-SIF-SI",
+  "governorate": "MA-SIF",
+  "label_en": "Sidi Ifni",
+  "label_ar": "سيدي إفني",
+  "sort": 10
+ },
+ {
+  "code": "MA-SIK-SK",
+  "governorate": "MA-SIK",
+  "label_en": "Sidi Kacem",
+  "label_ar": "سيدي قاسم",
+  "sort": 10
+ },
+ {
+  "code": "MA-SIK-JM",
+  "governorate": "MA-SIK",
+  "label_en": "Jorf El Melha",
+  "label_ar": "جرف الملحة",
+  "sort": 20
+ },
+ {
+  "code": "MA-SIL-SL",
+  "governorate": "MA-SIL",
+  "label_en": "Sidi Slimane",
+  "label_ar": "سيدي سليمان",
+  "sort": 10
+ },
+ {
+  "code": "MA-TNT-TT",
+  "governorate": "MA-TNT",
+  "label_en": "Tan-Tan",
+  "label_ar": "طانطان",
+  "sort": 10
+ },
+ {
+  "code": "MA-TNT-WT",
+  "governorate": "MA-TNT",
+  "label_en": "El Ouatia",
+  "label_ar": "الوطية",
+  "sort": 20
+ },
+ {
+  "code": "MA-TAO-TA",
+  "governorate": "MA-TAO",
+  "label_en": "Taounate",
+  "label_ar": "تاونات",
+  "sort": 10
+ },
+ {
+  "code": "MA-TAO-KB",
+  "governorate": "MA-TAO",
+  "label_en": "Kariat Ba Mohamed",
+  "label_ar": "قرية با محمد",
+  "sort": 20
+ },
+ {
+  "code": "MA-TAI-TI",
+  "governorate": "MA-TAI",
+  "label_en": "Taourirt",
+  "label_ar": "تاوريرت",
+  "sort": 10
+ },
+ {
+  "code": "MA-TAF-TF",
+  "governorate": "MA-TAF",
+  "label_en": "Tarfaya",
+  "label_ar": "طرفاية",
+  "sort": 10
+ },
+ {
+  "code": "MA-TAR-TR",
+  "governorate": "MA-TAR",
+  "label_en": "Taroudannt",
+  "label_ar": "تارودانت",
+  "sort": 10
+ },
+ {
+  "code": "MA-TAR-OT",
+  "governorate": "MA-TAR",
+  "label_en": "Oulad Teïma",
+  "label_ar": "أولاد تايمة",
+  "sort": 20
+ },
+ {
+  "code": "MA-TAR-TL",
+  "governorate": "MA-TAR",
+  "label_en": "Taliouine",
+  "label_ar": "تالوين",
+  "sort": 30
+ },
+ {
+  "code": "MA-TAT-TT",
+  "governorate": "MA-TAT",
+  "label_en": "Tata",
+  "label_ar": "طاطا",
+  "sort": 10
+ },
+ {
+  "code": "MA-TAT-AK",
+  "governorate": "MA-TAT",
+  "label_en": "Akka",
+  "label_ar": "أقا",
+  "sort": 20
+ },
+ {
+  "code": "MA-TAZ-TZ",
+  "governorate": "MA-TAZ",
+  "label_en": "Taza",
+  "label_ar": "تازة",
+  "sort": 10
+ },
+ {
+  "code": "MA-TAZ-TA",
+  "governorate": "MA-TAZ",
+  "label_en": "Tahla",
+  "label_ar": "طحلة",
+  "sort": 20
+ },
+ {
+  "code": "MA-TIN-TN",
+  "governorate": "MA-TIN",
+  "label_en": "Tinghir",
+  "label_ar": "تنغير",
+  "sort": 10
+ },
+ {
+  "code": "MA-TIN-BD",
+  "governorate": "MA-TIN",
+  "label_en": "Boumalne Dades",
+  "label_ar": "بو مالن دادس",
+  "sort": 20
+ },
+ {
+  "code": "MA-TIZ-TZ",
+  "governorate": "MA-TIZ",
+  "label_en": "Tiznit",
+  "label_ar": "تزنيت",
+  "sort": 10
+ },
+ {
+  "code": "MA-TIZ-TF",
+  "governorate": "MA-TIZ",
+  "label_en": "Tafraout",
+  "label_ar": "تافراوت",
+  "sort": 20
+ },
+ {
+  "code": "MA-TET-TT",
+  "governorate": "MA-TET",
+  "label_en": "Tétouan",
+  "label_ar": "تطوان",
+  "sort": 10
+ },
+ {
+  "code": "MA-TET-MR",
+  "governorate": "MA-TET",
+  "label_en": "Martil",
+  "label_ar": "مرتيل",
+  "sort": 20
+ },
+ {
+  "code": "MA-TET-MD",
+  "governorate": "MA-TET",
+  "label_en": "M'diq",
+  "label_ar": "المضيق",
+  "sort": 30
+ },
+ {
+  "code": "MA-YUS-YS",
+  "governorate": "MA-YUS",
+  "label_en": "Youssoufia",
+  "label_ar": "اليوسفية",
+  "sort": 10
+ },
+ {
+  "code": "MA-ZAG-ZG",
+  "governorate": "MA-ZAG",
+  "label_en": "Zagora",
+  "label_ar": "زاكورة",
+  "sort": 10
+ },
+ {
+  "code": "MA-ZAG-MG",
+  "governorate": "MA-ZAG",
+  "label_en": "M'Hamid",
+  "label_ar": "محاميد الغزلان",
+  "sort": 20
+ },
+ {
+  "code": "MA-BOD-BD",
+  "governorate": "MA-BOD",
+  "label_en": "Boujdour",
+  "label_ar": "البوجدور",
+  "sort": 10
+ },
+ {
+  "code": "MA-AOU-AO",
+  "governorate": "MA-AOU",
+  "label_en": "Aousserd",
+  "label_ar": "أوسرد",
+  "sort": 10
+ },
+ {
+  "code": "MA-ASZ-AS",
+  "governorate": "MA-ASZ",
+  "label_en": "Assa",
+  "label_ar": "آسا",
+  "sort": 10
+ },
+ {
+  "code": "MA-ASZ-ZG",
+  "governorate": "MA-ASZ",
+  "label_en": "Zag",
+  "label_ar": "زاك",
+  "sort": 20
+ },
+ {
+  "code": "MR-06-RO",
+  "governorate": "MR-06",
+  "label_en": "Rosso",
+  "label_ar": "روصو",
+  "sort": 10
+ },
+ {
+  "code": "MR-06-AL",
+  "governorate": "MR-06",
+  "label_en": "Aleg",
+  "label_ar": "أَلَك",
+  "sort": 20
+ },
+ {
+  "code": "MR-06-MB",
+  "governorate": "MR-06",
+  "label_en": "M'Bout",
+  "label_ar": "امبود",
+  "sort": 30
+ },
+ {
+  "code": "MR-07-AT",
+  "governorate": "MR-07",
+  "label_en": "Atar",
+  "label_ar": "أطار",
+  "sort": 10
+ },
+ {
+  "code": "MR-07-CH",
+  "governorate": "MR-07",
+  "label_en": "Chinguetti",
+  "label_ar": "شنقيط",
+  "sort": 20
+ },
+ {
+  "code": "MR-07-OU",
+  "governorate": "MR-07",
+  "label_en": "Ouadane",
+  "label_ar": "وادان",
+  "sort": 30
+ },
+ {
+  "code": "MR-03-KF",
+  "governorate": "MR-03",
+  "label_en": "Kiffa",
+  "label_ar": "كيفة",
+  "sort": 10
+ },
+ {
+  "code": "MR-03-GR",
+  "governorate": "MR-03",
+  "label_en": "Guérou",
+  "label_ar": "كرو",
+  "sort": 20
+ },
+ {
+  "code": "MR-03-KX",
+  "governorate": "MR-03",
+  "label_en": "Kankoussa",
+  "label_ar": "كنكوصة",
+  "sort": 30
+ },
+ {
+  "code": "MR-05-BG",
+  "governorate": "MR-05",
+  "label_en": "Boghé",
+  "label_ar": "بوكي",
+  "sort": 10
+ },
+ {
+  "code": "MR-05-MP",
+  "governorate": "MR-05",
+  "label_en": "Maghama",
+  "label_ar": "مقامة",
+  "sort": 20
+ },
+ {
+  "code": "MR-04-KD",
+  "governorate": "MR-04",
+  "label_en": "Kaédi",
+  "label_ar": "كيهيدي",
+  "sort": 10
+ },
+ {
+  "code": "MR-04-ML",
+  "governorate": "MR-04",
+  "label_en": "Monguel",
+  "label_ar": "مونكل",
+  "sort": 20
+ },
+ {
+  "code": "MR-10-SL",
+  "governorate": "MR-10",
+  "label_en": "Sélibaby",
+  "label_ar": "سيليبابي",
+  "sort": 10
+ },
+ {
+  "code": "MR-10-OY",
+  "governorate": "MR-10",
+  "label_en": "Ould Yenge",
+  "label_ar": "ولد ينج",
+  "sort": 20
+ },
+ {
+  "code": "MR-12-AJ",
+  "governorate": "MR-12",
+  "label_en": "Akjoujt",
+  "label_ar": "أكجوجت",
+  "sort": 10
+ },
+ {
+  "code": "MR-14-DR",
+  "governorate": "MR-14",
+  "label_en": "Dar Naim",
+  "label_ar": "دار النعيم",
+  "sort": 10
+ },
+ {
+  "code": "MR-14-TJ",
+  "governorate": "MR-14",
+  "label_en": "Teyarett",
+  "label_ar": "تارات",
+  "sort": 20
+ },
+ {
+  "code": "MR-08-ND",
+  "governorate": "MR-08",
+  "label_en": "Nouadhibou",
+  "label_ar": "انواذيبو",
+  "sort": 10
+ },
+ {
+  "code": "MR-08-BL",
+  "governorate": "MR-08",
+  "label_en": "Boulenouar",
+  "label_ar": "بولنوار",
+  "sort": 20
+ },
+ {
+  "code": "MR-15-KS",
+  "governorate": "MR-15",
+  "label_en": "Ksar",
+  "label_ar": "القصر",
+  "sort": 10
+ },
+ {
+  "code": "MR-15-SL",
+  "governorate": "MR-15",
+  "label_en": "Sebkha",
+  "label_ar": "سبخة",
+  "sort": 20
+ },
+ {
+  "code": "MR-09-TJ",
+  "governorate": "MR-09",
+  "label_en": "Tidjikja",
+  "label_ar": "تيدجكجة",
+  "sort": 10
+ },
+ {
+  "code": "MR-09-MJ",
+  "governorate": "MR-09",
+  "label_en": "Moudjéria",
+  "label_ar": "مجريه",
+  "sort": 20
+ },
+ {
+  "code": "MR-11-ZR",
+  "governorate": "MR-11",
+  "label_en": "Zouérat",
+  "label_ar": "زويرات",
+  "sort": 10
+ },
+ {
+  "code": "MR-11-FD",
+  "governorate": "MR-11",
+  "label_en": "F'Déirick",
+  "label_ar": "افديرك",
+  "sort": 20
+ },
+ {
+  "code": "MR-01-NM",
+  "governorate": "MR-01",
+  "label_en": "Néma",
+  "label_ar": "نعمه",
+  "sort": 10
+ },
+ {
+  "code": "MR-01-BS",
+  "governorate": "MR-01",
+  "label_en": "Bassikounou",
+  "label_ar": "باسكونو",
+  "sort": 20
+ },
+ {
+  "code": "MR-13-TZ",
+  "governorate": "MR-13",
+  "label_en": "Tevragh Zeina",
+  "label_ar": "تفرغ زينة",
+  "sort": 10
+ },
+ {
+  "code": "MR-02-AY",
+  "governorate": "MR-02",
+  "label_en": "Aioun",
+  "label_ar": "العيون",
+  "sort": 10
+ },
+ {
+  "code": "MR-02-TT",
+  "governorate": "MR-02",
+  "label_en": "Tintane",
+  "label_ar": "تنتان",
+  "sort": 20
+ },
+ {
+  "code": "SD-KH-KH",
+  "governorate": "SD-KH",
+  "label_en": "Khartoum",
+  "label_ar": "الخرطوم",
+  "sort": 10
+ },
+ {
+  "code": "SD-KH-OM",
+  "governorate": "SD-KH",
+  "label_en": "Omdurman",
+  "label_ar": "أم درمان",
+  "sort": 20
+ },
+ {
+  "code": "SD-KH-BH",
+  "governorate": "SD-KH",
+  "label_en": "Bahri",
+  "label_ar": "بحري",
+  "sort": 30
+ },
+ {
+  "code": "SD-KH-EN",
+  "governorate": "SD-KH",
+  "label_en": "East Nile",
+  "label_ar": "شرق النيل",
+  "sort": 40
+ },
+ {
+  "code": "SD-GZ-WM",
+  "governorate": "SD-GZ",
+  "label_en": "Wad Medani",
+  "label_ar": "ود مدني",
+  "sort": 10
+ },
+ {
+  "code": "SD-GZ-HS",
+  "governorate": "SD-GZ",
+  "label_en": "Al-Hasaheisa",
+  "label_ar": "الحصاحيصا",
+  "sort": 20
+ },
+ {
+  "code": "SD-GZ-MG",
+  "governorate": "SD-GZ",
+  "label_en": "Al-Managil",
+  "label_ar": "المناقل",
+  "sort": 30
+ },
+ {
+  "code": "SD-KA-KS",
+  "governorate": "SD-KA",
+  "label_en": "Kassala",
+  "label_ar": "كسلا",
+  "sort": 10
+ },
+ {
+  "code": "SD-KA-HF",
+  "governorate": "SD-KA",
+  "label_en": "Halfa",
+  "label_ar": "الحلفا",
+  "sort": 20
+ },
+ {
+  "code": "SD-GD-GD",
+  "governorate": "SD-GD",
+  "label_en": "Gadarif",
+  "label_ar": "القضارف",
+  "sort": 10
+ },
+ {
+  "code": "SD-GD-FA",
+  "governorate": "SD-GD",
+  "label_en": "Al-Faw",
+  "label_ar": "الفاو",
+  "sort": 20
+ },
+ {
+  "code": "SD-SI-SG",
+  "governorate": "SD-SI",
+  "label_en": "Singa",
+  "label_ar": "سنجة",
+  "sort": 10
+ },
+ {
+  "code": "SD-SI-SD",
+  "governorate": "SD-SI",
+  "label_en": "Sennar",
+  "label_ar": "سنار",
+  "sort": 20
+ },
+ {
+  "code": "SD-NW-RB",
+  "governorate": "SD-NW",
+  "label_en": "Rabak",
+  "label_ar": "ربك",
+  "sort": 10
+ },
+ {
+  "code": "SD-NW-KT",
+  "governorate": "SD-NW",
+  "label_en": "Kosti",
+  "label_ar": "كوستي",
+  "sort": 20
+ },
+ {
+  "code": "SD-NW-DW",
+  "governorate": "SD-NW",
+  "label_en": "Al-Duwaim",
+  "label_ar": "الدويم",
+  "sort": 30
+ },
+ {
+  "code": "SD-NB-DM",
+  "governorate": "SD-NB",
+  "label_en": "Ad-Damazin",
+  "label_ar": "الدمازين",
+  "sort": 10
+ },
+ {
+  "code": "SD-NB-KM",
+  "governorate": "SD-NB",
+  "label_en": "Kurmuk",
+  "label_ar": "كورمك",
+  "sort": 20
+ },
+ {
+  "code": "SD-KN-OB",
+  "governorate": "SD-KN",
+  "label_en": "Al-Obeid",
+  "label_ar": "الأبيض",
+  "sort": 10
+ },
+ {
+  "code": "SD-KN-BR",
+  "governorate": "SD-KN",
+  "label_en": "Barah",
+  "label_ar": "بارا",
+  "sort": 20
+ },
+ {
+  "code": "SD-KN-UW",
+  "governorate": "SD-KN",
+  "label_en": "Umm Ruwaba",
+  "label_ar": "أم روابة",
+  "sort": 30
+ },
+ {
+  "code": "SD-KN-ND",
+  "governorate": "SD-KN",
+  "label_en": "En-Nahud",
+  "label_ar": "النهود",
+  "sort": 40
+ },
+ {
+  "code": "SD-GK-FL",
+  "governorate": "SD-GK",
+  "label_en": "Al-Fulah",
+  "label_ar": "الفولة",
+  "sort": 10
+ },
+ {
+  "code": "SD-GK-BW",
+  "governorate": "SD-GK",
+  "label_en": "Babanusa",
+  "label_ar": "بابنوسة",
+  "sort": 20
+ },
+ {
+  "code": "SD-KS-KD",
+  "governorate": "SD-KS",
+  "label_en": "Kadugli",
+  "label_ar": "كادقلي",
+  "sort": 10
+ },
+ {
+  "code": "SD-KS-DL",
+  "governorate": "SD-KS",
+  "label_en": "Dilling",
+  "label_ar": "دلنج",
+  "sort": 20
+ },
+ {
+  "code": "SD-DS-NY",
+  "governorate": "SD-DS",
+  "label_en": "Nyala",
+  "label_ar": "نيالا",
+  "sort": 10
+ },
+ {
+  "code": "SD-DS-KS",
+  "governorate": "SD-DS",
+  "label_en": "Kass",
+  "label_ar": "كس",
+  "sort": 20
+ },
+ {
+  "code": "SD-DN-FS",
+  "governorate": "SD-DN",
+  "label_en": "Al-Fashir",
+  "label_ar": "الفاشر",
+  "sort": 10
+ },
+ {
+  "code": "SD-DN-KT",
+  "governorate": "SD-DN",
+  "label_en": "Kutum",
+  "label_ar": "كتم",
+  "sort": 20
+ },
+ {
+  "code": "SD-DN-UK",
+  "governorate": "SD-DN",
+  "label_en": "Um Keddada",
+  "label_ar": "أم كدادة",
+  "sort": 30
+ },
+ {
+  "code": "SD-DE-DU",
+  "governorate": "SD-DE",
+  "label_en": "Ad-Du'ayn",
+  "label_ar": "الضعين",
+  "sort": 10
+ },
+ {
+  "code": "SD-DW-GN",
+  "governorate": "SD-DW",
+  "label_en": "Geneina",
+  "label_ar": "الجنيينة",
+  "sort": 10
+ },
+ {
+  "code": "SD-DW-SB",
+  "governorate": "SD-DW",
+  "label_en": "Sirba",
+  "label_ar": "سيربا",
+  "sort": 20
+ },
+ {
+  "code": "SD-DC-ZL",
+  "governorate": "SD-DC",
+  "label_en": "Zalingei",
+  "label_ar": "زالنجي",
+  "sort": 10
+ },
+ {
+  "code": "SD-DC-TW",
+  "governorate": "SD-DC",
+  "label_en": "Tawila",
+  "label_ar": "طويلة",
+  "sort": 20
+ },
+ {
+  "code": "SD-NO-DG",
+  "governorate": "SD-NO",
+  "label_en": "Dongola",
+  "label_ar": "دنقلا",
+  "sort": 10
+ },
+ {
+  "code": "SD-NO-MR",
+  "governorate": "SD-NO",
+  "label_en": "Merowe",
+  "label_ar": "مروي",
+  "sort": 20
+ },
+ {
+  "code": "SD-NO-AD",
+  "governorate": "SD-NO",
+  "label_en": "Ad-Damir",
+  "label_ar": "الدامر",
+  "sort": 30
+ },
+ {
+  "code": "SD-NR-AT",
+  "governorate": "SD-NR",
+  "label_en": "Atbara",
+  "label_ar": "عطبرة",
+  "sort": 10
+ },
+ {
+  "code": "SD-NR-BB",
+  "governorate": "SD-NR",
+  "label_en": "Berber",
+  "label_ar": "بربر",
+  "sort": 20
+ },
+ {
+  "code": "SD-NR-SH",
+  "governorate": "SD-NR",
+  "label_en": "Shendi",
+  "label_ar": "شندي",
+  "sort": 30
+ },
+ {
+  "code": "SD-NR-AB",
+  "governorate": "SD-NR",
+  "label_en": "Abu Hamed",
+  "label_ar": "أبو حمد",
+  "sort": 40
+ },
+ {
+  "code": "SD-RS-PS",
+  "governorate": "SD-RS",
+  "label_en": "Port Sudan",
+  "label_ar": "بورتسودان",
+  "sort": 10
+ },
+ {
+  "code": "SD-RS-SK",
+  "governorate": "SD-RS",
+  "label_en": "Suakin",
+  "label_ar": "سواكن",
+  "sort": 20
+ },
+ {
+  "code": "SD-RS-HB",
+  "governorate": "SD-RS",
+  "label_en": "Halaib",
+  "label_ar": "حلايب",
+  "sort": 30
+ },
+ {
+  "code": "SO-AW-BM",
+  "governorate": "SO-AW",
+  "label_en": "Borama",
+  "label_ar": "بوراما",
+  "sort": 10
+ },
+ {
+  "code": "SO-AW-ZL",
+  "governorate": "SO-AW",
+  "label_en": "Zeila",
+  "label_ar": "زيلع",
+  "sort": 20
+ },
+ {
+  "code": "SO-BK-HD",
+  "governorate": "SO-BK",
+  "label_en": "Xudur",
+  "label_ar": "خدور",
+  "sort": 10
+ },
+ {
+  "code": "SO-BK-TR",
+  "governorate": "SO-BK",
+  "label_en": "Tiyeglow",
+  "label_ar": "تيجلو",
+  "sort": 20
+ },
+ {
+  "code": "SO-BN-MG",
+  "governorate": "SO-BN",
+  "label_en": "Mogadishu",
+  "label_ar": "مقديشو",
+  "sort": 10
+ },
+ {
+  "code": "SO-BN-AF",
+  "governorate": "SO-BN",
+  "label_en": "Afgooye",
+  "label_ar": "أفجوي",
+  "sort": 20
+ },
+ {
+  "code": "SO-BR-BS",
+  "governorate": "SO-BR",
+  "label_en": "Bosaso",
+  "label_ar": "بوصاصو",
+  "sort": 10
+ },
+ {
+  "code": "SO-BR-QR",
+  "governorate": "SO-BR",
+  "label_en": "Qardho",
+  "label_ar": "قرضو",
+  "sort": 20
+ },
+ {
+  "code": "SO-BR-BB",
+  "governorate": "SO-BR",
+  "label_en": "Bandarbeyla",
+  "label_ar": "بندربلا",
+  "sort": 30
+ },
+ {
+  "code": "SO-BR-IS",
+  "governorate": "SO-BR",
+  "label_en": "Iskushuban",
+  "label_ar": "إسكشوبان",
+  "sort": 40
+ },
+ {
+  "code": "SO-BY-BW",
+  "governorate": "SO-BY",
+  "label_en": "Baidoa",
+  "label_ar": "بيدوا",
+  "sort": 10
+ },
+ {
+  "code": "SO-BY-DS",
+  "governorate": "SO-BY",
+  "label_en": "Dinsor",
+  "label_ar": "دينسور",
+  "sort": 20
+ },
+ {
+  "code": "SO-GA-DB",
+  "governorate": "SO-GA",
+  "label_en": "Dhusamareb",
+  "label_ar": "دسمريب",
+  "sort": 10
+ },
+ {
+  "code": "SO-GA-AW",
+  "governorate": "SO-GA",
+  "label_en": "Abudwak",
+  "label_ar": "أبدواق",
+  "sort": 20
+ },
+ {
+  "code": "SO-HI-BW",
+  "governorate": "SO-HI",
+  "label_en": "Beledweyne",
+  "label_ar": "بلد وين",
+  "sort": 10
+ },
+ {
+  "code": "SO-HI-JL",
+  "governorate": "SO-HI",
+  "label_en": "Jalalaqsi",
+  "label_ar": "جلالقصي",
+  "sort": 20
+ },
+ {
+  "code": "SO-JH-KM",
+  "governorate": "SO-JH",
+  "label_en": "Kismayo",
+  "label_ar": "كيسمايو",
+  "sort": 10
+ },
+ {
+  "code": "SO-JH-JL",
+  "governorate": "SO-JH",
+  "label_en": "Jilib",
+  "label_ar": "جيليب",
+  "sort": 20
+ },
+ {
+  "code": "SO-JD-BA",
+  "governorate": "SO-JD",
+  "label_en": "Bu'aale",
+  "label_ar": "بوعالي",
+  "sort": 10
+ },
+ {
+  "code": "SO-JD-SK",
+  "governorate": "SO-JD",
+  "label_en": "Sakow",
+  "label_ar": "ساكو",
+  "sort": 20
+ },
+ {
+  "code": "SO-SH-MK",
+  "governorate": "SO-SH",
+  "label_en": "Marka",
+  "label_ar": "مركا",
+  "sort": 10
+ },
+ {
+  "code": "SO-SH-QL",
+  "governorate": "SO-SH",
+  "label_en": "Qoryooley",
+  "label_ar": "قوريولي",
+  "sort": 20
+ },
+ {
+  "code": "SO-SD-JW",
+  "governorate": "SO-SD",
+  "label_en": "Jowhar",
+  "label_ar": "جوهر",
+  "sort": 10
+ },
+ {
+  "code": "SO-SD-BL",
+  "governorate": "SO-SD",
+  "label_en": "Balad",
+  "label_ar": "بلد",
+  "sort": 20
+ },
+ {
+  "code": "SO-MU-GC",
+  "governorate": "SO-MU",
+  "label_en": "Galkayo",
+  "label_ar": "جلكسيو",
+  "sort": 10
+ },
+ {
+  "code": "SO-MU-HB",
+  "governorate": "SO-MU",
+  "label_en": "Hobyo",
+  "label_ar": "هبيو",
+  "sort": 20
+ },
+ {
+  "code": "SO-WO-HG",
+  "governorate": "SO-WO",
+  "label_en": "Hargeisa",
+  "label_ar": "هرجيسا",
+  "sort": 10
+ },
+ {
+  "code": "SO-WO-BR",
+  "governorate": "SO-WO",
+  "label_en": "Berbera",
+  "label_ar": "بربرة",
+  "sort": 20
+ },
+ {
+  "code": "SO-WO-SH",
+  "governorate": "SO-WO",
+  "label_en": "Sheikh",
+  "label_ar": "شيخ",
+  "sort": 30
+ },
+ {
+  "code": "SO-NU-GW",
+  "governorate": "SO-NU",
+  "label_en": "Garowe",
+  "label_ar": "غاروي",
+  "sort": 10
+ },
+ {
+  "code": "SO-NU-ER",
+  "governorate": "SO-NU",
+  "label_en": "Eyl",
+  "label_ar": "ايل",
+  "sort": 20
+ },
+ {
+  "code": "SO-SA-EG",
+  "governorate": "SO-SA",
+  "label_en": "Erigavo",
+  "label_ar": "إيريجابو",
+  "sort": 10
+ },
+ {
+  "code": "SO-SA-LK",
+  "governorate": "SO-SA",
+  "label_en": "Las Khorey",
+  "label_ar": "لاس خوري",
+  "sort": 20
+ },
+ {
+  "code": "SO-SO-LA",
+  "governorate": "SO-SO",
+  "label_en": "Las Anod",
+  "label_ar": "لاس عانود",
+  "sort": 10
+ },
+ {
+  "code": "SO-SO-TX",
+  "governorate": "SO-SO",
+  "label_en": "Taleex",
+  "label_ar": "تليح",
+  "sort": 20
+ },
+ {
+  "code": "SO-TO-BR",
+  "governorate": "SO-TO",
+  "label_en": "Burao",
+  "label_ar": "بورعو",
+  "sort": 10
+ },
+ {
+  "code": "SO-TO-BH",
+  "governorate": "SO-TO",
+  "label_en": "Buuhoodle",
+  "label_ar": "بوهودل",
+  "sort": 20
+ },
+ {
+  "code": "DJ-DJ-DJ",
+  "governorate": "DJ-DJ",
+  "label_en": "Djibouti City",
+  "label_ar": "مدينة جيبوتي",
+  "sort": 10
+ },
+ {
+  "code": "DJ-DJ-BL",
+  "governorate": "DJ-DJ",
+  "label_en": "Balbala",
+  "label_ar": "بلبالا",
+  "sort": 20
+ },
+ {
+  "code": "DJ-AS-AS",
+  "governorate": "DJ-AS",
+  "label_en": "Ali Sabieh",
+  "label_ar": "علي صبيح",
+  "sort": 10
+ },
+ {
+  "code": "DJ-AS-AD",
+  "governorate": "DJ-AS",
+  "label_en": "Ali Adde",
+  "label_ar": "علي عده",
+  "sort": 20
+ },
+ {
+  "code": "DJ-AR-AR",
+  "governorate": "DJ-AR",
+  "label_en": "Arta",
+  "label_ar": "آرتا",
+  "sort": 10
+ },
+ {
+  "code": "DJ-AR-DR",
+  "governorate": "DJ-AR",
+  "label_en": "Dorra",
+  "label_ar": "دورا",
+  "sort": 20
+ },
+ {
+  "code": "DJ-DI-DI",
+  "governorate": "DJ-DI",
+  "label_en": "Dikhil",
+  "label_ar": "دخيل",
+  "sort": 10
+ },
+ {
+  "code": "DJ-DI-AE",
+  "governorate": "DJ-DI",
+  "label_en": "As Eyla",
+  "label_ar": "عسيلة",
+  "sort": 20
+ },
+ {
+  "code": "DJ-OB-OB",
+  "governorate": "DJ-OB",
+  "label_en": "Obock",
+  "label_ar": "أوبوك",
+  "sort": 10
+ },
+ {
+  "code": "DJ-OB-KA",
+  "governorate": "DJ-OB",
+  "label_en": "Khor Angar",
+  "label_ar": "خور أنغار",
+  "sort": 20
+ },
+ {
+  "code": "DJ-TA-TA",
+  "governorate": "DJ-TA",
+  "label_en": "Tadjourah",
+  "label_ar": "تاجورة",
+  "sort": 10
+ },
+ {
+  "code": "DJ-TA-BH",
+  "governorate": "DJ-TA",
+  "label_en": "Balha",
+  "label_ar": "بالحا",
+  "sort": 20
+ },
+ {
+  "code": "KM-G-MO",
+  "governorate": "KM-G",
+  "label_en": "Moroni",
+  "label_ar": "موروني",
+  "sort": 10
+ },
+ {
+  "code": "KM-G-MI",
+  "governorate": "KM-G",
+  "label_en": "Mitsamiouli",
+  "label_ar": "ميتساميولي",
+  "sort": 20
+ },
+ {
+  "code": "KM-G-IC",
+  "governorate": "KM-G",
+  "label_en": "Iconi",
+  "label_ar": "إيكوني",
+  "sort": 30
+ },
+ {
+  "code": "KM-M-MU",
+  "governorate": "KM-M",
+  "label_en": "Mutsamudu",
+  "label_ar": "موتسامودو",
+  "sort": 10
+ },
+ {
+  "code": "KM-M-OU",
+  "governorate": "KM-M",
+  "label_en": "Ouani",
+  "label_ar": "واني",
+  "sort": 20
+ },
+ {
+  "code": "KM-M-DM",
+  "governorate": "KM-M",
+  "label_en": "Domoni",
+  "label_ar": "دوموني",
+  "sort": 30
+ },
+ {
+  "code": "KM-A-FM",
+  "governorate": "KM-A",
+  "label_en": "Fomboni",
+  "label_ar": "فومبوني",
+  "sort": 10
+ },
+ {
+  "code": "KM-A-NM",
+  "governorate": "KM-A",
+  "label_en": "Nioumachoua",
+  "label_ar": "نيومشوا",
+  "sort": 20
+ }
+]

@@ -1366,6 +1366,18 @@
         renderLeft();
         renderPins();
       } catch (err) {
+        /* a remembered selection that no longer exists in this database (a fresh
+           install, a deleted record) is forgotten here — otherwise every future map
+           open re-requests a record that will never answer (the stale `place:9`
+           404 on a fresh install) */
+        if (err && err.status === 404 && state.selected &&
+            state.selected.id === feature.id &&
+            state.selected.entity_type === feature.entity_type) {
+          state.selected = null;
+          state.selectedDoc = null;
+          A.setPref(SEL_KEY, "default");
+          renderRight();
+        }
         toast(err.message, "err", 5000);
       }
     }
@@ -2335,6 +2347,18 @@
       root.querySelector("#geoCrsBtn").textContent = state.crs;
       dom.readoutPos.textContent = "—";
     };
+
+    /* a record saved through an in-place form refreshes the map's features
+       where it stands — never a rebuild around the reader */
+    document.addEventListener("siraj:record-saved", onRecSaved);
+    function onRecSaved(e) {
+      if (!root.isConnected || mapState !== state) {
+        document.removeEventListener("siraj:record-saved", onRecSaved);
+        return;
+      }
+      e.detail.handled = true;
+      loadFeatures();
+    }
 
     document.addEventListener("keydown", onKey);
     function onKey(e) {

@@ -12,9 +12,9 @@
   const A = window.App;
   const { t, api, esc, icon, hydrateIcons, toast, fmtNum } = A;
 
-  const GROUP_ORDER = ["identity", "life", "career", "location", "geo", "timing", "link",
-    "detail", "people", "profile", "content", "assessment", "research", "history",
-    "contact", "meta", "system"];
+  const GROUP_ORDER = ["identity", "structure", "life", "career", "location", "geo",
+    "timing", "link", "detail", "main", "people", "profile", "content", "assessment",
+    "research", "history", "contact", "meta", "system"];
 
   const NAME_FIELD = { person: "name_ar", institution: "name_ar", place: "name_ar",
     source: "title", event: "title_ar", relationship: "description" };
@@ -262,6 +262,162 @@
       return esc(v);
     }
 
+    /* ---- the leader, integrated: the military side of a person record ----
+       The Leader table is gone: a commander IS a person of the 'military'
+       category, and the person record holds the full leadership picture.
+       A military person shows one card — service detail (rank, branch,
+       service status, commission date), the assessed qualities that set the
+       leader apart (always with their basis), the derived command record and
+       the appointment history.  Any other category shows only the assessed
+       qualities, if there are any: each category displays the attributes
+       relevant to that specific classification. */
+    const CMD_LEVEL_COLOR = {
+      Exceptional: "green", Outstanding: "blue", Proficient: "slate",
+      Developing: "amber"
+    }; /* mirrors the leadership vocabulary in app/military/vocab.py */
+    const CMD_LEVEL_HEX = {
+      green: "#2f8f5b", blue: "#3b7dd8", slate: "#7a8b99", amber: "#c98a1b"
+    };
+    const CMD_LEVEL_RANK = { Exceptional: 4, Outstanding: 3, Proficient: 2, Developing: 1 };
+
+    function cmdVocabLabel(domain, code) {
+      const o = (A.domainOptions(domain) || [])
+        .find(x => x.code === code || String(x.id) === String(code));
+      if (!o) return code || "";
+      return A.state.lang === "ar"
+        ? (o.label_ar || o.label_en || code) : (o.label_en || o.label_ar || code);
+    }
+
+    /* The signature fan: one spoke per assessed quality, its length the
+       recorded level — identical language to the military workspace. */
+    function cmdFan(rows, name) {
+      const shown = rows.slice(0, 8);
+      if (!shown.length) return "";
+      const W = 560, H = 320, cx = W / 2, cy = H / 2 + 4;
+      const spokes = shown.map((r, i) => {
+        const ang = (i / shown.length) * Math.PI * 2 - Math.PI / 2;
+        const lvl = CMD_LEVEL_RANK[r.level] || 1;
+        const len = 38 + lvl * 24;
+        const cos = Math.cos(ang), sin = Math.sin(ang);
+        return {
+          r, lvl,
+          x: cx + len * cos, y: cy + len * sin,
+          lx: cx + (len + 16) * cos, ly: cy + (len + 16) * sin,
+          color: CMD_LEVEL_HEX[CMD_LEVEL_COLOR[r.level] || "slate"] || CMD_LEVEL_HEX.slate,
+          anchor: cos < -0.15 ? "end" : (cos > 0.15 ? "start" : "middle")
+        };
+      });
+      return `<svg class="mil-lead-fan-svg" viewBox="0 0 ${W} ${H}" role="img">
+        ${[1, 2, 3, 4].map(lvl => `<circle cx="${cx}" cy="${cy}" r="${38 + lvl * 24}"
+          fill="none" stroke="rgba(125,139,150,.18)" stroke-dasharray="3 5"/>`).join("")}
+        ${spokes.map(sp => `
+          <line x1="${cx}" y1="${cy}" x2="${sp.x}" y2="${sp.y}"
+            stroke="${sp.color}" stroke-width="${1.5 + sp.lvl * 0.6}" stroke-linecap="round"/>
+          <circle cx="${sp.x}" cy="${sp.y}" r="${3 + sp.lvl}" fill="${sp.color}"/>
+          <text class="mil-lead-label" x="${sp.lx}" y="${sp.ly + 4}"
+            text-anchor="${sp.anchor}">${esc(cmdVocabLabel("leadership_quality", sp.r.quality))}</text>`).join("")}
+        <circle cx="${cx}" cy="${cy}" r="26" fill="rgba(125,139,150,.14)"
+          stroke="rgba(125,139,150,.35)"/>
+        <text x="${cx}" y="${cy + 4}" text-anchor="middle"
+          style="font-weight:700">${esc(A.initials(name || ""))}</text>
+      </svg>`;
+    }
+
+    function commandServiceCard() {
+      const military = rec.category === "military";
+      const card = document.createElement("div");
+      card.className = "card";
+      /* the service header is category-conditional: rank/branch/service only
+         apply to a military person */
+      const serviceChips = military ? `
+        ${rec.rank_title ? `<span class="badge slate">${esc(rec.rank_title)}</span>` : ""}
+        ${rec.branch ? `<span class="badge slate">${esc(cmdVocabLabel("military_branch", rec.branch) || rec.branch)}</span>` : ""}
+        ${rec.service_status ? `<span class="badge ${rec.service_status === "Active" ? "green" : "gray"}">${esc(cmdVocabLabel("military_service_status", rec.service_status) || rec.service_status)}</span>` : ""}
+        ${rec.commission_date ? `<span class="small muted">${esc(t("mil.cmd.commissioned"))}: ${esc(rec.commission_date)}</span>` : ""}` : "";
+      card.innerHTML = `<div class="card-head"><h3>${esc(t(military ? "mil.cmd.title" : "mil.lead.title"))}</h3>${serviceChips}</div>
+        <div class="cmd-body"><div class="ap-loading">${esc(t("common.loading"))}</div></div>`;
+      setTimeout(async () => {
+        const host = card.querySelector(".cmd-body");
+        if (!host) return;
+        try {
+          /* the assessed qualities — real rows with their basis (any category:
+             leadership is not limited to the military classification) */
+          let traits = [];
+          try {
+            const tres = await A.api.get(
+              `/api/military/traits?person_id=${id}&limit=50`);
+            traits = tres.records || [];
+          } catch (e) { traits = []; }
+
+          let asg = [], unitName = {}, lrec = null;
+          if (military) {
+            try {
+              const ares = await A.api.get(
+                `/api/military/assignments?commander_id=${id}&limit=20`);
+              asg = (ares.records || []).sort((a, b) =>
+                (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0)
+                || String(b.assigned_date || "").localeCompare(String(a.assigned_date || "")));
+            } catch (e) { asg = []; }
+            await Promise.all([...new Set(asg.map(a => a.unit_id).filter(Boolean))]
+              .map(async (uid) => {
+                try {
+                  const u = await A.api.get(`/api/military/units/${uid}`);
+                  const ur = u.record || u;
+                  unitName[uid] = ur.name || ur.docname || ("#" + uid);
+                } catch (e) { unitName[uid] = "#" + uid; }
+              }));
+            /* the command record — database counts over this person's
+               appointments, never estimated */
+            try {
+              const lres = await A.api.get(
+                `/api/military/persons/${id}/leader-record`);
+              lrec = lres.leader_record || lres;
+            } catch (e) { lrec = null; }
+          }
+
+          const name = rec.name_en || rec.name_ar || rec.code || "";
+          if (!traits.length && !military) {
+            /* a civilian/other record with nothing category-specific to show */
+            card.remove();
+            return;
+          }
+          host.innerHTML = `
+            ${traits.length ? `
+              <h4 class="mil-lead-sub">${esc(t("mil.lead.title"))}</h4>
+              <div class="mil-lead-fan">${cmdFan(traits, name)}</div>
+              <div class="mil-lead-chips">${traits.slice(0, 6).map(tr => `
+                <span class="badge ${CMD_LEVEL_COLOR[tr.level] || "slate"}">${esc(cmdVocabLabel("leadership_quality", tr.quality))}${tr.level ? " · " + esc(cmdVocabLabel("leadership_level", tr.level)) : ""}</span>`).join("")}
+              </div>` : `<div class="empty small">${esc(t("mil.lead.noAssessments"))}</div>`}
+            ${lrec ? `
+              <h4 class="mil-lead-sub">${esc(t("mil.lead.recordTitle"))}</h4>
+              <div class="statgrid">
+                <div class="statcard"><b>${fmtNum(lrec.units_commanded)}</b><span>${esc(t("mil.lead.unitsCommanded"))}</span></div>
+                <div class="statcard"><b>${esc(lrec.max_echelon || "\u2014")}</b><span>${esc(t("mil.lead.maxEchelon"))}</span></div>
+                <div class="statcard"><b>${fmtNum(lrec.personnel_under_command)}</b><span>${esc(t("mil.lead.personnel"))}</span></div>
+                <div class="statcard"><b>${fmtNum(lrec.deployments_covered)}</b><span>${esc(t("mil.lead.deployments"))}</span></div>
+                <div class="statcard"><b>${fmtNum(lrec.appointments)}</b><span>${esc(t("mil.lead.appointments"))}</span></div>
+                <div class="statcard"><b>${lrec.years_of_service != null ? fmtNum(lrec.years_of_service) : "\u2014"}</b><span>${esc(t("mil.lead.service"))}</span></div>
+              </div>` : ""}
+            ${asg.length ? `<h4 class="mil-lead-sub">${esc(t("mil.cmd.appointment"))}</h4>
+              <div class="table-wrap"><table class="data compact">
+                <thead><tr><th>${esc(t("mil.cmd.appointment"))}</th>
+                  <th>${esc(t("mil.cmd.unit"))}</th>
+                  <th>${esc(t("mil.cmd.since"))}</th></tr></thead><tbody>
+                ${asg.slice(0, 6).map(a => `<tr>
+                  <td>${esc(a.role || "\u2014")}${a.is_current
+                    ? ` <span class="badge green">${esc(t("mil.cmd.current"))}</span>` : ""}</td>
+                  <td><a href="#/military/units/${a.unit_id}/show">${esc(unitName[a.unit_id] || ("#" + a.unit_id))}</a></td>
+                  <td class="nowrap">${esc(a.assigned_date || "\u2014")}${a.relieved_date
+                    ? " \u2192 " + esc(a.relieved_date) : ""}</td>
+                </tr>`).join("")}</tbody></table></div>` : ""}
+            ${traits.length ? `<div class="small muted mil-lead-basis">${esc(t("mil.lead.basisNote"))}</div>` : ""}`;
+        } catch (err) {
+          host.innerHTML = `<div class="notice err small">${esc(err.message)}</div>`;
+        }
+      }, 0);
+      return card;
+    }
+
     function overviewTab() {
       const nodes = [];
       const wrap = document.createElement("div");
@@ -306,6 +462,9 @@
         card.className = "card";
         card.innerHTML = egoNetwork(rec);
         if (card.innerHTML.trim()) wrap.appendChild(card);
+      }
+      if (entity === "person") {
+        wrap.appendChild(commandServiceCard());
       }
       const sys = document.createElement("div");
       sys.className = "card";
@@ -622,10 +781,9 @@
         ? (A.dispTitle(rec, "place") || rec.code || "")
         : ""
     };
-    const behind = `#${String(location.hash || "").replace(/^#/, "")}`
-      || `#/entity/${entity}/${rec.id}`;
-    A.state.formReturnTo = behind;
-    location.hash = "#/entity/event/new";
+    /* in place, like every add: the form opens over this screen and saving
+       keeps the reader right here */
+    A.forms.open("event", null);
   }
   A.addEvent = addEvent;
 
@@ -647,7 +805,7 @@
       <div class="grid c2">
         <div class="field"><label>${A.t("ui.otherEntityType")}</label>
           <select id="relEtype">${typeOpts
-            .map(x => `<option value="${x.code}" ${preferred && x.code === preferred[0] ? "selected" : ""}>${esc(A.state.lang === "ar" ? x.label_ar : x.label_en)}</option>`).join("")}</select></div>
+            .map(x => `<option value="${x.code}" ${preferred && x.code === preferred[0] ? "selected" : ""}>${esc(A.state.lang === "ar" ? (x.label_ar || x.label_en) : (x.label_en || x.label_ar))}</option>`).join("")}</select></div>
         <div class="field"><label>${A.t("ui.otherRecord")}</label>
           <div id="relTargetHost"></div></div>
       </div>
@@ -738,7 +896,7 @@
   A.linkSource = linkSource;
 
   /* ============================================================== form === */
-  async function buildForm(entity, rec) {
+  async function buildForm(entity, rec, seed) {
     const spec = A.entitySpec(entity) || {};
     const fields = A.fieldsOf(entity);
     const isNew = !rec;
@@ -791,7 +949,11 @@
     const groups = {};
     fields.filter(f => !f.system).forEach(f => { (groups[f.group] = groups[f.group] || []).push(f); });
 
-    GROUP_ORDER.filter(g => groups[g]).forEach(g => {
+    const ordered = GROUP_ORDER.filter(g => groups[g]);
+    /* groups the catalogue does not know yet (e.g. military structure/main)
+       still render, in spec order, after the known ones */
+    Object.keys(groups).filter(g => !GROUP_ORDER.includes(g)).forEach(g => ordered.push(g));
+    ordered.forEach(g => {
       const fs = document.createElement("fieldset");
       fs.className = "field-group";
       fs.innerHTML = `<legend>${esc(t("form.groups." + g) || g)}</legend>
@@ -804,6 +966,52 @@
       });
       form.appendChild(fs);
     });
+
+    /* ---- category-conditional attributes ------------------------------- */
+    /* Each category displays the attributes relevant to that specific
+       classification.  meta.category_fields maps a category code to the
+       fields that belong to it — a military person shows rank, branch,
+       commission date, service status and military biography.  Switching
+       the category reveals the fields it owns and clears the ones it does
+       not (the switch marks the form dirty; Cancel restores the record).
+       The server enforces the same rule on every write. */
+    (function initCategoryConditional() {
+      const catKey = spec.category_field;
+      const catMap = spec.category_fields || {};
+      if (!catKey || !Object.keys(catMap).length) return;
+      const owning = new Map();          /* field key -> Set(category codes) */
+      Object.keys(catMap).forEach(code =>
+        (catMap[code] || []).forEach(k => {
+          if (!owning.has(k)) owning.set(k, new Set());
+          owning.get(k).add(code);
+        }));
+      const catSelect = () => form.querySelector(`[data-k="${catKey}"]`);
+      const apply = (clear) => {
+        const el = catSelect();
+        const code = String((el && el.value) || "").trim();
+        owning.forEach((codes, key) => {
+          const w = form.querySelector(`[data-field="${key}"]`);
+          if (!w) return;
+          const show = codes.has(code);
+          w.classList.toggle("cat-hidden", !show);
+          if (!show && clear) {
+            w.querySelectorAll("[data-k]").forEach(inp => { inp.value = ""; });
+          }
+        });
+        /* a fieldset whose fields are all category-owned hides with them */
+        form.querySelectorAll("fieldset.field-group").forEach(fs => {
+          const ws = Array.from(fs.querySelectorAll("[data-field]"));
+          if (!ws.length) return;
+          if (ws.every(w => owning.has(w.dataset.field))) {
+            const anyShown = ws.some(w => !w.classList.contains("cat-hidden"));
+            fs.classList.toggle("cat-hidden", !anyShown);
+          }
+        });
+      };
+      const el = catSelect();
+      if (el) el.addEventListener("change", () => apply(true));
+      apply(false);
+    })();
 
     if ((spec.tags || []).length) {
       const fs = document.createElement("fieldset");
@@ -866,10 +1074,20 @@
 
     /* -------------------------------------------------------- fieldEl --- */
     function fieldEl(f) {
+      /* a vocabulary select with no vocabulary behind it is an honest text
+         box — never an empty dropdown */
+      if (f.type === "select" && !(f.options || []).length
+          && !(f.domain && (A.domainOptions(f.domain) || []).length)) {
+        f = Object.assign({}, f, { type: "text" });
+      }
       const wrap = document.createElement("div");
       wrap.className = "field" + (f.type === "textarea" ? " span2" : "");
       wrap.dataset.field = f.key;
-      let val = rec ? rec[f.key] : (f.key === "code" ? nextCode : "");
+      /* seed = contextual pre-link (quick-add from a dossier): the record is
+         new, but some fields already know their answer */
+      let val = rec ? rec[f.key]
+        : (seed && seed[f.key] !== undefined && seed[f.key] !== null && seed[f.key] !== ""
+          ? seed[f.key] : ((f.key === "code" || f.key === "docname") ? nextCode : ""));
       /* a brand-new record starts on the workflow default (draft) instead of
          showing an empty required dropdown the server would have to fix up */
       if (!rec && !val && f.key === "record_status_id") {
@@ -891,13 +1109,18 @@
       hidden.dataset.k = f.key;
       hidden.value = val === null || val === undefined ? "" : val;
 
-      const hierarchicalPlace = entity === "place"
-        && (f.key === "country_id" || f.key === "governorate_id" || f.key === "district_id");
+      const hierarchicalPlace = entity === "place" && A.isAdminFieldKey(f.key);
       if (f.type === "select" && !A.isLargeList(f) && !hierarchicalPlace) {
         const sel = document.createElement("select");
         sel.dataset.k = f.key;
         const storeCode = f.store === "code";
         let opts = A.domainOptions(f.domain) || [];
+        if (!opts.length && (f.options || []).length) {
+          /* free-code vocabulary (store = "code", no lookup domain): the
+             allowed values ride on the meta field — the service validates the
+             same list, the locale bundles carry the labels */
+          opts = A.optChoices(f.options, f.key);
+        }
         /* relationship endpoints cannot point at a relationship or a source */
         if (entity === "relationship" && (f.key === "entity1_type" || f.key === "entity2_type")) {
           opts = opts.filter(o => o.code !== "relationship" && o.code !== "source");
@@ -912,11 +1135,11 @@
               ? selected === String(o.code)
               : selected === String(o.id);
             return `<option value="${esc(String(ov))}" ${match ? "selected" : ""}>
-            ${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`;
+            ${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`;
           }).join("");
-        if (entity === "place" && f.key === "country_id") {
+        if (entity === "place" && A.isAdminFieldKey(f.key)) {
           sel.addEventListener("change", () => {
-            cascadeAdminUnits({ from: "country" });
+            cascadeAdminUnits({ from: f.key.replace(/_id$/, "") });
             markDirty();
           });
         }
@@ -938,15 +1161,14 @@
         let placeFilters = null;
         if (entity === "place" && f.key === "parent_place_id") {
           placeFilters = { country_id: currentCountryId() };
-        } else if (entity === "place" && f.key === "governorate_id") {
-          const cid = currentCountryId();
-          placeFilters = cid ? { parent_id: cid } : { require_parent: true };
-        } else if (entity === "place" && f.key === "district_id") {
-          const gid = currentGovernorateId();
-          placeFilters = gid ? { parent_id: gid } : { require_parent: true };
+        } else if (entity === "place" && A.isAdminFieldKey(f.key)) {
+          const adom = f.key.replace(/_id$/, "");
+          const aidx = A.ADMIN_CHAIN.indexOf(adom);
+          const apid = aidx > 0 ? currentAdminId(A.ADMIN_CHAIN[aidx - 1]) : null;
+          placeFilters = (aidx > 0 && apid) ? { parent_id: apid }
+            : (aidx > 0 ? { require_parent: true } : null);
         }
-        const vocabCreate = entity === "place"
-          && (f.key === "country_id" || f.key === "governorate_id" || f.key === "district_id");
+        const vocabCreate = entity === "place" && A.isAdminFieldKey(f.key);
         const seedLabel = (!rec && entity === "event" && f.key === "place_id"
           && A.state.eventSeed && Number(A.state.eventSeed.place_id) === Number(val))
           ? (A.state.eventSeed.place_label || "") : "";
@@ -964,12 +1186,8 @@
             if ((f.key === "birthplace_id" || f.key === "place_id") && form._onPlacePick) {
               form._onPlacePick(it);
             }
-            if (entity === "place" && f.key === "country_id") {
-              cascadeAdminUnits({ from: "country" });
-            } else if (entity === "place" && f.key === "governorate_id") {
-              applyGovernorateSelection(it);
-            } else if (entity === "place" && f.key === "district_id") {
-              applyDistrictSelection(it);
+            if (entity === "place" && A.isAdminFieldKey(f.key)) {
+              applyAdminSelection(f.key.replace(/_id$/, ""), it);
             }
             if (nameKey && it) {
               const nameEl = form.querySelector(`[data-k="${nameKey}"]`);
@@ -986,10 +1204,8 @@
               const nameEl = form.querySelector(`[data-k="${nameKey}"]`);
               if (nameEl) nameEl.value = "";
             }
-            if (entity === "place" && f.key === "country_id") {
-              cascadeAdminUnits({ from: "country" });
-            } else if (entity === "place" && f.key === "governorate_id") {
-              cascadeAdminUnits({ from: "governorate" });
+            if (entity === "place" && A.isAdminFieldKey(f.key)) {
+              cascadeAdminUnits({ from: f.key.replace(/_id$/, "") });
             }
             markDirty();
           }
@@ -1001,14 +1217,11 @@
         if (entity === "place" && f.key === "parent_place_id") {
           form._parentPlaceCombo = combo;
         }
-        if (entity === "place" && f.key === "country_id") {
-          form._countryCombo = combo;
-        }
-        if (entity === "place" && f.key === "governorate_id") {
-          form._governorateCombo = combo;
-        }
-        if (entity === "place" && f.key === "district_id") {
-          form._districtCombo = combo;
+        if (entity === "place" && A.isAdminFieldKey(f.key)) {
+          const regDom = f.key.replace(/_id$/, "");
+          form._adminCombos = form._adminCombos || {};
+          form._adminCombos[regDom] = combo;
+          form[`_${regDom}Combo`] = combo;
         }
         wrap.appendChild(combo);
         wrap.appendChild(hidden);
@@ -1211,16 +1424,13 @@
       const opt = (A.domainOptions(domain) || []).find(o => o.code === code);
       return opt ? String(opt.id) : "";
     }
-    function currentCountryId() {
-      const el = form.querySelector('[data-k="country_id"]');
+    function currentAdminId(domain) {
+      const el = form.querySelector(`[data-k="${domain}_id"]`);
       const v = el && el.value;
       return v ? Number(v) : null;
     }
-    function currentGovernorateId() {
-      const el = form.querySelector('[data-k="governorate_id"]');
-      const v = el && el.value;
-      return v ? Number(v) : null;
-    }
+    function currentCountryId() { return currentAdminId("country"); }
+    function currentGovernorateId() { return currentAdminId("governorate"); }
     function lookupLabel(opt) {
       if (!opt) return "";
       return A.state.lang === "ar"
@@ -1240,10 +1450,9 @@
         if (id) hidden.dataset.autofill = "1";
         else delete hidden.dataset.autofill;
       }
-      const combo = form[`_${key.replace(/_id$/, "")}Combo`]
-        || (key === "country_id" ? form._countryCombo
-          : key === "governorate_id" ? form._governorateCombo
-          : key === "district_id" ? form._districtCombo : null);
+      const cdom = key.replace(/_id$/, "");
+      const combo = (form._adminCombos && form._adminCombos[cdom])
+        || form[`_${cdom}Combo`] || null;
       if (combo && combo.setValue) {
         if (id) combo.setValue(Number(id), label || "");
         else {
@@ -1269,65 +1478,55 @@
       }
     }
     function cascadeAdminUnits({ from } = {}) {
-      const cid = currentCountryId();
-      const gid = currentGovernorateId();
+      const chain = A.ADMIN_CHAIN;
       if (form._parentPlaceCombo && form._parentPlaceCombo.setFilters) {
-        form._parentPlaceCombo.setFilters({ country_id: cid || null });
+        form._parentPlaceCombo.setFilters({ country_id: currentCountryId() || null });
       }
-      if (form._governorateCombo && form._governorateCombo.setFilters) {
-        form._governorateCombo.setFilters(
-          cid ? { parent_id: cid, require_parent: false }
-            : { parent_id: null, require_parent: true });
+      /* Hierarchical selection — the contract at every level:
+         an admin combo lists ONLY the direct children of the unit selected in
+         the level above it; with nothing selected above, it lists nothing
+         (require_parent) instead of leaking sibling branches. */
+      for (let i = 1; i < chain.length; i++) {
+        const combo = form._adminCombos && form._adminCombos[chain[i]];
+        if (!combo || !combo.setFilters) continue;
+        const pid = currentAdminId(chain[i - 1]);
+        combo.setFilters(pid ? { parent_id: pid, require_parent: false }
+          : { parent_id: null, require_parent: true });
       }
-      if (form._districtCombo && form._districtCombo.setFilters) {
-        form._districtCombo.setFilters(
-          gid ? { parent_id: gid, require_parent: false }
-            : { parent_id: null, require_parent: true });
-      }
-      if (from === "country") {
-        clearLookupIfFilteredOut("governorate_id", cid, "governorate");
-        const nextGid = currentGovernorateId();
-        clearLookupIfFilteredOut("district_id", nextGid, "district");
-        if (!nextGid) setLookupField("district_id", null, "");
-      } else if (from === "governorate") {
-        clearLookupIfFilteredOut("district_id", gid, "district");
-        if (!gid) setLookupField("district_id", null, "");
-      }
-    }
-    function applyGovernorateSelection(it) {
-      /* reverse: governorate → country */
-      if (it && it.parent_id) {
-        const country = A.lookupById(Number(it.parent_id))
-          || (A.domainOptions("country") || []).find(o => Number(o.id) === Number(it.parent_id));
-        if (country) {
-          setLookupField("country_id", country.id, lookupLabel(country), { autofill: true });
-        } else {
-          setLookupField("country_id", it.parent_id, "", { autofill: true });
-        }
-      }
-      cascadeAdminUnits({ from: "governorate" });
-    }
-    function applyDistrictSelection(it) {
-      /* reverse: district → governorate → country */
-      if (it && it.parent_id) {
-        const gov = A.lookupById(Number(it.parent_id))
-          || (A.domainOptions("governorate") || []).find(o => Number(o.id) === Number(it.parent_id));
-        if (gov) {
-          setLookupField("governorate_id", gov.id, lookupLabel(gov), { autofill: true });
-          if (gov.parent_id) {
-            const country = A.lookupById(Number(gov.parent_id))
-              || (A.domainOptions("country") || []).find(o => Number(o.id) === Number(gov.parent_id));
-            if (country) {
-              setLookupField("country_id", country.id, lookupLabel(country), { autofill: true });
-            } else {
-              setLookupField("country_id", gov.parent_id, "", { autofill: true });
-            }
+      /* A changed ancestor invalidates every descendant below it. */
+      if (from) {
+        const start = chain.indexOf(from);
+        for (let i = Math.max(start, 0) + 1; i < chain.length; i++) {
+          const parentId = currentAdminId(chain[i - 1]);
+          if (parentId) {
+            clearLookupIfFilteredOut(`${chain[i]}_id`, parentId, chain[i]);
+          } else {
+            setLookupField(`${chain[i]}_id`, null, "");
           }
-        } else {
-          setLookupField("governorate_id", it.parent_id, "", { autofill: true });
         }
       }
-      cascadeAdminUnits({ from: "governorate" });
+    }
+    function applyAdminSelection(domain, it) {
+      /* reverse: picking a deep unit implies its ancestors
+         (village → municipality → region → province → country), autofilled
+         without overwriting values the researcher typed by hand. */
+      if (it && it.parent_id) {
+        const idx = A.ADMIN_CHAIN.indexOf(domain);
+        let node = A.lookupById(Number(it.parent_id)) || null;
+        let rawId = it.parent_id;
+        for (let i = idx - 1; i >= 0; i--) {
+          const dom = A.ADMIN_CHAIN[i];
+          if (node) {
+            setLookupField(`${dom}_id`, node.id, lookupLabel(node), { autofill: true });
+            rawId = node.parent_id;
+            node = node.parent_id ? A.lookupById(Number(node.parent_id)) : null;
+          } else {
+            setLookupField(`${dom}_id`, rawId, "", { autofill: true });
+            break;
+          }
+        }
+      }
+      cascadeAdminUnits({ from: domain });
     }
     function setAutofill(el, value) {
       if (!el || value == null || value === "") return false;
@@ -1487,10 +1686,38 @@
         .map(r => ({ entity_type: r.entity_type, entity_id: r.entity_id }));
     }
 
+    /* live numbering preview: the auto-generated document name follows what is
+       typed (year partitions, choice fields) — advisory, never reserved */
+    const docEl = form.querySelector('.field[data-field="docname"] [data-k]');
+    if (isNew && docEl && docEl.disabled) {
+      let nameTimer;
+      const refreshName = async () => {
+        const ctx = new URLSearchParams();
+        form.querySelectorAll("select[data-k]").forEach(sel => {
+          if (sel.value) ctx.set(sel.dataset.k, sel.value);
+        });
+        try {
+          const res = await api.get(`/api/${entity}/next-code?${ctx}`);
+          if (res.code && docEl.isConnected) docEl.value = res.code;
+        } catch (e) { /* advisory only — never block the form */ }
+      };
+      form.addEventListener("input", () => {
+        clearTimeout(nameTimer);
+        nameTimer = setTimeout(refreshName, 400);
+      });
+      form.addEventListener("change", () => {
+        clearTimeout(nameTimer);
+        nameTimer = setTimeout(refreshName, 150);
+      });
+    }
+
     form._collect = () => {
       const data = {};
       form.querySelectorAll("[data-k]").forEach(el => {
         const key = el.dataset.k;
+        /* read-only controls (system-maintained values like docname) display
+           state, they never contribute to the payload */
+        if (el.disabled) return;
         if (el.type === "checkbox") data[key] = el.checked;
         else if (el.value === "") data[key] = null;
         else data[key] = el.value;
@@ -1743,11 +1970,12 @@
   function formActions(form, ctx) {
     const { entity, rec } = ctx;
     const isNew = !rec;
+    const backTo = ctx.backTo || (isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`);
     const bar = document.createElement("div");
     bar.className = "formbar no-print" + (ctx.mode === "dialog" ? " in-dialog" : "");
     bar.innerHTML = `<button type="button" class="btn primary" data-save>${icon("save")} ${t("common.save")}</button>
       ${isNew ? `<button type="button" class="btn" data-save-new>${t("common.save")} + ${t("common.new")}</button>` : ""}
-      <a class="btn ghost" href="${isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`}"
+      <a class="btn ghost" href="${backTo}"
          data-cancel>${t("common.cancel")}</a>
       <span class="dirty" data-dirty></span>
       <span class="spacer"></span>
@@ -1831,18 +2059,22 @@
       isNew ? "" : `${t("common.code")}: ${rec.code} · v${rec.version}`) +
       `<div data-form-host></div>`;
     const host = root.querySelector("[data-form-host]");
-    const form = await buildForm(entity, rec);
+    const form = await buildForm(entity, rec, params && params.seed);
     /* another navigation may have re-rendered the view while the metadata was
        loading — drop this render instead of stacking a second form */
     if (!host.isConnected || host !== root.querySelector("[data-form-host]")) return;
     host.appendChild(form);
     hydrateIcons(root);
 
+    /* stay-in-place: the form was opened *from* a screen — save and cancel
+       return to it (redrawn with the saved record) instead of navigating on */
+    const backTo = A.state.formReturnTo || A.state.formOrigin || `#/entity/${entity}`;
+    A.state.formReturnTo = null;
     const { bar } = formActions(form, {
-      entity, rec, mode: "page",
+      entity, rec, mode: "page", backTo,
       onSaved: (record, andNew) => {
         if (andNew) return renderForm(root, entity, null, params);
-        location.hash = `#/entity/${entity}/${record.id}`;
+        replaceRoute(backTo);
       }
     });
     form.appendChild(bar);
@@ -1853,6 +2085,22 @@
   let activeDialog = null;
 
   /**
+   * A form that opened in place closes in place: the screen is not navigated,
+   * it is refreshed where it stands.  Views may handle the save softly (the
+   * geographic view reloads its features instead of rebuilding around the
+   * reader); anything unhandled falls back to a plain re-render of the very
+   * same screen.
+   */
+  function refreshInPlace(entity, record) {
+    const detail = { entity, id: record && record.id, record, handled: false };
+    document.dispatchEvent(new CustomEvent("siraj:record-saved", { detail }));
+    if (!detail.handled) {
+      A._keepScroll = true;          // the reader's eye stays where it was
+      A.rerender();
+    }
+  }
+
+  /**
    * The same form, over the page it belongs to: a new record opens over its
    * list, an edit opens over its dossier.  Closing it puts you back exactly
    * where you were, with the hash swapped rather than pushed, so browser Back
@@ -1861,25 +2109,31 @@
   async function openFormDialog(root, entity, rec, params) {
     A.forms.close(true);                       // never stack two record forms
     const isNew = !rec;
+    /* opened from a button: the form is an overlay on the live screen — it
+       never moves the address and never repaints what is underneath */
+    const inPlace = !!(params && params.inPlace);
     /* where closing returns to: normally the list a new record joins or the
        dossier being edited — but a caller may say "bring them back to me"
        (the settings screen's "open a form" button does exactly that). */
     const returnTo = A.state.formReturnTo;
     A.state.formReturnTo = null;
-    const behind = returnTo || (isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`);
+    /* stay-in-place: return to the screen the form was opened from (an explicit
+       returnTo, or the last non-form screen) — not merely "the list" */
+    const origin = returnTo || A.state.formOrigin;
+    const behind = origin || (isNew ? `#/entity/${entity}` : `#/entity/${entity}/${rec.id}`);
 
     /* 1 · the page behind the dialog — the list a new record will join, or the
            dossier being edited.  If that page is already on screen (the usual
            case: you clicked "New" in the list) it is left alone, so the dialog
            opens over live content instead of a re-painted copy. */
-    const want = returnTo || (isNew ? `list:${entity}` : `record:${entity}:${rec && rec.id}`);
-    if (!returnTo && root.dataset.surface !== want) {
+    const want = origin || (isNew ? `list:${entity}` : `record:${entity}:${rec && rec.id}`);
+    if (!inPlace && !origin && root.dataset.surface !== want) {
       if (isNew) await A.views.list(root, Object.assign({}, params, { dialogBehind: true }));
       else await A.views.record(root, Object.assign({}, params, { dialogBehind: true }));
     }
 
     /* 2 · the form itself */
-    const form = await buildForm(entity, rec);
+    const form = await buildForm(entity, rec, params && params.seed);
     if (!root.isConnected || A.state.route.view === "notFound") return;
     form.classList.add("in-dialog");
     const body = wrapFormDialog(entity, form, { isNew, rec });
@@ -1924,13 +2178,22 @@
         if (andNew) {
           /* keep the surface open and start a clean draft of the same shape */
           dlg.close("saved-new");
+          if (inPlace) { openFormDialog(root, entity, null, params); return; }
           replaceRoute(`#/entity/${entity}/new`);
           return;
         }
         dlg.close("saved");
-        replaceRoute(`#/entity/${entity}/${record.id}`);
+        if (inPlace) {
+          /* stay-in-place, literally: the address never moved.  The screen is
+             refreshed where it stands so the saved record appears in it */
+          refreshInPlace(entity, record);
+          return;
+        }
+        /* stay-in-place: the screen the form was opened from is redrawn with
+           the saved record — no navigation away */
+        replaceRoute(behind);
       },
-      onCancel: () => { dlg.close("cancel"); replaceRoute(behind); }
+      onCancel: () => { dlg.close("cancel"); if (!inPlace) replaceRoute(behind); }
     });
     if (dlg.foot) dlg.foot.appendChild(bar);
     else form.appendChild(bar);
@@ -1962,20 +2225,40 @@
      * `opts.returnTo` names the page to come back to when the form is dismissed
      * (the settings screen's "open a form" button uses it).
      */
+    /**
+     * Open a record form over the screen the person is on.  Add and edit never
+     * navigate — whatever the form-mode preference says about size and shape,
+     * the form is an overlay on the live screen and saving keeps them there.
+     * `opts` remains accepted for compatibility.
+     */
     open(entity, id, opts) {
-      if (opts && opts.returnTo) A.state.formReturnTo = opts.returnTo;
-      location.hash = id ? `#/entity/${entity}/${id}/edit` : `#/entity/${entity}/new`;
+      entity = normEntity(entity);
+      const root = document.getElementById("view") || document.body;
+      return (async () => {
+        const rec = id ? await api.get(`/api/${entity}/${id}`) : null;
+        return openFormDialog(root, entity, rec,
+          Object.assign({}, opts, { inPlace: true }));
+      })();
     }
   };
 
+  /** Canonical entity key — routes may carry plural military slugs ("units"). */
+  function normEntity(key) {
+    const ents = (A.state.meta.entities || []).map(e => e.key);
+    if (ents.includes(key)) return key;
+    const single = key && key.endsWith("s") ? key.slice(0, -1) : key;
+    return ents.includes(single) ? single : key;
+  }
+
   A.views.recordNew = async function (root, params) {
-    if (A.formMode() === "dialog") return openFormDialog(root, params.entity, null, params);
-    await renderForm(root, params.entity, null, params);
+    const entity = normEntity(params.entity);
+    if (A.formMode() === "dialog") return openFormDialog(root, entity, null, params);
+    await renderForm(root, entity, null, params);
   };
 
   A.views.recordEdit = async function (root, params) {
-    const { entity, id } = params;
-    const rec = await api.get(`/api/${entity}/${id}`);
+    const entity = normEntity(params.entity);
+    const rec = await api.get(`/api/${entity}/${params.id}`);
     if (A.formMode() === "dialog") return openFormDialog(root, entity, rec, params);
     await renderForm(root, entity, rec, params);
   };

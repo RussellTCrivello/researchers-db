@@ -44,7 +44,7 @@ def cmd_migrate(_args: argparse.Namespace) -> int:
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
-    db.init_db(seed_demo=args.demo if args.demo is not None else True)
+    db.init_db(seed_demo=args.demo if args.demo is not None else False)
     uvicorn.run("app.server:app", host=args.host, port=args.port,
                 workers=1, log_level=args.log_level)
     return 0

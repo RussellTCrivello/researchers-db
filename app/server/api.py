@@ -18,13 +18,16 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from .. import db, graph, querylang, repo, reports, stats, transfer
+from .. import db, geo_chain, graph, querylang, repo, reports, stats, transfer
 from .. import settings as settings_mod
+from ..military import router as military_router
+from ..military import service as mil_service
+from ..military.specs import MIL_SPECS, is_mil, mil_entity_meta, mil_options, mil_query_shim
 from ..schemas import ENTITIES, ENTITY_TYPES, derived_meta, entity_meta, fields_meta
 from .crce_api import router as crce_router
 from .deps import actor_of, conn_dep
@@ -41,7 +44,7 @@ async def lifespan(_app: FastAPI):
     """Startup/shutdown hook (modern replacement for the deprecated on_event)."""
     db.init_db(seed_demo=False)
     # make sure a database exists with reference data (demo only if explicitly asked)
-    if os.environ.get("SIRAJ_SEED_DEMO", "1") == "1":
+    if os.environ.get("SIRAJ_SEED_DEMO", "0") == "1":
         db.init_db(seed_demo=True)
     # every declared setting gets a row, so an older database gains the keys a
     # newer build declares — without a migration per key
@@ -68,6 +71,11 @@ app.add_middleware(
 app.include_router(map_router)
 app.include_router(crce_router)
 app.include_router(structures_router)
+# The Military Organization module (Brigade Information Management System)
+# shares the unified registry.db (military schema via migration 015, additive)
+# and the shell interface at #/military.  Registered here like the other
+# feature modules; SIRAJ routes and registry data are untouched.
+app.include_router(military_router)
 
 
 def content_disposition(filename: str) -> str:
@@ -105,6 +113,59 @@ def spec_of(entity: str) -> Any:
     if spec is None:
         raise HTTPException(404, f"Unknown entity type '{entity}'")
     return spec
+
+
+def spec_of_any(entity: str) -> Any:
+    """Registry *or* military entity — one query/export/meta contract for both."""
+    if entity in MIL_SPECS:
+        return MIL_SPECS[entity]
+    return spec_of(entity)
+
+
+def _mil_fields_meta(spec: Any) -> list[dict]:
+    """Shared field metadata plus the military vocabulary options.
+
+    Military select fields store free codes (``store="code"``, no lookup
+    domain); the allowed values live in the service's field specs.  Attaching
+    them here lets every generic form render the same dropdowns the service
+    validates against — one meta contract, no military-only form."""
+    from ..military import service as mil_service
+
+    rows = fields_meta(spec)
+    legacy = {f["name"]: f for f in mil_service.ENTITY_SPECS[spec.key]["fields"]}
+    for d in rows:
+        opts = (legacy.get(d["key"]) or {}).get("options")
+        if opts:
+            d["options"] = list(opts)
+    return rows
+
+
+def _mil_role(x_military_role: str | None) -> str:
+    role = (x_military_role or "").strip().lower()
+    # mirrors app.military.api._role_of: an unknown/absent role defaults to admin
+    return role if role in ("viewer", "staff", "admin") else "admin"
+
+
+def _mil_write_guard(x_military_role: str | None) -> str:
+    role = _mil_role(x_military_role)
+    if role not in ("staff", "admin"):
+        raise HTTPException(403, {"ok": False, "error": {
+            "code": "forbidden", "message": "staff role or above required"}})
+    return role
+
+
+def _mil_write(conn, fn, *args):
+    """Run a military-service write, commit it and map its errors to HTTP."""
+    try:
+        out = fn(conn, *args)
+        conn.commit()
+        return out
+    except (mil_service.ServiceError, mil_service.rules.RuleViolation) as exc:
+        conn.rollback()
+        raise HTTPException(getattr(exc, "status", 422), {"ok": False, "error": {
+            "code": getattr(exc, "code", "error"),
+            "message": getattr(exc, "message", str(exc)),
+            "field": getattr(exc, "field", None)}}) from exc
 
 
 # ===========================================================================
@@ -158,6 +219,10 @@ def health(conn=Depends(conn_dep)):
 @app.get("/api/meta")
 def meta(conn=Depends(conn_dep), lang: str = "en"):
     lookups = repo.lookup_options(conn)
+    # every registered vocabulary is served even before its first value —
+    # a selector for a new domain must not silently lose its options source
+    for d in conn.execute("SELECT domain FROM lookup_domain"):
+        lookups.setdefault(d["domain"], [])
     domains = [dict(r) for r in conn.execute(
         "SELECT d.*, (SELECT COUNT(*) FROM lookup l WHERE l.domain=d.domain AND l.is_active=1) n "
         "FROM lookup_domain d ORDER BY d.sort_order")]
@@ -174,9 +239,11 @@ def meta(conn=Depends(conn_dep), lang: str = "en"):
     }
     return {
         "app": {"name": "SIRAJ", "version": "1.0.0", "schema_version": "1.0.0"},
-        "entities": entity_meta(lang),
-        "fields": {k: fields_meta(v) for k, v in ENTITIES.items()},
-        "derived": {k: derived_meta(k) for k in ENTITIES},
+        "entities": entity_meta(lang) + mil_entity_meta(),
+        "fields": {**{k: fields_meta(v) for k, v in ENTITIES.items()},
+                   **{k: _mil_fields_meta(v) for k, v in MIL_SPECS.items()}},
+        "derived": {**{k: derived_meta(k) for k in ENTITIES},
+                    **{k: [] for k in MIL_SPECS}},
         "view_modes": ["table", "cards", "gallery", "list"],
         "lookups": lookups,
         "lookup_domains": domains,
@@ -196,9 +263,15 @@ def meta(conn=Depends(conn_dep), lang: str = "en"):
 
 @app.get("/api/lookups")
 def lookups(domain: str | None = None, include_inactive: bool = False,
+            parent_id: int | None = None, q: str | None = None,
+            limit: int | None = None, offset: int = 0,
             conn=Depends(conn_dep)):
-    """Grouped by domain; when a domain is requested the values are returned flat."""
-    data = repo.lookup_options(conn, domain, include_inactive)
+    """Grouped by domain; when a domain is requested the values are returned flat.
+
+    Hierarchical selection: `parent_id` returns ONLY that unit's direct children
+    (server-enforced cascade); `q` filters code/labels; `limit`/`offset` page."""
+    data = repo.lookup_options(conn, domain, include_inactive,
+                               parent_id=parent_id, q=q, limit=limit, offset=offset)
     if domain:
         return data.get(domain, [])
     return data
@@ -211,6 +284,26 @@ def lookup_domains(conn=Depends(conn_dep)):
            FROM lookup_domain d ORDER BY d.sort_order""")]
 
 
+def _check_admin_parent(conn, domain: str, parent_id):
+    """Strict chain enforcement (app/geo_chain.py): an administrative unit nests
+    exactly one level — a municipality under its region, a village under its
+    municipality, and so on.  Countries sit at the top and take no parent."""
+    if not geo_chain.is_admin_domain(domain):
+        return parent_id
+    want = geo_chain.expected_parent(domain)
+    if want is None:
+        if parent_id:
+            raise HTTPException(422, f"'{domain}' is the top of the chain and cannot have a parent")
+        return None
+    if not parent_id:
+        raise HTTPException(422,
+                            f"Missing parent: a '{domain}' unit must belong to a '{want}' unit")
+    parent = conn.execute("SELECT domain FROM lookup WHERE id=?", (parent_id,)).fetchone()
+    if not parent or parent["domain"] != want:
+        raise HTTPException(422, f"Parent must be a '{want}' unit for domain '{domain}'")
+    return parent_id
+
+
 @app.post("/api/lookups")
 def lookup_create(payload: dict = Body(...), conn=Depends(conn_dep),
                   x_actor: str | None = Header(None)):
@@ -221,6 +314,7 @@ def lookup_create(payload: dict = Body(...), conn=Depends(conn_dep),
     if not conn.execute("SELECT 1 FROM lookup_domain WHERE domain=?",
                         (payload["domain"],)).fetchone():
         raise HTTPException(422, f"Unknown vocabulary domain '{payload['domain']}'")
+    parent_id = _check_admin_parent(conn, payload["domain"], payload.get("parent_id"))
     try:
         cur = conn.execute(
             """INSERT INTO lookup (domain, code, label_en, label_ar, description_en, description_ar,
@@ -228,7 +322,7 @@ def lookup_create(payload: dict = Body(...), conn=Depends(conn_dep),
                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (payload["domain"], payload["code"], payload["label_en"], payload["label_ar"],
              payload.get("description_en"), payload.get("description_ar"),
-             payload.get("parent_id"), int(payload.get("sort_order") or 100),
+             parent_id, int(payload.get("sort_order") or 100),
              payload.get("color") or "gray", db.json_dump(payload.get("meta")),
              1 if payload.get("is_active", True) else 0))
     except sqlite3.IntegrityError:
@@ -249,6 +343,8 @@ def lookup_update(lookup_id: int, payload: dict = Body(...), conn=Depends(conn_d
     before = dict(row)
     fields = [k for k in ("label_en", "label_ar", "description_en", "description_ar",
                           "sort_order", "color", "is_active", "parent_id") if k in payload]
+    if "parent_id" in fields:
+        payload["parent_id"] = _check_admin_parent(conn, row["domain"], payload.get("parent_id"))
     if fields:
         conn.execute(f"UPDATE lookup SET {', '.join(f'{k}=?' for k in fields)}, "
                      f"updated_at=? WHERE id=?",
@@ -288,6 +384,11 @@ def options(entity: str, q: str | None = None, limit: int = 50, ids: str | None 
     when it falls outside the first page of results. For places, `country_id` and
     comma-separated `place_types` (e.g. ``district,neighbourhood``) narrow the list.
     """
+    if is_mil(entity):
+        spec = MIL_SPECS[entity]
+        wanted = [int(i) for i in (ids or "").split(",") if i.strip().isdigit()][:200]
+        return mil_options(conn, spec, q, limit,
+                           ids=wanted or None)
     spec = spec_of(entity)
     if ids:
         wanted = [int(i) for i in ids.split(",") if i.strip().isdigit()][:200]
@@ -337,9 +438,10 @@ def picker_item(conn, spec, row) -> dict:
             hint_parts.append(str(d["publisher"]))
         label_ar = d.get("title_ar")
     else:
-        label_ar = d.get("title_ar")
+        label_ar = (d.get("title_ar") or d.get("name_ar") or d.get("name")
+                    or d.get("full_name") or d.get("exercise_name"))
     return {
-        "id": d["id"], "code": d.get("code"), "label": spec.title(d),
+        "id": d["id"], "code": d.get("code") or d.get("docname"), "label": spec.title(d),
         "label_ar": label_ar, "hint": " · ".join(hint_parts),
         "image": d.get("image_url"), "type": spec.key,
     }
@@ -702,7 +804,7 @@ def saved_views_post(payload: dict = Body(...), conn=Depends(conn_dep),
                      x_actor: str | None = Header(None)):
     if not payload.get("name") or not payload.get("entity_type"):
         raise HTTPException(422, "name and entity_type are required")
-    spec_of(payload["entity_type"])
+    spec_of_any(payload["entity_type"])
     conn.execute(
         """INSERT INTO saved_view (name, entity_type, filters, columns, sort, is_shared, owner)
            VALUES (?,?,?,?,?,?,?)
@@ -733,7 +835,7 @@ def saved_views_delete(view_id: int, conn=Depends(conn_dep)):
 @app.get("/api/import/template/{entity}")
 def import_template(entity: str, format: str = "xlsx", lang: str = "en",
                     example: bool = True, conn=Depends(conn_dep)):
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)   # registry *or* military — one import system
     data, name, mime = transfer.template_bytes(conn, spec, format, lang, example)
     return Response(content=data, media_type=mime,
                     headers={"Content-Disposition": content_disposition(name)})
@@ -742,7 +844,7 @@ def import_template(entity: str, format: str = "xlsx", lang: str = "en",
 @app.post("/api/import/preview")
 async def import_preview(entity: str = Form(...), file: UploadFile = File(...),
                          conn=Depends(conn_dep)):
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     raw = await file.read()
     if not raw:
         raise HTTPException(422, "The uploaded file is empty")
@@ -781,7 +883,7 @@ def _staged_rows(upload_id: str, entity: str) -> tuple[list[str], list[dict], st
 def import_validate(payload: dict = Body(...), conn=Depends(conn_dep),
                     x_actor: str | None = Header(None)):
     entity = payload.get("entity")
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     upload_id = payload.get("upload_id")
     if upload_id:
         _cols, rows, fmt = _staged_rows(upload_id, entity)
@@ -805,7 +907,7 @@ def import_validate(payload: dict = Body(...), conn=Depends(conn_dep),
 def import_commit(payload: dict = Body(...), conn=Depends(conn_dep),
                   x_actor: str | None = Header(None)):
     entity = payload.get("entity")
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     upload_id = payload.get("upload_id")
     if not upload_id:
         raise HTTPException(422, "upload_id is required")
@@ -855,8 +957,8 @@ def import_job_get(job_id: str, conn=Depends(conn_dep)):
 # export
 # ===========================================================================
 def _export_response(conn, entity: str, payload: dict, fmt: str, columns, lang,
-                     resolve: bool, title=None):
-    spec = spec_of(entity)
+                    resolve: bool, title=None):
+    spec = spec_of_any(entity)
     data, name, mime = transfer.export_bytes(conn, spec, payload, fmt, columns, lang,
                                              resolve, title)
     db.log_change(conn, entity_type=spec.key, entity_id=None, action="update",
@@ -1174,12 +1276,22 @@ def external_ids_delete(ext_id: int, conn=Depends(conn_dep),
 @app.post("/api/{entity}/kpi")
 def entity_kpi(entity: str, payload: dict = Body(default={}), conn=Depends(conn_dep)):
     """Headline figures for the current selection (the KPI strip above a list)."""
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     return repo.kpi_summary(conn, spec, payload or {})
 
 
 @app.get("/api/{entity}/duplicates")
 def duplicates(entity: str, limit: int = 50, offset: int = 0, conn=Depends(conn_dep)):
+    if is_mil(entity):
+        spec = MIL_SPECS[entity]
+        title_col = spec.name_fields[0]
+        rows = conn.execute(
+            f"SELECT {title_col} AS label, COUNT(*) AS n FROM {spec.table} "
+            f"WHERE {title_col} IS NOT NULL AND {title_col} != '' "
+            f"GROUP BY {title_col} HAVING COUNT(*) > 1 "
+            f"ORDER BY n DESC LIMIT ? OFFSET ?", (limit, offset)).fetchall()
+        groups = [{"label": r["label"], "count": r["n"]} for r in rows]
+        return {"entity": entity, "groups": groups, "total": len(groups)}
     spec = spec_of(entity)
     groups, total = repo.duplicate_groups(conn, spec, limit=limit, offset=offset)
     return {"entity": entity, "groups": groups, "total": total}
@@ -1214,6 +1326,109 @@ def maintenance_vacuum(conn=Depends(conn_dep)):
     conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     conn.execute("VACUUM")
     return {"ok": True, "size_bytes": db.DB_PATH.stat().st_size}
+
+
+# ---------------------------------------------------------------------------
+# clear all data — the production reset.  Static/reference/configuration data
+# (lookups, vocabulary, users, settings, numbering series, saved views, search
+# configuration, archive metadata) stays intact, and so do the append-only
+# audit ledgers (change_log is DB-enforced append-only; audit_log and
+# naming_adjustment_log follow the same accountability contract — an audit
+# trail can never be lost by clicking a button; retention pruning governs it).
+# Every *record* goes.  The destructive step is preceded by an archive-aside
+# copy, so nothing a person ever entered is lost — it leaves the working
+# database, not the world.
+# ---------------------------------------------------------------------------
+CLEAR_CONFIRM_PHRASE = "CLEAR ALL DATA"
+
+CLEAR_PRESERVE = {
+    "schema_migration", "lookup", "lookup_domain", "locale", "app_user",
+    "setting", "sequence", "naming_series_option", "saved_view", "app_meta",
+    "mil_meta", "search_doc_config", "sqlite_sequence", "backup", "session",
+    "change_log", "audit_log", "naming_adjustment_log",
+}
+
+
+@app.post("/api/maintenance/clear-data")
+def maintenance_clear_data(payload: dict = Body(default={}), conn=Depends(conn_dep),
+                           x_actor: str | None = Header(None)):
+    """Wipe every record from the working database; keep static data intact.
+
+    Requires ``{"confirm": "CLEAR ALL DATA"}`` — the exact phrase — so the
+    action can never fire from a stray click.  Before anything is deleted the
+    live database is copied to ``data/<name>-archive-<stamp>-preclear.db`` and
+    ``data/uploads`` is moved aside as ``uploads-<stamp>`` (renamed, never
+    deleted), then numbering counters are reset and the database is compacted.
+    """
+    phrase = str(payload.get("confirm") or "").strip()
+    if phrase != CLEAR_CONFIRM_PHRASE:
+        raise repo.ValidationError(
+            'This removes every record from the database (static/reference data is '
+            'kept). Type "CLEAR ALL DATA" to confirm.')
+    actor = actor_of(x_actor, None) or "researcher"
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+
+    # 1) archive-aside: copy the live db and move uploads out of the way
+    def _unique(path):
+        p, n = path, 2
+        while p.exists():
+            p = path.with_name(f"{path.name}-{n}")
+            n += 1
+        return p
+
+    archive = _unique(db.DB_PATH.with_name(f"{db.DB_PATH.stem}-archive-{stamp}-preclear.db"))
+    conn.commit()
+    dst = sqlite3.connect(archive)
+    try:
+        conn.backup(dst)
+    finally:
+        dst.close()
+    uploads_as = None
+    if db.UPLOAD_DIR.exists() and any(db.UPLOAD_DIR.iterdir()):
+        uploads_as = _unique(db.UPLOAD_DIR.with_name(f"{db.UPLOAD_DIR.name}-{stamp}"))
+        db.UPLOAD_DIR.rename(uploads_as)
+    db.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 2) wipe every table that is not static/reference/configuration.
+    # The wipe is order-independent: enforcement is switched off for the
+    # transaction (a no-op inside one, so it must precede the first DELETE).
+    # Because every non-preserved table ends empty, no dangling reference can
+    # survive — the database is consistent again the moment the wipe commits.
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys = OFF")
+    tables = [r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+    cleared: dict[str, int] = {}
+    for t in sorted(tables):
+        # FTS5 shadow tables are emptied through `search_doc` itself, never
+        # directly (deleting from a shadow corrupts the index)
+        if t in CLEAR_PRESERVE or t.startswith("search_doc_"):
+            continue
+        n = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+        if n:
+            conn.execute(f"DELETE FROM {t}")
+        cleared[t] = n
+
+    # 3) reset the automatic numbering machinery; the series definitions stay
+    conn.execute("UPDATE sequence SET next_value = 1")
+    conn.execute("DELETE FROM mil_meta WHERE key = 'bulk_loaded'")   # kv flag: absent = off
+
+    conn.commit()
+    db.log_change(conn, entity_type="setting", entity_id=None,
+                  entity_code="maintenance.clear_data", action="bulk", actor=actor,
+                  reason="clear all data",
+                  new_value=str(sum(cleared.values())),
+                  notes=f"archived as {archive.name}"
+                        + (f"; uploads moved to {uploads_as.name}" if uploads_as else ""))
+    conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    conn.execute("VACUUM")
+    conn.execute("ANALYZE")
+    conn.execute("PRAGMA foreign_keys = ON")
+    return {"ok": True, "archive": archive.name,
+            "uploads_archived_as": uploads_as.name if uploads_as else None,
+            "cleared": cleared, "cleared_rows": sum(cleared.values()),
+            "preserved": sorted(CLEAR_PRESERVE)}
 
 
 @app.post("/api/maintenance/prune")
@@ -1383,9 +1598,11 @@ def entity_query(entity: str, payload: dict = Body(default={}), conn=Depends(con
     later.  Explicit body keys still win over the string, so a client can pin a
     page or a page size while the user edits the query.
     """
-    spec = spec_of(entity)
+    spec = spec_of_any(entity)
     payload = dict(payload or {})
     if isinstance(payload.get("query"), str) and payload["query"].strip():
+        if is_mil(entity):
+            raise HTTPException(422, "typed queries are not supported for military entities")
         compiled = querylang.parse_for(spec, payload["query"])
         resolved, extra = querylang.resolve(conn, spec, compiled["payload"])
         merged = dict(resolved)
@@ -1394,7 +1611,11 @@ def entity_query(entity: str, payload: dict = Body(default={}), conn=Depends(con
                             "warnings": compiled["warnings"] + extra,
                             "unknown": compiled["unknown"]}
         return repo.list_records(conn, spec, merged)
-    return repo.list_records(conn, spec, payload)
+    out = repo.list_records(conn, spec, payload)
+    if is_mil(entity):
+        for item in out.get("items", []):
+            mil_query_shim(item, spec)
+    return out
 
 
 @app.post("/api/query/parse")
@@ -1450,14 +1671,34 @@ def entity_list(entity: str, q: str | None = None, page: int = 1, page_size: int
 
 
 @app.get("/api/{entity}/next-code")
-def entity_next_code(entity: str, conn=Depends(conn_dep)):
+def entity_next_code(entity: str, request: Request, conn=Depends(conn_dep)):
+    if is_mil(entity):
+        from ..military import naming
+        from ..military.naming import NamingError
+        try:
+            # query params carry the naming context (year + choice fields), so
+            # the preview tracks what is being typed — advisory, never reserved
+            ctx = {k: v for k, v in request.query_params.items() if v}
+            preview = naming.preview(conn, entity, ctx)
+            return {"entity": entity, "code": preview["next"]}
+        except NamingError:
+            return {"entity": entity, "code": ""}
     spec_of(entity)
     return {"entity": entity, "code": db.peek_next_code(conn, entity)}
 
 
 @app.post("/api/{entity}")
 def entity_create(entity: str, payload: dict = Body(...), conn=Depends(conn_dep),
-                  x_actor: str | None = Header(None)):
+                  x_actor: str | None = Header(None),
+                  x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        # meta keys (_reason, _source_id, actor ...) are registry conveniences —
+        # the military service validates its fields strictly, so drop them here
+        payload = {k: v for k, v in payload.items() if not k.startswith("_") and k != "actor"}
+        rec = _mil_write(conn, mil_service.create, entity, payload,
+                         actor_of(x_actor, None) or "researcher")
+        return {"ok": True, "record": mil_query_shim(rec, MIL_SPECS[entity])}
     spec = spec_of(entity)
     rec = repo.create_record(conn, spec, payload, actor_of(x_actor, payload.get("actor")),
                              payload.get("_reason"), payload.get("_source_id"))
@@ -1467,13 +1708,33 @@ def entity_create(entity: str, payload: dict = Body(...), conn=Depends(conn_dep)
 @app.get("/api/{entity}/{rec_id}")
 def entity_get(entity: str, rec_id: int, include_deleted: bool = False,
                conn=Depends(conn_dep)):
+    if is_mil(entity):
+        rec = mil_service.get_record(conn, entity, rec_id)
+        if rec is None:
+            raise HTTPException(404, f"{entity} {rec_id} not found")
+        rec = mil_query_shim(rec, MIL_SPECS[entity])
+        # the registry detail convention: resolved lookup labels + ref names,
+        # so the shared record page and list inspector read names, not ids
+        repo._decorate(conn, MIL_SPECS[entity], rec)
+        if entity == "unit":
+            # the split view's relationships half (the map half reads
+            # /units/{id}/geo — the unit's OWN location, never the commander's)
+            rec["org"] = mil_service.unit_org(conn, rec_id)
+        return rec
     return repo.get_record(conn, spec_of(entity), rec_id, include_deleted)
 
 
 @app.put("/api/{entity}/{rec_id}")
 @app.patch("/api/{entity}/{rec_id}")
 def entity_update(entity: str, rec_id: int, payload: dict = Body(...),
-                  conn=Depends(conn_dep), x_actor: str | None = Header(None)):
+                  conn=Depends(conn_dep), x_actor: str | None = Header(None),
+                  x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        payload = {k: v for k, v in payload.items() if not k.startswith("_") and k != "actor"}
+        rec = _mil_write(conn, mil_service.update, entity, rec_id, payload,
+                         actor_of(x_actor, None) or "researcher")
+        return {"ok": True, "record": mil_query_shim(rec, MIL_SPECS[entity])}
     spec = spec_of(entity)
     rec = repo.update_record(
         conn, spec, rec_id, payload, actor_of(x_actor, payload.get("actor")),
@@ -1484,7 +1745,13 @@ def entity_update(entity: str, rec_id: int, payload: dict = Body(...),
 
 @app.delete("/api/{entity}/{rec_id}")
 def entity_delete(entity: str, rec_id: int, hard: bool = False, reason: str | None = None,
-                  conn=Depends(conn_dep), x_actor: str | None = Header(None)):
+                  conn=Depends(conn_dep), x_actor: str | None = Header(None),
+                  x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        _mil_write(conn, mil_service.delete, entity, rec_id,
+                   actor_of(x_actor, None) or "researcher")
+        return {"ok": True, "deleted": rec_id}
     spec = spec_of(entity)
     if hard:
         return repo.hard_delete(conn, spec, rec_id, actor_of(x_actor, None), reason)
@@ -1494,12 +1761,37 @@ def entity_delete(entity: str, rec_id: int, hard: bool = False, reason: str | No
 @app.post("/api/{entity}/{rec_id}/restore")
 def entity_restore(entity: str, rec_id: int, conn=Depends(conn_dep),
                    x_actor: str | None = Header(None)):
+    if is_mil(entity):
+        raise HTTPException(422, "military records are deleted outright; nothing to restore")
     return repo.restore(conn, spec_of(entity), rec_id, actor_of(x_actor, None))
 
 
 @app.post("/api/{entity}/bulk")
 def entity_bulk(entity: str, payload: dict = Body(...), conn=Depends(conn_dep),
-                x_actor: str | None = Header(None)):
+                x_actor: str | None = Header(None),
+                x_military_role: str | None = Header(None)):
+    if is_mil(entity):
+        _mil_write_guard(x_military_role)
+        ids = payload.get("ids") or []
+        action = payload.get("action")
+        actor = actor_of(x_actor, None) or "researcher"
+        if not ids:
+            raise HTTPException(422, "ids is required")
+        ok = failed = 0
+        for rid in ids:
+            try:
+                if action == "delete":
+                    mil_service.delete(conn, entity, int(rid), actor)
+                elif action == "status" and payload.get("patch") is not None:
+                    mil_service.update(conn, entity, int(rid),
+                                       dict(payload["patch"]), actor)
+                else:
+                    raise HTTPException(422, f"unsupported bulk action '{action}'")
+                ok += 1
+            except Exception:  # noqa: BLE001 - per-row isolation, like the importer
+                failed += 1
+        conn.commit()
+        return {"ok": ok, "failed": failed}
     spec = spec_of(entity)
     ids = payload.get("ids") or []
     action = payload.get("action")

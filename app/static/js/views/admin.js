@@ -11,7 +11,9 @@
   A.views.import = async function (root) {
     A.crumbs([{ label: t("nav.import") }]);
     const entities = A.state.meta.entities || [];
-    let st = { step: 1, entity: entities[0].key, format: "xlsx", lang: A.state.lang,
+    /* deep link support: #/import?entity=unit preselects the target table */
+    const pre = new URLSearchParams(location.hash.split("?")[1] || "").get("entity");
+    let st = { step: 1, entity: (entities.find(e => e.key === pre) || entities[0]).key, format: "xlsx", lang: A.state.lang,
       upload: null, mapping: {}, mode: "create", status: "in_review", report: null };
 
     root.innerHTML = A.pageHead(t("imp.title"), t("imp.subtitle"), "")
@@ -34,19 +36,19 @@
         <div class="card-head"><h3>1 · ${t("imp.step1")}</h3></div>
         <div class="grid c2">
           <div class="field"><label>${t("exp.entity")}</label>
-            <select id="impEntity">${entities.map(e =>
+            <select id="impEntity" class="select-ctl">${entities.map(e =>
               `<option value="${e.key}" ${st.entity === e.key ? "selected" : ""}>${esc(A.state.lang === "ar" ? e.plural_ar : e.plural_en)}</option>`).join("")}</select></div>
           <div class="field"><label>${t("exp.format")}</label>
-            <select id="impFormat">
+            <select id="impFormat" class="select-ctl">
               <option value="xlsx" ${st.format === "xlsx" ? "selected" : ""}>XLSX</option>
               <option value="csv" ${st.format === "csv" ? "selected" : ""}>CSV</option>
               <option value="json" ${st.format === "json" ? "selected" : ""}>JSON</option>
             </select></div>
           <div class="field"><label>${t("exp.lang")}</label>
-            <select id="impLang">
+            <select id="impLang" class="select-ctl">
               <option value="ar" ${st.lang === "ar" ? "selected" : ""}>العربية</option>
               <option value="en" ${st.lang === "en" ? "selected" : ""}>English</option>
-              <option value="both">AR + EN</option>
+              <option value="both">${esc(t("exp.lang.both"))}</option>
             </select></div>
         </div>
         <div class="notice">${t("imp.templateHint")}</div>
@@ -147,7 +149,7 @@
               </select></div>
             <div class="field"><label>${t("imp.defaultStatus")}</label>
               <select id="impStatus">${statuses.map(s =>
-                `<option value="${s.code}" ${st.status === s.code ? "selected" : ""}>${esc(A.state.lang === "ar" ? s.label_ar : s.label_en)}</option>`).join("")}</select></div>
+                `<option value="${s.code}" ${st.status === s.code ? "selected" : ""}>${esc(A.state.lang === "ar" ? (s.label_ar || s.label_en) : (s.label_en || s.label_ar))}</option>`).join("")}</select></div>
             <div class="notice">${t("imp.dryRunNote")}</div>
             <div class="btn-row" style="margin-top:12px">
               <button class="btn" id="back2">← ${t("common.back")}</button>
@@ -409,36 +411,103 @@
           <th class="num">${t("common.values")}</th></tr></thead><tbody>
           ${list.map(d => `<tr class="${d.domain === active ? "selected" : ""}" data-dom="${d.domain}" style="cursor:pointer">
             <td class="mono-cell">${esc(d.domain)}</td>
-            <td>${esc(A.state.lang === "ar" ? d.label_ar : d.label_en)}</td>
+            <td>${esc(A.state.lang === "ar" ? (d.label_ar || d.label_en) : (d.label_en || d.label_ar))}</td>
             <td class="num">${fmtNum(d.n)}</td></tr>`).join("")}
         </tbody></table></div>`;
       root.querySelectorAll("[data-dom]").forEach(tr => {
         tr.onclick = () => { active = tr.dataset.dom; paintDomains(filter); paintValues(); };
       });
     }
-    const PARENT_OF = { governorate: "country", district: "governorate" };
+    const PARENT_OF = {};
+    A.ADMIN_CHAIN.slice(1).forEach((d, i) => { PARENT_OF[d] = A.ADMIN_CHAIN[i]; });
     function parentLabel(v) {
       if (!v.parent_id) return "—";
       const hit = A.lookupById(v.parent_id);
       if (!hit) return `#${v.parent_id}`;
       return A.state.lang === "ar" ? (hit.label_ar || hit.label_en) : (hit.label_en || hit.label_ar);
     }
+    const vState = { q: "", parents: {}, batch: 50, shown: 50 };
+    const vCache = {};
     async function paintValues() {
-      const values = await api.get(`/api/lookups?domain=${active}&include_inactive=true`);
+      vCache[active] = await api.get(`/api/lookups?domain=${active}&include_inactive=true`);
+      vState.q = ""; vState.parents = {}; vState.batch = 50; vState.shown = 50;
+      renderValues();
+    }
+    function renderValues() {
+      const values = vCache[active] || [];
       const d = domains.find(x => x.domain === active) || {};
-      const parentDomain = PARENT_OF[active];
+      const domLabel = (x) => A.state.lang === "ar" ? (x.label_ar || x.label_en) : (x.label_en || x.label_ar);
+      const chain = A.ADMIN_CHAIN;
+      const aIdx = chain.indexOf(active);
+      const ancestors = aIdx > 0 ? chain.slice(0, aIdx) : [];
+      const domainLabel = (dom) => {
+        const row = domains.find(x => x.domain === dom);
+        return row ? domLabel(row) : dom;
+      };
+      /* ancestor of `row` (a row of rowDomain) at level targetDom, or null */
+      function ancestorIdOfRow(row, rowDomain, targetDom) {
+        const target = chain.indexOf(targetDom);
+        let node = row, lvl = chain.indexOf(rowDomain);
+        while (node && lvl > target) {
+          node = node.parent_id ? A.lookupById(Number(node.parent_id)) : null;
+          lvl--;
+        }
+        return node && lvl === target ? node.id : null;
+      }
+      const q = vState.q.trim().toLowerCase();
+      const rows = values.filter(v => {
+        for (const dom of ancestors) {
+          const sel = vState.parents[dom];
+          if (sel && String(ancestorIdOfRow(v, active, dom)) !== String(sel)) return false;
+        }
+        if (!q) return true;
+        return (v.code + " " + v.label_en + " " + v.label_ar).toLowerCase().includes(q)
+          || (parentLabel(v) || "").toLowerCase().includes(q);
+      });
+      const shown = Math.min(vState.shown, rows.length);
+      const more = rows.length - shown;
+      /* Hierarchical selection — one select per level above the open domain.
+         Each lists ONLY units consistent with the selections above it: pick a
+         country and its provinces appear; pick a province and its regions; and
+         so on through municipality, village and community. */
+      const cascade = ancestors.length ? `<div class="toolbar as-grid" style="padding-top:0">
+          ${ancestors.map(dom => {
+            const opts = (A.domainOptions(dom) || []).filter(o =>
+              ancestors.every(sDom => {
+                const sel = vState.parents[sDom];
+                if (!sel || sDom === dom) return true;
+                return String(ancestorIdOfRow(o, dom, sDom)) === String(sel);
+              }));
+            return `<label class="field-ctl"><span class="cap">${esc(domainLabel(dom))}</span>
+              <select id="valSel-${dom}" class="select-ctl${vState.parents[dom] ? " is-set" : ""}" data-admin-dom="${dom}" title="${esc(domainLabel(dom))}">
+                <option value="">${esc(t("adm.allRows"))}</option>
+                ${opts.slice(0, 2000).map(o => `<option value="${o.id}" ${String(vState.parents[dom]) === String(o.id) ? "selected" : ""}>${esc(domLabel(o))} (${esc(o.code)})</option>`).join("")}
+              </select></label>`;
+          }).join("")}
+        </div>` : "";
       root.querySelector("#domainInfo").innerHTML = `
-        <div class="card-head"><h3>${esc(A.state.lang === "ar" ? d.label_ar : d.label_en)}</h3>
+        <div class="card-head"><h3>${esc(domLabel(d))}</h3>
           <span class="mono-cell small muted">${esc(active)}</span></div>
+        <div class="toolbar">
+          <div class="search-box">${icon("search")}
+            <input id="valQ" placeholder="${t("adm.filterValues")}" value="${esc(vState.q)}"></div>
+          <span class="spacer"></span>
+          <span class="small muted">${t("adm.showingOf", { a: fmtNum(shown), b: fmtNum(rows.length) })}</span>
+          <label class="field-ctl inline"><span class="cap">${esc(t("adm.pageRows"))}</span>
+            <select id="valPageSize" class="select-ctl sm" title="${esc(t("adm.pageRows"))}">
+              ${[25, 50, 100, 250, 500].map(n => `<option value="${n}" ${vState.batch === n ? "selected" : ""}>${n}</option>`).join("")}
+            </select></label>
+        </div>
+        ${cascade}
         <div class="table-wrap scroll-y"><table class="data compact"><thead><tr>
           <th>${t("adm.code")}</th><th>${t("adm.labelEn")}</th><th>${t("adm.labelAr")}</th>
-          ${parentDomain ? `<th>${esc(t("adm.parent") || "Parent")}</th>` : ""}
+          ${aIdx > 0 ? `<th>${esc(t("adm.parent") || "Parent")}</th>` : ""}
           <th class="num">${t("adm.order")}</th><th>${t("adm.active")}</th><th></th></tr></thead><tbody>
-          ${values.map(v => `<tr data-v="${v.id}">
-            <td class="mono-cell">${esc(v.code)}</td>
-            <td contenteditable="true" data-f="label_en">${esc(v.label_en)}</td>
+          ${rows.slice(0, shown).map(v => `<tr data-v="${v.id}">
+            <td class="mono-cell">${v.meta && v.meta.flag ? esc(v.meta.flag) + " " : ""}${esc(v.code)}</td>
+            <td contenteditable="true" data-f="label_en">${esc(v.label_en)}${v.meta && v.meta.historical ? " " + A.badge(t("adm.historical"), "slate") : ""}</td>
             <td contenteditable="true" data-f="label_ar" dir="rtl">${esc(v.label_ar)}</td>
-            ${parentDomain ? `<td class="small">${esc(parentLabel(v))}</td>` : ""}
+            ${aIdx > 0 ? `<td class="small">${esc(parentLabel(v))}</td>` : ""}
             <td class="num" contenteditable="true" data-f="sort_order">${v.sort_order}</td>
             <td>${v.is_active ? A.badge(t("common.yes"), "green") : A.badge(t("common.no"), "gray")}</td>
             <td class="nowrap">
@@ -446,8 +515,26 @@
               <button class="icon-btn" data-off="${v.id}" title="${t("adm.deactivate")}">${icon("x")}</button>
             </td></tr>`).join("")}
         </tbody></table></div>
+        ${more > 0 ? `<div class="toolbar" style="padding-top:8px"><span class="spacer"></span>
+          <button class="btn" id="valMore">${icon("chevrons-down")} ${t("adm.loadMore")} (${fmtNum(Math.min(vState.batch, more))})</button></div>` : ""}
         <div class="small muted" style="margin-top:8px">${A.t("ui.labelsAndOrderAreEditableDirectlyInThe")}</div>`;
       hydrateIcons(root.querySelector("#domainInfo"));
+      const qEl = root.querySelector("#valQ");
+      if (qEl) qEl.oninput = (e) => { vState.q = e.target.value; vState.shown = vState.batch; renderValues(); };
+      const psEl = root.querySelector("#valPageSize");
+      if (psEl) psEl.onchange = (e) => { vState.batch = Number(e.target.value) || 50; vState.shown = vState.batch; renderValues(); };
+      root.querySelectorAll("[data-admin-dom]").forEach(sel => {
+        sel.onchange = (e) => {
+          const dom = sel.dataset.adminDom;
+          vState.parents[dom] = e.target.value || null;
+          sel.classList.toggle("is-set", !!e.target.value);
+          chain.slice(chain.indexOf(dom) + 1).forEach(d2 => { delete vState.parents[d2]; });
+          vState.shown = vState.batch;
+          renderValues();
+        };
+      });
+      const moreBtn = root.querySelector("#valMore");
+      if (moreBtn) moreBtn.onclick = () => { vState.shown += vState.batch; renderValues(); };
       root.querySelectorAll("[data-save]").forEach(b => {
         b.onclick = async () => {
           const tr = b.closest("[data-v]");
@@ -489,7 +576,7 @@
       const body = `<div class="grid c2">
         <div class="field"><label>${t("log.entity")}</label><select id="avDomain">
           ${domains.map(d => `<option value="${d.domain}" ${d.domain === active ? "selected" : ""}>
-            ${esc(A.state.lang === "ar" ? d.label_ar : d.label_en)}</option>`).join("")}</select></div>
+            ${esc(A.state.lang === "ar" ? (d.label_ar || d.label_en) : (d.label_en || d.label_ar))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("adm.code")}</label><input id="avCode" placeholder="my_code"></div>
         <div class="field"><label>${t("adm.labelEn")}</label><input id="avEn"></div>
         <div class="field"><label>${t("adm.labelAr")}</label><input id="avAr" dir="rtl"></div>
@@ -764,7 +851,7 @@
     if (String(value) === "true") return t("common.on");
     if (String(value) === "false") return t("common.off");
     const choice = (field.choices || []).find(c => String(c.value) === String(value));
-    if (choice) return A.state.lang === "ar" ? choice.label_ar : choice.label_en;
+    if (choice) return A.state.lang === "ar" ? (choice.label_ar || choice.label_en) : (choice.label_en || choice.label_ar);
     const key = `adm.value.${field.key.replace(/\./g, "_")}.${value}`;
     const label = t(key);
     return label === key ? String(value) : label;
@@ -788,7 +875,7 @@
       if (choices.length && groups.length) {
         const body = groups.map(g => {
           const members = choices.filter(c => c.group === g.id).map(c => option(c.value)).join("");
-          const label = A.state.lang === "ar" ? g.label_ar : g.label_en;
+          const label = A.state.lang === "ar" ? (g.label_ar || g.label_en) : (g.label_en || g.label_ar);
           return members ? `<optgroup label="${esc(label)}">${members}</optgroup>` : "";
         }).join("");
         return `<select class="ghost-select" id="${id}" data-set="${esc(f.key)}" data-kind="enum">${body}</select>`;
@@ -1067,6 +1154,14 @@
             </dl>
             <div class="notice" style="margin-top:12px">${A.t("ui.backupsUseSqliteSOnlineBackupApiSoThey")}</div>
           </div>
+        </div>
+        <div class="card" style="margin-top:16px;border-color:var(--danger,#b3402e)">
+          <div class="card-head"><h3>${esc(t("adm.clearData"))}</h3>
+            <span class="badge">${esc(t("adm.clearDataBadge"))}</span></div>
+          <div class="small muted">${esc(t("adm.clearDataHint"))}</div>
+          <div class="btn-row" style="margin-top:12px">
+            <button class="btn danger" id="doClearData">${icon("trash")} ${esc(t("adm.clearData"))}</button>
+          </div>
         </div>`;
     hydrateIcons(root);
     root.querySelector("#doBackup").onclick = () => A.download("/api/maintenance/backup");
@@ -1092,6 +1187,20 @@
       if (!yes) return;
       const res = await api.post("/api/maintenance/purge-working-files", { older_than_hours: 24 });
       toast(t("adm.purgeDone", { files: res.files_removed, mb: (res.bytes_freed / 1048576).toFixed(1) }), "ok");
+    };
+    /* clear all data — archive-aside first, static/reference data preserved */
+    root.querySelector("#doClearData").onclick = async () => {
+      const yes = await A.confirmDialog({
+        title: t("adm.clearData"), message: t("adm.clearDataConfirm"),
+        confirmLabel: t("adm.clearData"), danger: true,
+        requirePhrase: "CLEAR ALL DATA"
+      });
+      if (!yes) return;
+      try {
+        const res = await api.post("/api/maintenance/clear-data", { confirm: "CLEAR ALL DATA" });
+        toast(t("adm.clearDataDone", { rows: res.cleared_rows, archive: res.archive }), "ok");
+        if (A.rerender) A.rerender();
+      } catch (err) { toast(err.message, "err"); }
     };
   };
 })();

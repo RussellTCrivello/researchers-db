@@ -13,8 +13,18 @@
 
   const ENTITY_GLYPH = {
     person: "user", institution: "building", place: "map-pin",
-    source: "book", relationship: "link", event: "calendar"
+    source: "book", relationship: "link", event: "calendar",
+    unit: "shield", region: "map-pin", division: "layers", classification: "tag",
+    armament: "target", holding: "package", deployment: "send", mission: "crosshair",
+    training: "award", trait: "award", assignment: "briefcase", note: "file-text"
   };
+  /* The twelve military entities share this engine through the unified API
+     facade; registry-only affordances (typed query, soft delete, duplicates)
+     are gated off for them. */
+  const MIL = new Set(["unit", "region", "division", "classification", "armament",
+                       "holding", "deployment", "mission", "training", "trait",
+                       "assignment", "note"]);
+  const isMil = (entity) => MIL.has(entity);
   const MAP_ENTITIES = new Set(["person", "institution", "place", "event"]);
   /* People, places and organizations keep the table and the record on one page. */
   /* The record panel beside the list covers every entity; person, place and
@@ -22,10 +32,14 @@
      carry their own advanced tabs. */
   const INSPECT_ENTITIES = new Set(["person", "institution", "place",
                                     "relationship", "source", "event"]);
+  /* parent/child hierarchies — units and command regions — also browse as a
+     tree, right in this screen's view switcher */
+  const TREE_ENTITIES = new Set(["unit", "region"]);
   function canInspect(entity) { return INSPECT_ENTITIES.has(entity); }
   function viewsFor(entity) {
     const base = ["table", "cards", "gallery", "list"];
-    return MAP_ENTITIES.has(entity) ? base.concat("map") : base;
+    let out = MAP_ENTITIES.has(entity) ? base.concat("map") : base;
+    return TREE_ENTITIES.has(entity) ? out.concat("tree") : out;
   }
 
   /* ------------------------------------------------------------ state --- */
@@ -37,7 +51,18 @@
       place: ["place_type_id", "country_id"],
       source: ["source_type_id", "publication_date"],
       event: ["event_type_id", "start_date"],
-      relationship: ["relationship_type_id", "start_date"]
+      relationship: ["relationship_type_id", "start_date"],
+      unit: ["echelon", "status", "direct_personnel"],
+      region: ["region_type", "country"],
+      division: ["division_type", "region_id"],
+      classification: ["category", "readiness_tier"],
+      armament: ["category", "origin_country"],
+      holding: ["unit_id", "armament_id", "quantity"],
+      deployment: ["deployment_type", "status", "start_date"],
+      mission: ["mission_type", "status", "start_date"],
+      training: ["training_type", "start_date", "participant_count"],
+      assignment: ["unit_id", "commander_id", "assigned_date"],
+      note: ["entity_type", "author", "note_at"]
     }[entity] || [];
     const stats = {
       person: ["relationships_count", "citations_count", "positions_count"],
@@ -139,8 +164,9 @@
       <div class="filters" data-rows></div>
       <hr class="hr-soft">
       <div class="flex wrap">
+        ${isMil(entity) ? "" : `
         <label class="check"><input type="checkbox" data-del ${st.include_deleted ? "checked" : ""}> ${t("list.includeDeleted")}</label>
-        <label class="check"><input type="checkbox" data-onlydel ${st.only_deleted ? "checked" : ""}> ${t("common.trash") || "Recycle bin"}</label>
+        <label class="check"><input type="checkbox" data-onlydel ${st.only_deleted ? "checked" : ""}> ${t("common.trash") || "Recycle bin"}</label>`}
         <span class="spacer"></span>
         <button class="btn sm primary" data-apply>${t("common.apply")}</button>
       </div>`;
@@ -195,11 +221,13 @@
     box.querySelectorAll("[data-logic]").forEach(b => {
       b.onclick = () => { st.logic = b.dataset.logic; renderFilters(entity); reload(entity); };
     });
-    box.querySelector("[data-del]").onchange = (e) => {
+    const delBox = box.querySelector("[data-del]");
+    if (delBox) delBox.onchange = (e) => {
       st.include_deleted = e.target.checked; if (e.target.checked) st.only_deleted = false;
       reload(entity);
     };
-    box.querySelector("[data-onlydel]").onchange = (e) => {
+    const onlyDelBox = box.querySelector("[data-onlydel]");
+    if (onlyDelBox) onlyDelBox.onchange = (e) => {
       st.only_deleted = e.target.checked; if (e.target.checked) st.include_deleted = false;
       reload(entity);
     };
@@ -499,7 +527,7 @@
             ${icon("search")}
             <input data-list-q placeholder="${esc(t("common.search"))}" value="${esc(st.q)}">
           </div>
-          <div class="querybar ${st.query ? "on" : ""}" data-querybar>
+          <div class="querybar ${st.query ? "on" : ""}" data-querybar ${isMil(entity) ? "hidden" : ""}>
             <span class="qmark" aria-hidden="true">⌗</span>
             <input data-query dir="ltr" spellcheck="false" autocomplete="off"
                    value="${esc(st.query || st.queryDraft || "")}"
@@ -516,14 +544,14 @@
           <div class="viewswitch" data-viewswitch>
             ${viewsFor(entity).map(v => `
               <button data-view="${v}" class="${st.view === v ? "active" : ""}" title="${t("view." + v) || v}">
-                ${icon({ table: "list", cards: "grid", gallery: "columns", list: "file", map: "map-pin" }[v])}
+                ${icon({ table: "list", cards: "grid", gallery: "columns", list: "file", map: "map-pin", tree: "share" }[v])}
                 <span class="hide-sm">${t("view." + v) || v}</span></button>`).join("")}
           </div>
           <button class="btn sm" data-layout>${icon("sliders")} ${t("view.layout") || "Layout"}</button>
           <button class="btn sm" data-cols>${icon("columns")} ${t("list.columns")}</button>
           <button class="btn sm" data-saved>${icon("save")} ${t("list.saved")}${(st.savedViews || []).length ? ` (${st.savedViews.length})` : ""}</button>
           <span class="spacer"></span>
-          <button class="btn sm" data-dups>${icon("share")} ${A.t("ui.duplicates")}</button>
+          ${isMil(entity) ? "" : `<button class="btn sm" data-dups>${icon("share")} ${A.t("ui.duplicates")}</button>`}
           <button class="btn sm" data-export>${icon("download")} ${t("common.export")}</button>
           <a class="btn sm primary" href="#/entity/${entity}/new">${icon("plus")} ${t("common.add")}</a>
         </div>
@@ -549,6 +577,9 @@
     fitShell();
     if (st.view === "map" && MAP_ENTITIES.has(entity)) {
       requestAnimationFrame(() => mountListMap(entity));
+    }
+    if (st.view === "tree" && TREE_ENTITIES.has(entity)) {
+      requestAnimationFrame(() => mountListTree(entity));
     }
     if (inspectOpen) fillInspect(entity, st.inspectId);
   }
@@ -614,10 +645,14 @@
       let v = r.value;
       if (Array.isArray(v)) v = v.length > 2 ? `${v.length} ${t("common.values")}` : v.join(" – ");
       else if (v && typeof v === "object") v = v.label || "";
-      if (typeof v === "number" && f && (f.type === "select" || f.type === "fk")) {
-        const lk = f.type === "select" ? A.domainOptions(f.domain).find(o => o.id === v) : null;
-        if (lk) v = A.state.lang === "ar" ? lk.label_ar : lk.label_en;
-        else v = "#" + v;
+      if (v != null && f && (f.type === "select" || f.type === "fk")
+          && (typeof v === "number" || (f.type === "select" && f.store === "code"))) {
+        const lk = f.type === "select"
+          ? (A.domainOptions(f.domain) || []).find(o => String(o.id) === String(v)
+              || (f.store === "code" && o.code === v))
+          : null;
+        if (lk) v = A.state.lang === "ar" ? (lk.label_ar || lk.label_en) : (lk.label_en || lk.label_ar);
+        else if (typeof v === "number") v = "#" + v;
       }
       return `<span class="filter-chip" title="${esc(opLabel(r.op))}">
         <b>${esc(A.regLabel(f))}</b> ${esc(opLabel(r.op))} ${esc(v === null || v === undefined ? "" : v)}</span>`;
@@ -631,9 +666,10 @@
     if (!st.selected.size) return "";
     return `<div class="toolbar" style="background:var(--ink-50)">
       <b>${st.selected.size} ${t("list.selected")}</b>
+      ${isMil(entity) ? "" : `
       <button class="btn sm" data-bulk-status>${t("list.bulkStatus")}</button>
       <button class="btn sm" data-bulk-merge>${A.t("ui.mergeSelected")}</button>
-      <button class="btn sm" data-bulk-restore>${t("list.bulkRestore")}</button>
+      <button class="btn sm" data-bulk-restore>${t("list.bulkRestore")}</button>`}
       <button class="btn sm danger" data-bulk-delete>${t("list.bulkDelete")}</button>
       <button class="btn sm ghost" data-bulk-clear>${t("common.reset")}</button>
     </div>`;
@@ -649,8 +685,9 @@
       <span class="info"><b>${fmtNum(shown)}</b> / ${fmtNum(total)}
         ${st.only_deleted ? (t("common.trash") || "deleted") : t("common.records")}</span>
       <div class="load-progress" title="${pct}%"><span style="width:${pct}%"></span></div>
-      <select class="ghost-select" data-pagesize>${[10, 25, 50, 100, 200].map(n =>
-        `<option value="${n}" ${st.page_size === n ? "selected" : ""}>${n} / ${t("common.page")}</option>`).join("")}</select>
+      <label class="field-ctl inline"><span class="cap">${esc(t("list.pageSize"))}</span>
+        <select class="select-ctl sm" data-pagesize title="${esc(t("list.pageSize"))}">${[10, 25, 50, 100, 200].map(n =>
+        `<option value="${n}" ${st.page_size === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <span class="spacer"></span>
       ${hasMore ? `<button class="btn sm primary" data-load-more>
         ${icon("plus")} ${A.t("ui.loadMore")}
@@ -684,6 +721,9 @@
     const st = state[entity];
     if (st.view === "map" && MAP_ENTITIES.has(entity)) {
       return mapViewShell(entity, data);
+    }
+    if (st.view === "tree" && TREE_ENTITIES.has(entity)) {
+      return treeViewShell(entity);
     }
     if (!data.items.length) {
       return `<div class="empty"><div class="big">🗂</div>
@@ -727,6 +767,28 @@
       <div class="list-map-canvas" data-map-canvas></div>
       <div class="list-map-card" data-map-card hidden></div>
     </div>`;
+  }
+
+  /** Hierarchy mode: the shared tree explorer under the list's own toolbar. */
+  function treeViewShell(entity) {
+    return `<div class="list-tree" data-list-tree>
+      <div class="empty small">${esc(t("common.loading"))}</div>
+    </div>`;
+  }
+
+  async function mountListTree(entity) {
+    const st = state[entity];
+    const host = document.querySelector("[data-list-tree]");
+    if (!host || !A.entityTree) return;
+    try {
+      const kind = entity === "region" ? "regions" : "units";
+      const res = await api.get(`/api/military/${kind}/tree`);
+      if (st.view !== "tree") return;
+      host.innerHTML = "";
+      A.entityTree(host, { entity, tree: res.tree || [] });
+    } catch (err) {
+      host.innerHTML = `<div class="notice err small">${esc(err.message || String(err))}</div>`;
+    }
   }
 
   /** The base map's own attribution, as its terms require — kept under any map
@@ -1131,6 +1193,121 @@
       .filter((id, i, arr) => id && arr.indexOf(id) === i);
   }
 
+  /* A unit's relationships are organisational: the chain of command above it,
+     the units below, the commander and appointments, the deployments and
+     missions it carries. The data is served with the record (``rec.org``) so
+     the split paints in one round-trip. */
+  function orgCount(rec) {
+    const o = rec.org || {};
+    return (o.chain || []).length + (o.subunits || []).length +
+      (o.appointments || []).length + (o.deployments || []).length +
+      (o.missions || []).length + (o.commander ? 1 : 0) +
+      (o.division ? 1 : 0) + (o.region ? 1 : 0);
+  }
+
+  function orgRow(href, label, badges, sub) {
+    return `<li class="inspect-rel-row">
+      <a href="${esc(href)}" dir="auto">${esc(label)}</a>
+      ${(badges || []).filter(Boolean).join(" ")}
+      ${sub ? `<div class="small muted" dir="auto">${sub}</div>` : ""}</li>`;
+  }
+
+  /** The unit's relationships tab: its command chain and links, with the
+      leader-location distinction stated where the commander appears. */
+  function inspectUnitRelationsHtml(entity, rec) {
+    const o = rec.org || {};
+    const badge = (txt, cls) => txt ? `<span class="badge ${cls || "gray"}">${esc(txt)}</span>` : "";
+    const sections = [];
+    const chain = o.chain || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.chain"))}</div>
+      <ul class="inspect-rel-list">
+        ${chain.length ? chain.map(u => orgRow(`#/entity/unit/${u.id}`,
+          u.name || u.docname || ("#" + u.id),
+          [badge(u.echelon, "slate"), badge(u.docname, "gray mono-cell")])).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+        ${orgRow(`#/entity/unit/${rec.id}`, rec.name || rec.docname || ("#" + rec.id),
+          [badge(rec.echelon, "green"), badge(rec.docname, "gray mono-cell")])}
+      </ul></div>`);
+    if (o.commander) {
+      const c = o.commander;
+      /* the Leader is a categorized Person: the link opens the Person page */
+      const cName = (A.state.lang === "ar"
+        ? (c.name_ar || c.full_name) : (c.name_en || c.full_name))
+        || c.docname || ("#" + c.id);
+      sections.push(`<div class="inspect-section">
+        <div class="inspect-section-title">${esc(t("mil.org.commander"))}</div>
+        <ul class="inspect-rel-list">
+          ${orgRow(`#/entity/person/${c.person_id || c.id}`, cName,
+            [badge(c.rank_title, "slate"), badge(c.docname, "gray mono-cell"),
+             badge(c.status, c.status === "Active" ? "green" : "gray")])}
+        </ul>
+        <div class="small muted">${esc(t("mil.org.commanderNote"))}</div></div>`);
+    }
+    const appts = o.appointments || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.appointments"))}
+        ${appts.length ? `<span class="n">${fmtNum(appts.length)}</span>` : ""}</div>
+      ${appts.length ? `<table class="data compact"><tbody>
+        ${appts.map(a => `<tr>
+          <td>${esc(a.role || "—")}</td>
+          <td>${a.commander_id
+            ? `<a href="#/entity/person/${a.commander_id}" dir="auto">${esc(a.commander_name || ("#" + a.commander_id))}</a>`
+            : "—"}</td>
+          <td class="nowrap" dir="ltr">${esc(a.assigned_date || "—")}${a.relieved_date
+            ? " → " + esc(a.relieved_date) : ""}</td>
+          <td>${a.is_current ? badge(t("mil.cmd.current"), "green") : ""}</td>
+        </tr>`).join("")}</tbody></table>`
+        : `<div class="small muted">${esc(t("mil.org.none"))}</div>`}
+    </div>`);
+    const subs = o.subunits || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.subunits"))}
+        ${subs.length ? `<span class="n">${fmtNum(subs.length)}</span>` : ""}</div>
+      <ul class="inspect-rel-list">
+        ${subs.length ? subs.map(u => orgRow(`#/entity/unit/${u.id}`,
+          u.name || u.docname || ("#" + u.id),
+          [badge(u.echelon, "slate"), badge(u.docname, "gray mono-cell"),
+           badge(u.status, u.status === "Active" ? "green" : "gray")])).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+      </ul></div>`);
+    const deps = o.deployments || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.deployments"))}
+        ${deps.length ? `<span class="n">${fmtNum(deps.length)}</span>` : ""}</div>
+      <ul class="inspect-rel-list">
+        ${deps.length ? deps.map(d => orgRow(`#/entity/deployment/${d.id}`,
+          d.name || ("#" + d.id),
+          [badge(d.status, d.is_current ? "green" : "gray"),
+           d.is_current ? badge(t("mil.cmd.current"), "green") : ""],
+          [d.location, d.start_date ? `<span dir="ltr">${esc(d.start_date)}${d.end_date
+            ? " → " + esc(d.end_date) : ""}</span>` : ""].filter(Boolean).join(" · "))).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+      </ul></div>`);
+    const mis = o.missions || [];
+    sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.missions"))}
+        ${mis.length ? `<span class="n">${fmtNum(mis.length)}</span>` : ""}</div>
+      <ul class="inspect-rel-list">
+        ${mis.length ? mis.map(m => orgRow(`#/entity/mission/${m.id}`,
+          m.name || ("#" + m.id), [badge(m.status, m.status === "Executed" ? "green" : "gray")],
+          m.start_date ? `<span dir="ltr">${esc(m.start_date)}${m.end_date
+            ? " → " + esc(m.end_date) : ""}</span>` : "")).join("")
+          : `<li class="small muted">${esc(t("mil.org.none"))}</li>`}
+      </ul></div>`);
+    const refs = [];
+    if (o.parent) refs.push(orgRow(`#/entity/unit/${o.parent.id}`,
+      o.parent.name || ("#" + o.parent.id), [badge(t("mil.org.parent"), "slate")]));
+    if (o.division) refs.push(orgRow(`#/entity/division/${o.division.id}`,
+      o.division.name || ("#" + o.division.id), [badge(t("mil.org.division"), "slate")]));
+    if (o.region) refs.push(orgRow(`#/entity/region/${o.region.id}`,
+      o.region.name || ("#" + o.region.id), [badge(t("mil.org.region"), "slate")]));
+    if (refs.length) sections.push(`<div class="inspect-section">
+      <div class="inspect-section-title">${esc(t("mil.org.title"))}</div>
+      <ul class="inspect-rel-list">${refs.join("")}</ul></div>`);
+    return sections.join("");
+  }
+
   /* Each entity's tabs answer its own questions: a relationship is about its
      two parties and the evidence for it; a source about what it claims and
      where those claims reach; an event about who came and when. The map closes
@@ -1140,6 +1317,12 @@
     const evN = (rec.citations || rec.evidence || []).length ||
       ((rec.evidence_summary || {}).total || 0);
     const sets = {
+      unit: [
+        { key: "details", label: t("inspect.tab.details") },
+        { key: "relationships", label: t("inspect.tab.relationships"),
+          n: orgCount(rec) },
+        { key: "map", label: t("inspect.tab.map") }
+      ],
       person: [
         { key: "details", label: t("inspect.tab.details") },
         { key: "relationships", label: t("inspect.tab.relationships"), n: relN },
@@ -1217,7 +1400,11 @@
       return;
     }
     showMapTab(entity, false);
-    if (tab === "relationships") body.innerHTML = inspectRelationshipsHtml(entity, rec);
+    if (tab === "relationships") {
+      body.innerHTML = entity === "unit"
+        ? inspectUnitRelationsHtml(entity, rec)
+        : inspectRelationshipsHtml(entity, rec);
+    }
     else if (tab === "parties") body.innerHTML = inspectPartiesHtml(entity, rec);
     else if (tab === "evidence") body.innerHTML = inspectEvidenceTabHtml(entity, rec);
     else if (tab === "claims") body.innerHTML = inspectClaimsTabHtml(entity, rec);
@@ -1229,7 +1416,7 @@
     body.setAttribute("data-inspect-ready", "1");
     hydrateIcons(body);
     wireInspectTab(entity, rec, body);
-    if (tab === "relationships") renderRelGraph(entity, rec, body);
+    if (tab === "relationships" && entity !== "unit") renderRelGraph(entity, rec, body);
     if (tab === "parties") loadPartiesAnalysis(entity, rec, body);
     if (tab === "claims") loadClaimsTab(entity, rec, body);
     if (tab === "coverage") loadCoverageTab(entity, rec, body);
@@ -2314,6 +2501,35 @@
       relationship's two sides, and what the caption should say. */
   async function mapModelFor(entity, rec) {
     const model = { label: "", points: [], link: false, distance: null };
+    if (entity === "unit") {
+      /* The unit's OWN location: its own coordinates and those of its
+         deployments — served by /units/{id}/geo. The commander's (leader's)
+         personal coordinates are deliberately never consulted: the map must
+         never substitute the leader's position for the unit's own. */
+      const geo = await api.get(`/api/military/units/${rec.id}/geo`);
+      const u = geo.unit || {};
+      if (u.lat != null && u.lon != null) {
+        model.points.push({
+          lat: Number(u.lat), lon: Number(u.lon),
+          label: u.label || rec.name || rec._title || "",
+          primary: true, position: "own", placeId: null, via: null,
+          entityType: "unit", recId: u.id != null ? u.id : rec.id
+        });
+      }
+      (geo.deployments || []).forEach(d => {
+        if (d.lat == null || d.lon == null) return;
+        model.points.push({
+          lat: Number(d.lat), lon: Number(d.lon),
+          label: d.label || "", primary: model.points.length === 0,
+          position: "own", placeId: null, via: "deployment",
+          entityType: "deployment", recId: d.id
+        });
+      });
+      model.unitOwn = true;
+      model.label = u.label || rec.name || rec._title || "";
+      model.hq = u.headquarters || "";
+      return model;
+    }
     try {
       const net = await api.get(`/api/map/network?entity=${encodeURIComponent(entity)}&id=${rec.id}&depth=2&limit=120`);
       (net.points || []).forEach(p => {
@@ -2520,7 +2736,12 @@
       if (located) {
         const mainAssociated = main.position === "associated";
         cap.hidden = false;
-        cap.innerHTML = `<span>${esc(mainAssociated ? t("inspect.anchor." + entity) : t("geo.ownPosition"))}</span>
+        /* For a unit the caption leads with the distinction: these are the
+           unit's OWN positions — the leader's location is never substituted. */
+        const lead = model && model.unitOwn
+          ? `<span>${esc(t("inspect.map.unitOwn"))}</span>`
+          : `<span>${esc(mainAssociated ? t("inspect.anchor." + entity) : t("geo.ownPosition"))}</span>`;
+        cap.innerHTML = `${lead}
           ${mainAssociated ? `<span class="badge gray">${esc(t("geo.associatedPoint"))}</span>` : ""}
           ${multi ? `<span class="badge gray">${esc(t("inspect.map.multi").replace("{n}", String(pts.length)))}</span>` : ""}
           ${model && model.distance != null ? `<span class="badge amber">${esc(t("inspect.map.distance"))} ${fmtNum(model.distance)} km</span>` : ""}
@@ -3159,16 +3380,16 @@
 
     const body = `<div class="grid c2">
         <div class="field"><label>${A.t("ui.imageField")}</label>
-          <select id="lyImage"><option value="">—</option>
+          <select id="lyImage" class="select-ctl sm"><option value="">—</option>
             ${reg.filter(f => f.type === "url" || f.key === "image_url").map(f => opt(f, st.layout.imageField)).join("")}
           </select>
           <div class="field-note">${A.t("ui.rendersAnIllustratedCardWhenAUrlIsPres")}</div></div>
         <div class="field"><label>${A.t("ui.titleField")}</label>
-          <select id="lyTitle">${textish.map(f => opt(f, st.layout.titleField)).join("")}</select></div>
+          <select id="lyTitle" class="select-ctl sm">${textish.map(f => opt(f, st.layout.titleField)).join("")}</select></div>
         <div class="field"><label>${A.t("ui.subtitleField")}</label>
-          <select id="lySub"><option value="">—</option>${textish.map(f => opt(f, st.layout.subtitleField)).join("")}</select></div>
+          <select id="lySub" class="select-ctl sm"><option value="">—</option>${textish.map(f => opt(f, st.layout.subtitleField)).join("")}</select></div>
         <div class="field"><label>${A.t("ui.badgeField")}</label>
-          <select id="lyBadge"><option value="">—</option>${selectish.map(f => opt(f, st.layout.badgeField)).join("")}</select></div>
+          <select id="lyBadge" class="select-ctl sm"><option value="">—</option>${selectish.map(f => opt(f, st.layout.badgeField)).join("")}</select></div>
       </div>
       <div class="sectionlabel">${A.t("ui.factLinesUpTo4")}</div>
       <div class="layout-grid">${reg.map(f => `<label class="check"><input type="checkbox" data-fact="${f.key}"
@@ -3318,7 +3539,7 @@
     };
     const body = `<div class="notice warn">${A.t("ui.thePrimaryRecordIsKeptRelationshipsCit")}</div>
       <div class="field"><label>${A.t("ui.primaryRecord")}</label>
-        <select id="mgKeep">${[keepId].concat(mergeIds).map(id =>
+        <select id="mgKeep" class="select-ctl">${[keepId].concat(mergeIds).map(id =>
           `<option value="${id}">${describe(id)}</option>`).join("")}</select></div>
       <div class="field"><label>${t("common.reason")}</label><input id="mgReason" value="duplicate merge"></div>
       <div data-plan></div>`;
@@ -3399,8 +3620,8 @@
     A.modal({
       title: t("list.bulkStatus"), size: "slim",
       body: `<div class="field"><label>${t("common.status")}</label>
-          <select id="bulkStatus">${options.map(o =>
-            `<option value="${o.id}">${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`).join("")}</select></div>
+          <select id="bulkStatus" class="select-ctl">${options.map(o =>
+            `<option value="${o.id}">${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("common.reason")}</label><input id="bulkReason"></div>`,
       buttons: [
         { label: t("common.cancel") },
@@ -3434,11 +3655,17 @@
       st.queryInfo = null;
       st.q = ""; st.where = [{ op: "eq" }]; st.page = 1;
     }
+    /* structured deep links (#/military/deployments?unit_id=5 or a wrapper
+       passing filters): seeded into the builder before the first load */
+    if (params && Array.isArray(params.filters) && params.filters.length) {
+      st.where = params.filters.map(f => Object.assign({ op: "eq" }, f));
+      st.page = 1;
+    }
     A.crumbs([{ label: t("nav.entities") }, { label: A.pluralOf(entity) }]);
     root.innerHTML = A.pageHead(
       A.pluralOf(entity),
       A.state.lang === "ar" ? spec.description_ar : spec.description_en,
-      `<a class="btn" href="#/reports/custom">${icon("chart")} ${t("nav.reports")}</a>
+      `${isMil(entity) ? "" : `<a class="btn" href="#/reports/custom">${icon("chart")} ${t("nav.reports")}</a>`}
        <button class="btn" id="listExport">${icon("download")} ${t("common.export")}</button>
        <a class="btn primary" href="#/entity/${entity}/new">${icon("plus")} ${t("common.add")}</a>`)
       + `<div class="filter-dock${st.showFilters ? "" : " hidden"}" data-filters-host
@@ -3470,12 +3697,11 @@
     const body = `
       <div class="grid c2">
         <div class="field"><label>${t("exp.format")}</label>
-          <select id="exFormat"><option value="xlsx">XLSX — Excel workbook</option>
-            <option value="csv" selected>CSV — UTF-8 with BOM</option>
-            <option value="tsv">TSV</option><option value="json">JSON</option></select></div>
+          <select id="exFormat" class="select-ctl">${["csv", "xlsx", "tsv", "json"].map(v =>
+            `<option value="${v}" ${v === "csv" ? "selected" : ""}>${esc(t("exp.format." + v))}</option>`).join("")}</select></div>
         <div class="field"><label>${t("exp.lang")}</label>
-          <select id="exLang"><option value="ar">العربية</option><option value="en">English</option>
-            <option value="both">AR + EN</option></select></div>
+          <select id="exLang" class="select-ctl"><option value="ar">العربية</option><option value="en">English</option>
+            <option value="both">${esc(t("exp.lang.both"))}</option></select></div>
       </div>
       <label class="check" style="margin-bottom:10px"><input type="checkbox" id="exResolve" checked> ${t("exp.resolve")}</label>
       <div class="small muted" style="margin-bottom:6px">${t("exp.columns")}</div>

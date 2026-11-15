@@ -256,11 +256,22 @@
             })
           : (() => {
               const sel = document.createElement("select");
+              /* free-code vocabulary (store = "code", options ride on the
+                 field): the same list the service validates against, with
+                 labels from the locale bundles */
+              let rows = A.domainOptions(field.domain) || [];
+              const freeCode = !rows.length && (field.options || []).length;
+              if (freeCode) rows = A.optChoices(field.options, field.key);
+              const storeCode = field.store === "code" || freeCode;
               sel.innerHTML = `<option value="">${esc(t("common.select"))}</option>` +
-                (A.domainOptions(field.domain) || []).map(o =>
-                  `<option value="${o.id}" ${String(value) === String(o.id) ? "selected" : ""}>
-                     ${esc(A.state.lang === "ar" ? o.label_ar : o.label_en)}</option>`).join("");
-              sel.onchange = () => set(sel.value ? Number(sel.value) : null);
+                rows.map(o => {
+                  const ov = storeCode ? o.code : o.id;
+                  return `<option value="${esc(String(ov))}" ${String(value) === String(ov) ? "selected" : ""}>
+                     ${esc(A.state.lang === "ar" ? (o.label_ar || o.label_en) : (o.label_en || o.label_ar))}</option>`;
+                }).join("");
+              sel.onchange = () => set(storeCode
+                ? (sel.value || null)
+                : (sel.value ? Number(sel.value) : null));
               return sel;
             })();
         break;
