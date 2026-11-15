@@ -108,20 +108,25 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
     """Load the fictional dataset through the real service layer (idempotent)."""
     from . import service  # late import: service imports seed only via api
 
+    # the sample's records are authored by the sample loader itself, whoever
+    # triggers the load — clear_sample can then always find and remove them
+    # again, so load → clear → load is idempotent across different callers
+    owner = "sample-loader"
+
     marker = conn.execute(
         "SELECT value FROM mil_meta WHERE key = ?", (_MARK,)).fetchone()
     if marker and not force:
         return {"skipped": True, "fictional": True, "disclaimer": FICTIONAL_DISCLAIMER,
                 "message": "sample data already loaded; pass force=true to reset"}
     if marker and force:
-        clear_sample(conn, actor, keep_marker=True)
+        clear_sample(conn, owner, keep_marker=True)
 
     ensure_country_vocab(conn)
 
     counts: dict[str, int] = {}
 
     def add(entity: str, **payload: Any) -> dict[str, Any]:
-        rec = service.create(conn, entity, payload, actor)
+        rec = service.create(conn, entity, payload, owner)
         counts[entity] = counts.get(entity, 0) + 1
         return rec
 
@@ -152,7 +157,7 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
              "category": "military", "rank_title": rank, "branch": "Army",
              "commission_date": commission, "service_status": service_status,
              "military_biography": biography},
-            actor, commit=False)
+            owner, commit=False)
         counts["person"] = counts.get("person", 0) + 1
         return rec
 
@@ -185,7 +190,7 @@ def load_sample(conn, force: bool = False, actor: str = "sample-loader") -> dict
              "birth_date": born, "current_position": position,
              "birthplace_text": "Republic of Aldervale (fictional)",
              "category": "civilian"},
-            actor, commit=False)
+            owner, commit=False)
         counts["person"] = counts.get("person", 0) + 1
         return rec
 
@@ -457,8 +462,10 @@ def clear_sample(conn, actor: str = "sample-loader",
     # links) go with it; the registry's own rows (other authors) are untouched
     from .. import repo
     from ..schemas import ENTITIES
-    for r in conn.execute("SELECT id FROM person WHERE created_by = ?",
-                          (actor,)).fetchall():
+    for r in conn.execute(
+            "SELECT id FROM person WHERE created_by = 'sample-loader' "
+            "OR created_by = ? OR code LIKE 'SAMP-%'",
+            (actor,)).fetchall():
         repo.hard_delete(conn, ENTITIES["person"], r["id"], actor=actor,
                          reason="sample reset")
         removed += 1
